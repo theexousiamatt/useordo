@@ -1,10 +1,10 @@
 type ActivityRow = {
   type: string;
-  payload: Record<string, unknown> | null;
+  payload: unknown;
 };
 
 export function activityLabel(a: ActivityRow): string {
-  const p = (a.payload ?? {}) as Record<string, string>;
+  const p = (typeof a.payload === "object" && a.payload !== null ? a.payload : {}) as Record<string, string>;
   switch (a.type) {
     case "task_created": return `New task: ${p.title ?? "Untitled"}`;
     case "task_status_changed": return `Task "${p.title}" → ${formatStatus(p.to)}`;
@@ -15,11 +15,11 @@ export function activityLabel(a: ActivityRow): string {
     case "project_created": return `Project created`;
     case "project_updated": return `Project updated`;
     case "comment_added": return `New comment`;
-    default: return a.type.replaceAll("_", " ");
+    default: return a.type.split("_").join(" ");
   }
 }
 
 function formatStatus(s?: string) {
   if (!s) return "";
-  return s.replaceAll("_", " ");
+  return s.split("_").join(" ");
 }
