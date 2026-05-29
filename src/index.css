@@ -82,3 +82,69 @@
     color: transparent;
   }
 }
+
+/* ============================================================
+   Ordo Client OS — scoped light design system.
+   Applied only within `.client-os` so the rest of the
+   (dark Midnight Indigo) app is untouched. All colors HSL.
+   ============================================================ */
+.client-os {
+  --background: 220 16% 95%;          /* #F0F2F5 app bg */
+  --foreground: 210 8% 11%;           /* #1A1D1F primary text */
+
+  --card: 0 0% 100%;                  /* #FFFFFF panels */
+  --card-foreground: 210 8% 11%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 8% 11%;
+
+  --primary: 210 8% 11%;              /* dark buttons */
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 220 14% 96%;           /* hover/active surface */
+  --secondary-foreground: 210 8% 11%;
+
+  --muted: 220 14% 96%;
+  --muted-foreground: 213 6% 47%;     /* #6F767E secondary text */
+
+  --accent: 217 91% 60%;              /* #3B82F6 */
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --success: 160 84% 39%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 32 95% 44%;
+  --warning-foreground: 0 0% 100%;
+
+  --border: 0 0% 94%;                 /* #EFEFEF */
+  --input: 0 0% 94%;
+  --ring: 217 91% 60%;
+
+  /* tertiary text */
+  --text-tertiary: 218 11% 65%;       /* #9CA3AF */
+
+  /* radii */
+  --radius-panel: 28px;
+  --radius-card: 20px;
+  --radius-pill: 99px;
+  --radius-small: 12px;
+
+  /* shadows */
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.03);
+  --shadow-panel: 0 12px 36px -8px rgba(0, 0, 0, 0.04), 0 4px 16px -4px rgba(0, 0, 0, 0.02);
+  --shadow-hover: 0 16px 40px -8px rgba(0, 0, 0, 0.06);
+
+  /* badges */
+  --badge-green-bg: 152 76% 90%;
+  --badge-green-text: 160 94% 30%;
+  --badge-orange-bg: 45 93% 89%;
+  --badge-orange-text: 32 95% 44%;
+  --badge-red-bg: 0 86% 94%;
+  --badge-red-text: 0 72% 51%;
+
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
