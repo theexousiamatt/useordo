@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,8 +57,25 @@ export default function Onboarding() {
 
   console.info("[Onboarding] runtime state", debugSnapshot);
 
+  useEffect(() => {
+    if (!loading && user && !wsLoading && resolved && !error && workspaces.length > 0 && step === 1 && !workspaceId) {
+      console.info("[Onboarding] existing workspace detected, redirecting to dashboard", debugSnapshot);
+      navigate("/", { replace: true });
+    }
+  }, [loading, user, wsLoading, resolved, error, workspaces.length, step, workspaceId, navigate]);
+
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
+  if (wsLoading || (!resolved && !error)) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <pre className="fixed bottom-3 left-3 z-50 max-h-[45vh] max-w-[min(92vw,520px)] overflow-auto rounded-md border border-border bg-card p-3 text-[11px] leading-relaxed text-card-foreground shadow-lg">
+          {JSON.stringify(debugSnapshot, null, 2)}
+        </pre>
+      </div>
+    );
+  }
   // If user already created their workspace in this session, allow re-entry only via step flow
   if (workspaces.length > 0 && step === 1 && !workspaceId) {
     // Allow creating an additional workspace, but default existing users go to dashboard
