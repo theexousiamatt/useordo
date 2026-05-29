@@ -50,42 +50,24 @@ export default function Onboarding() {
     setBusy(true);
     try {
       const finalSlug = uniqueSlug(name);
-      const { data: ws, error } = await supabase
-        .from("workspaces")
-        .insert({ name: name.trim(), slug: finalSlug, type, owner_id: user.id })
-        .select("id")
-        .single();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-      if (error || !ws) {
-        console.error("Workspace creation failed:", error);
-        toast.error(error?.message ?? "Could not create workspace");
+      if (sessionError || !sessionData.session) {
+        console.error("Workspace creation blocked: missing session", sessionError);
+        toast.error("Your session expired. Please sign in again.");
         return;
       }
 
-      const { error: memberError } = await supabase
-        .from("workspace_members")
-        .insert({ workspace_id: ws.id, user_id: user.id, role: "owner" });
+      const { data: ws, error } = await supabase.functions.invoke<{ id?: string; error?: string }>(
+        "create-workspace",
+        { body: { name: name.trim(), slug: finalSlug, type } },
+      );
 
-      if (memberError) {
-        console.error("Owner membership failed:", memberError);
-        toast.error(memberError.message);
+      if (error || !ws?.id) {
+        console.error("Workspace creation failed:", error ?? ws);
+        toast.error(ws?.error ?? error?.message ?? "Could not create workspace");
         return;
       }
-
-      // Best-effort side effects — never block onboarding if they fail.
-      const profileResult = await supabase
-        .from("profiles")
-        .update({ email: user.email })
-        .eq("id", user.id);
-      if (profileResult.error) console.error("Profile update failed:", profileResult.error);
-
-      const activityResult = await supabase.from("activity_logs").insert({
-        workspace_id: ws.id,
-        actor_id: user.id,
-        action: "workspace.created",
-        metadata: { name: name.trim(), type },
-      });
-      if (activityResult.error) console.error("Activity log failed:", activityResult.error);
 
       setWorkspaceId(ws.id);
       setStep(3);

@@ -44,10 +44,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
     setLoading(true);
     setError(null);
-    const { data, error } = await supabase
-      .from("workspace_members")
-      .select("role, workspaces(id, name, slug, type, owner_id)")
-      .eq("user_id", user.id);
+    const { data, error } = await supabase.functions.invoke<{ workspaces?: Workspace[]; error?: string }>(
+      "list-workspaces",
+    );
 
     if (error) {
       setError(error.message);
@@ -55,16 +54,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const list: Workspace[] = (data ?? [])
-      .filter((row: any) => row.workspaces)
-      .map((row: any) => ({
-        id: row.workspaces.id,
-        name: row.workspaces.name,
-        slug: row.workspaces.slug,
-        type: row.workspaces.type,
-        owner_id: row.workspaces.owner_id,
-        role: row.role as WorkspaceRole,
-      }));
+    if (data?.error) {
+      setError(data.error);
+      setLoading(false);
+      return;
+    }
+
+    const list = data?.workspaces ?? [];
 
     setWorkspaces(list);
     setLoading(false);

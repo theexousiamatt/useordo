@@ -1,1 +1,7 @@
 project_id = "dkqcszrnqwviolznxawi"
+
+[functions.create-workspace]
+verify_jwt = false
+
+[functions.list-workspaces]
+verify_jwt = false
