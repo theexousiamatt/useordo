@@ -951,7 +951,12 @@ export type Database = {
         | "changes_requested"
         | "done"
       workspace_role: "owner" | "member" | "client"
-      workspace_type: "freelancer" | "agency" | "consultant" | "other"
+      workspace_type:
+        | "freelancer"
+        | "agency"
+        | "consultant"
+        | "other"
+        | "startup"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1117,7 +1122,13 @@ export const Constants = {
         "done",
       ],
       workspace_role: ["owner", "member", "client"],
-      workspace_type: ["freelancer", "agency", "consultant", "other"],
+      workspace_type: [
+        "freelancer",
+        "agency",
+        "consultant",
+        "other",
+        "startup",
+      ],
     },
   },
 } as const
