@@ -108,19 +108,26 @@ export default function Onboarding() {
 
   const finish = async (sendInvites: boolean) => {
     setBusy(true);
-    if (sendInvites && invites.length && workspaceId) {
-      await supabase.from("activity_logs").insert({
-        workspace_id: workspaceId,
-        actor_id: user.id,
-        action: "members.invited",
-        metadata: { emails: invites },
-      });
-      toast.success(`Queued ${invites.length} invite${invites.length > 1 ? "s" : ""}.`);
+    try {
+      if (sendInvites && invites.length && workspaceId) {
+        const { error } = await supabase.from("activity_logs").insert({
+          workspace_id: workspaceId,
+          actor_id: user.id,
+          action: "members.invited",
+          metadata: { emails: invites },
+        });
+        if (error) console.error("Invite log failed:", error);
+        else toast.success(`Queued ${invites.length} invite${invites.length > 1 ? "s" : ""}.`);
+      }
+      await refresh();
+      if (workspaceId) selectWorkspace(workspaceId);
+      navigate("/");
+    } catch (err) {
+      console.error("Unexpected error finishing onboarding:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    await refresh();
-    if (workspaceId) selectWorkspace(workspaceId);
-    setBusy(false);
-    navigate("/");
   };
 
   return (
