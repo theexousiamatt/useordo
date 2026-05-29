@@ -1,46 +1,75 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState, useCallback } from "react";
+import { Activity as ActivityIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Link } from "react-router-dom";
-import { activityLabel } from "@/lib/activity";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/states/EmptyState";
+import { ErrorState } from "@/components/states/ErrorState";
+import { LoadingList } from "@/components/states/LoadingState";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { supabase } from "@/integrations/supabase/client";
 import { timeAgo } from "@/lib/format";
 
+interface Log {
+  id: string;
+  action: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+const describe = (log: Log): string => {
+  const m = log.metadata as any;
+  switch (log.action) {
+    case "workspace.created": return `Workspace "${m?.name ?? ""}" was created`;
+    case "members.invited": return `Invited ${(m?.emails?.length ?? 0)} member(s)`;
+    default: return log.action.replace(/[._]/g, " ");
+  }
+};
+
 export default function ActivityPage() {
-  const { data: items = [] } = useQuery({
-    queryKey: ["activity-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("activity").select("*, projects(name)").order("created_at", { ascending: false }).limit(200);
-      if (error) throw error;
-      return data as Array<{ id: string; project_id: string; type: string; payload: Record<string, unknown>; created_at: string; projects: { name: string } | null }>;
-    },
-  });
+  const { currentWorkspace } = useWorkspace();
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!currentWorkspace) return;
+    setLoading(true);
+    setError(false);
+    const { data, error } = await supabase
+      .from("activity_logs")
+      .select("id, action, metadata, created_at")
+      .eq("workspace_id", currentWorkspace.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) { setError(true); setLoading(false); return; }
+    setLogs((data ?? []) as Log[]);
+    setLoading(false);
+  }, [currentWorkspace]);
+
+  useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
-        <p className="text-sm text-muted-foreground mt-1">Everything happening across your projects.</p>
-      </div>
+    <div>
+      <PageHeader title="Activity" description="A chronological trail of everything happening here." />
 
-      {items.length === 0 ? (
-        <Card className="p-10 border-dashed border-border text-center text-sm text-muted-foreground">
-          Nothing yet.
-        </Card>
+      {loading ? (
+        <LoadingList rows={5} />
+      ) : error ? (
+        <ErrorState onRetry={load} />
+      ) : logs.length === 0 ? (
+        <EmptyState
+          icon={ActivityIcon}
+          title="No activity yet"
+          description="As you and your team work, every meaningful change is recorded here."
+        />
       ) : (
-        <Card className="border-border/50 divide-y divide-border">
-          {items.map((a) => (
-            <div key={a.id} className="p-4 flex items-start gap-4">
-              <div className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm">{activityLabel(a)}</div>
-                <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
-                  {a.projects && (
-                    <Link to={`/projects/${a.project_id}`} className="hover:text-primary">{a.projects.name}</Link>
-                  )}
-                  <span>·</span>
-                  <span>{timeAgo(a.created_at)}</span>
-                </div>
+        <Card className="divide-y divide-border">
+          {logs.map((log) => (
+            <div key={log.id} className="flex items-start gap-3 p-4">
+              <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm">{describe(log)}</p>
+                <p className="text-xs text-muted-foreground">{timeAgo(log.created_at)}</p>
               </div>
             </div>
           ))}

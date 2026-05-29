@@ -4,14 +4,18 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
+import { WorkspaceProvider } from "@/hooks/useWorkspace";
 import AppLayout from "@/components/AppLayout";
 import Auth from "@/pages/Auth";
-import Overview from "@/pages/Overview";
+import ResetPassword from "@/pages/ResetPassword";
+import Onboarding from "@/pages/Onboarding";
+import Dashboard from "@/pages/Dashboard";
 import Projects from "@/pages/Projects";
-import ProjectDetail from "@/pages/ProjectDetail";
-import Approvals from "@/pages/Approvals";
+import Tasks from "@/pages/Tasks";
+import Clients from "@/pages/Clients";
+import Team from "@/pages/Team";
 import ActivityPage from "@/pages/ActivityPage";
-import Files from "@/pages/Files";
+import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,18 +27,23 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route element={<AppLayout />}>
-              <Route path="/" element={<Overview />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/:id" element={<ProjectDetail />} />
-              <Route path="/approvals" element={<Approvals />} />
-              <Route path="/activity" element={<ActivityPage />} />
-              <Route path="/files" element={<Files />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <WorkspaceProvider>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/tasks" element={<Tasks />} />
+                <Route path="/clients" element={<Clients />} />
+                <Route path="/team" element={<Team />} />
+                <Route path="/activity" element={<ActivityPage />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </WorkspaceProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
