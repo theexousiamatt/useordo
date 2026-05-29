@@ -6,9 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type WorkspaceType = "freelancer" | "agency" | "consultant" | "other";
+type WorkspaceType = "freelancer" | "agency" | "consultant" | "startup" | "other";
 
-const workspaceTypes: WorkspaceType[] = ["freelancer", "agency", "consultant", "other"];
+const workspaceTypes: WorkspaceType[] = ["freelancer", "agency", "consultant", "startup", "other"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
