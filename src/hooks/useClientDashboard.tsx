@@ -85,6 +85,16 @@ export function useClientProjects() {
   });
 }
 
+/** Helper: build a project id -> name lookup (no FK relationships exist for embeds). */
+async function projectNameMap(ids: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ids.length === 0) return map;
+  const unique = Array.from(new Set(ids));
+  const { data } = await supabase.from("projects").select("id, name").in("id", unique);
+  (data ?? []).forEach((p) => map.set(p.id, p.name));
+  return map;
+}
+
 /** Tasks needing client attention (approvals / change requests). */
 export function useActionItems() {
   const { user } = useAuth();
@@ -94,17 +104,19 @@ export function useActionItems() {
     queryFn: async (): Promise<ActionItem[]> => {
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, title, status, due_date, project_id, projects(name)")
+        .select("id, title, status, due_date, project_id")
         .in("status", ["awaiting_approval", "changes_requested"])
         .order("due_date", { ascending: true, nullsFirst: false });
       if (error) throw error;
-      return (data ?? []).map((t) => ({
+      const rows = data ?? [];
+      const names = await projectNameMap(rows.map((t) => t.project_id));
+      return rows.map((t) => ({
         id: t.id,
         title: t.title,
         status: t.status as TaskStatus,
         due_date: t.due_date,
         project_id: t.project_id,
-        project_name: (t.projects as { name?: string } | null)?.name ?? "Project",
+        project_name: names.get(t.project_id) ?? "Project",
       }));
     },
   });
@@ -135,20 +147,23 @@ export function useClientMilestones(limit = 6) {
     queryFn: async (): Promise<Milestone[]> => {
       const { data, error } = await supabase
         .from("milestones")
-        .select("id, title, due_date, completed, completed_at, project_id, projects(name)")
+        .select("id, title, due_date, completed, completed_at, project_id")
         .order("completed", { ascending: true })
         .order("due_date", { ascending: true, nullsFirst: false })
         .limit(limit);
       if (error) throw error;
-      return (data ?? []).map((m) => ({
+      const rows = data ?? [];
+      const names = await projectNameMap(rows.map((m) => m.project_id));
+      return rows.map((m) => ({
         id: m.id,
         title: m.title,
         due_date: m.due_date,
         completed: m.completed,
         completed_at: m.completed_at,
         project_id: m.project_id,
-        project_name: (m.projects as { name?: string } | null)?.name ?? "",
+        project_name: names.get(m.project_id) ?? "",
       }));
     },
   });
 }
+
