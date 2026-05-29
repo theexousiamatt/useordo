@@ -7,8 +7,6 @@ import { MobileNav } from "@/components/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-const DEBUG_RUNTIME = true;
-
 function FullScreenLoader() {
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -36,14 +34,7 @@ export default function AppLayout() {
     },
   };
 
-  const DebugOverlay = ({ destination, condition }: { destination: string; condition: string }) =>
-    DEBUG_RUNTIME ? (
-      <pre className="fixed bottom-3 left-3 z-50 max-h-[45vh] max-w-[min(92vw,520px)] overflow-auto rounded-md border border-border bg-card p-3 text-[11px] leading-relaxed text-card-foreground shadow-lg">
-        {JSON.stringify({ ...debugSnapshot, routingDecision: destination, onboardingCondition: condition }, null, 2)}
-      </pre>
-    ) : null;
-
-  if (authLoading) return <><FullScreenLoader /><DebugOverlay destination="hold-auth-loading" condition="authLoading === true" /></>;
+  if (authLoading) return <FullScreenLoader />;
   if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
 
   // Still loading, or the last fetch failed/has not resolved cleanly:
@@ -55,7 +46,7 @@ export default function AppLayout() {
       resolved,
       error,
     });
-    return <><FullScreenLoader /><DebugOverlay destination="hold-workspace-loading" condition="wsLoading || (!resolved && error)" /></>;
+    return <FullScreenLoader />;
   }
 
   const shouldOnboard = workspaces.length === 0;
