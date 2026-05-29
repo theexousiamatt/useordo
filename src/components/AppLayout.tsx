@@ -16,9 +16,23 @@ function FullScreenLoader() {
 }
 
 export default function AppLayout() {
-  const { user, loading: authLoading } = useAuth();
-  const { workspaces, loading: wsLoading, resolved, error, role } = useWorkspace();
+  const { user, session, loading: authLoading } = useAuth();
+  const { workspaces, loading: wsLoading, resolved, error, role, debug } = useWorkspace();
   const location = useLocation();
+
+  const debugSnapshot = {
+    authUserId: user?.id ?? null,
+    sessionExists: Boolean(session),
+    accessTokenExists: Boolean(session?.access_token),
+    listWorkspacesResponse: debug.lastResponse,
+    parsedWorkspaceCount: debug.parsedWorkspaceCount,
+    useWorkspace: {
+      loading: wsLoading,
+      resolved,
+      error,
+      workspacesLength: workspaces.length,
+    },
+  };
 
   if (authLoading) return <FullScreenLoader />;
   if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
@@ -27,7 +41,7 @@ export default function AppLayout() {
   // never make a routing decision (especially onboarding) on an unresolved state.
   if (wsLoading || (!resolved && error)) {
     console.info("[AppLayout] workspace state unresolved, holding", {
-      userId: user.id,
+      ...debugSnapshot,
       wsLoading,
       resolved,
       error,
@@ -35,18 +49,21 @@ export default function AppLayout() {
     return <FullScreenLoader />;
   }
 
+  const shouldOnboard = workspaces.length === 0;
+  const onboardingCondition = `workspaces.length === 0 -> ${workspaces.length} === 0 (${shouldOnboard})`;
   const decision =
-    workspaces.length === 0
+    shouldOnboard
       ? "onboarding"
       : role === "client"
         ? "client"
         : "dashboard";
 
   console.info("[AppLayout] routing decision", {
-    userId: user.id,
+    ...debugSnapshot,
     role,
     workspaceCount: workspaces.length,
     decision,
+    onboardingCondition,
   });
 
   if (decision === "onboarding") return <Navigate to="/onboarding" replace />;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +24,8 @@ const TYPES: { value: WsType; label: string; icon: typeof Briefcase; desc: strin
 ];
 
 export default function Onboarding() {
-  const { user, loading } = useAuth();
-  const { refresh, selectWorkspace, workspaces } = useWorkspace();
+  const { user, session, loading } = useAuth();
+  const { refresh, selectWorkspace, workspaces, loading: wsLoading, resolved, error, debug } = useWorkspace();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -38,8 +38,41 @@ export default function Onboarding() {
 
   const slug = useMemo(() => slugify(name) || "your-workspace", [name]);
 
+  const debugSnapshot = {
+    route: "/onboarding",
+    authUserId: user?.id ?? null,
+    sessionExists: Boolean(session),
+    accessTokenExists: Boolean(session?.access_token),
+    listWorkspacesResponse: debug.lastResponse,
+    parsedWorkspaceCount: debug.parsedWorkspaceCount,
+    useWorkspace: {
+      loading: wsLoading,
+      resolved,
+      error,
+      workspacesLength: workspaces.length,
+    },
+    routingDecision: workspaces.length > 0 ? "currently-still-on-onboarding" : "show-onboarding",
+    onboardingCondition: `route is /onboarding; guard does not redirect existing workspace users; workspaces.length=${workspaces.length}`,
+  };
+
+  console.info("[Onboarding] runtime state", debugSnapshot);
+
+  useEffect(() => {
+    if (!loading && user && !wsLoading && resolved && !error && workspaces.length > 0 && step === 1 && !workspaceId) {
+      console.info("[Onboarding] existing workspace detected, redirecting to dashboard", debugSnapshot);
+      navigate("/", { replace: true });
+    }
+  }, [loading, user, wsLoading, resolved, error, workspaces.length, step, workspaceId, navigate]);
+
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
+  if (wsLoading || (!resolved && !error)) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
   // If user already created their workspace in this session, allow re-entry only via step flow
   if (workspaces.length > 0 && step === 1 && !workspaceId) {
     // Allow creating an additional workspace, but default existing users go to dashboard
