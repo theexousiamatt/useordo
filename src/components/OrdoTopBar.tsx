@@ -33,7 +33,7 @@ export function OrdoTopBar() {
             <WorkspaceSearch />
           </div>
           <NotificationButton />
-          <UserProfileMenu />
+          <UserProfileMenu settingsPath="/settings" />
         </div>
       </div>
 
