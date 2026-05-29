@@ -70,6 +70,15 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        panel: "var(--radius-panel)",
+        card: "var(--radius-card)",
+        pill: "var(--radius-pill)",
+        small: "var(--radius-small)",
+      },
+      boxShadow: {
+        subtle: "var(--shadow-subtle)",
+        panel: "var(--shadow-panel)",
+        hover: "var(--shadow-hover)",
       },
       keyframes: {
         "accordion-down": {
