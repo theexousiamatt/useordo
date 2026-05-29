@@ -48,38 +48,53 @@ export default function Onboarding() {
   const createWorkspace = async () => {
     if (!name.trim()) return toast.error("Give your workspace a name");
     setBusy(true);
-    const finalSlug = uniqueSlug(name);
-    const { data: ws, error } = await supabase
-      .from("workspaces")
-      .insert({ name: name.trim(), slug: finalSlug, type, owner_id: user.id })
-      .select("id")
-      .single();
+    try {
+      const finalSlug = uniqueSlug(name);
+      const { data: ws, error } = await supabase
+        .from("workspaces")
+        .insert({ name: name.trim(), slug: finalSlug, type, owner_id: user.id })
+        .select("id")
+        .single();
 
-    if (error || !ws) {
+      if (error || !ws) {
+        console.error("Workspace creation failed:", error);
+        toast.error(error?.message ?? "Could not create workspace");
+        return;
+      }
+
+      const { error: memberError } = await supabase
+        .from("workspace_members")
+        .insert({ workspace_id: ws.id, user_id: user.id, role: "owner" });
+
+      if (memberError) {
+        console.error("Owner membership failed:", memberError);
+        toast.error(memberError.message);
+        return;
+      }
+
+      // Best-effort side effects — never block onboarding if they fail.
+      const profileResult = await supabase
+        .from("profiles")
+        .update({ email: user.email })
+        .eq("id", user.id);
+      if (profileResult.error) console.error("Profile update failed:", profileResult.error);
+
+      const activityResult = await supabase.from("activity_logs").insert({
+        workspace_id: ws.id,
+        actor_id: user.id,
+        action: "workspace.created",
+        metadata: { name: name.trim(), type },
+      });
+      if (activityResult.error) console.error("Activity log failed:", activityResult.error);
+
+      setWorkspaceId(ws.id);
+      setStep(3);
+    } catch (err) {
+      console.error("Unexpected error creating workspace:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
       setBusy(false);
-      return toast.error(error?.message ?? "Could not create workspace");
     }
-
-    const { error: memberError } = await supabase
-      .from("workspace_members")
-      .insert({ workspace_id: ws.id, user_id: user.id, role: "owner" });
-
-    if (memberError) {
-      setBusy(false);
-      return toast.error(memberError.message);
-    }
-
-    await supabase.from("profiles").update({ email: user.email }).eq("id", user.id);
-    await supabase.from("activity_logs").insert({
-      workspace_id: ws.id,
-      actor_id: user.id,
-      action: "workspace.created",
-      metadata: { name: name.trim(), type },
-    });
-
-    setWorkspaceId(ws.id);
-    setBusy(false);
-    setStep(3);
   };
 
   const addInvite = () => {
@@ -93,19 +108,26 @@ export default function Onboarding() {
 
   const finish = async (sendInvites: boolean) => {
     setBusy(true);
-    if (sendInvites && invites.length && workspaceId) {
-      await supabase.from("activity_logs").insert({
-        workspace_id: workspaceId,
-        actor_id: user.id,
-        action: "members.invited",
-        metadata: { emails: invites },
-      });
-      toast.success(`Queued ${invites.length} invite${invites.length > 1 ? "s" : ""}.`);
+    try {
+      if (sendInvites && invites.length && workspaceId) {
+        const { error } = await supabase.from("activity_logs").insert({
+          workspace_id: workspaceId,
+          actor_id: user.id,
+          action: "members.invited",
+          metadata: { emails: invites },
+        });
+        if (error) console.error("Invite log failed:", error);
+        else toast.success(`Queued ${invites.length} invite${invites.length > 1 ? "s" : ""}.`);
+      }
+      await refresh();
+      if (workspaceId) selectWorkspace(workspaceId);
+      navigate("/");
+    } catch (err) {
+      console.error("Unexpected error finishing onboarding:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    await refresh();
-    if (workspaceId) selectWorkspace(workspaceId);
-    setBusy(false);
-    navigate("/");
   };
 
   return (
