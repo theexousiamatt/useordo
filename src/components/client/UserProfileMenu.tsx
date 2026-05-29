@@ -35,10 +35,10 @@ export function UserProfileMenu({ settingsPath = "/client/settings" }: { setting
           <span className="truncate text-xs font-normal text-muted-foreground">{user?.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/client/settings")} className="gap-2">
+        <DropdownMenuItem onClick={() => navigate(settingsPath)} className="gap-2">
           <User className="h-4 w-4" /> Profile
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/client/settings")} className="gap-2">
+        <DropdownMenuItem onClick={() => navigate(settingsPath)} className="gap-2">
           <Settings className="h-4 w-4" /> Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
