@@ -18,6 +18,8 @@ type WorkspaceContextValue = {
   currentWorkspace: Workspace | null;
   role: WorkspaceRole | null;
   loading: boolean;
+  /** True once a workspace fetch has completed successfully (no error). */
+  resolved: boolean;
   error: string | null;
   selectWorkspace: (id: string) => void;
   refresh: () => Promise<void>;
