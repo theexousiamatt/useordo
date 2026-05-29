@@ -35,7 +35,7 @@ const STORAGE_KEY = "ordo:current-workspace";
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { user, session } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(
     () => localStorage.getItem(STORAGE_KEY),
@@ -50,6 +50,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   });
 
   const load = async () => {
+    if (authLoading) {
+      console.info("[useWorkspace] auth still loading, holding workspace resolution");
+      setLoading(true);
+      setResolved(false);
+      return;
+    }
+
     // No authenticated user → nothing to load, but this is a resolved "zero" state.
     if (!user) {
       console.info("[useWorkspace] no auth user, clearing workspaces");
@@ -73,6 +80,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
+    setResolved(false);
     setError(null);
     console.info("[useWorkspace] loading workspaces", {
       userId: user.id,
@@ -125,7 +133,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, session?.access_token]);
+  }, [authLoading, user?.id, session?.access_token]);
 
   const selectWorkspace = (id: string) => {
     setCurrentId(id);
