@@ -1,5 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { Loader2 } from "lucide-react";
+import { Package, MessageSquare, Settings as SettingsIcon } from "lucide-react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,8 +20,23 @@ import Team from "@/pages/Team";
 import ActivityPage from "@/pages/ActivityPage";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
+import { ClientLayout } from "@/components/client/ClientLayout";
+
+const ClientDashboard = lazy(() => import("@/pages/ClientDashboard"));
+const ClientProjects = lazy(() => import("@/pages/ClientProjects"));
+const ClientApprovals = lazy(() => import("@/pages/ClientApprovals"));
+const ClientActivity = lazy(() => import("@/pages/ClientActivity"));
+const ClientComingSoon = lazy(() => import("@/pages/ClientComingSoon"));
 
 const queryClient = new QueryClient();
+
+function ClientFallback() {
+  return (
+    <div className="client-os flex min-h-screen items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -28,21 +46,66 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <WorkspaceProvider>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/tasks" element={<Tasks />} />
-                <Route path="/clients" element={<Clients />} />
-                <Route path="/team" element={<Team />} />
-                <Route path="/activity" element={<ActivityPage />} />
-                <Route path="/settings" element={<Settings />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <Suspense fallback={<ClientFallback />}>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+
+                {/* Client-facing workspace */}
+                <Route path="/client" element={<ClientLayout />}>
+                  <Route index element={<ClientDashboard />} />
+                  <Route path="projects" element={<ClientProjects />} />
+                  <Route path="projects/:id" element={<ClientProjects />} />
+                  <Route path="approvals" element={<ClientApprovals />} />
+                  <Route path="activity" element={<ClientActivity />} />
+                  <Route
+                    path="deliverables"
+                    element={
+                      <ClientComingSoon
+                        title="Deliverables"
+                        subtitle="Files and assets shared with you."
+                        icon={Package}
+                        description="Approved files and deliverables from your projects will live here."
+                      />
+                    }
+                  />
+                  <Route
+                    path="messages"
+                    element={
+                      <ClientComingSoon
+                        title="Messages"
+                        subtitle="Talk to your team in one place."
+                        icon={MessageSquare}
+                        description="Direct conversations with your team are coming soon."
+                      />
+                    }
+                  />
+                  <Route
+                    path="settings"
+                    element={
+                      <ClientComingSoon
+                        title="Settings"
+                        subtitle="Manage your account."
+                        icon={SettingsIcon}
+                        description="Profile and notification settings are coming soon."
+                      />
+                    }
+                  />
+                </Route>
+
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/clients" element={<Clients />} />
+                  <Route path="/team" element={<Team />} />
+                  <Route path="/activity" element={<ActivityPage />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </WorkspaceProvider>
         </AuthProvider>
       </BrowserRouter>
