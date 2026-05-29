@@ -14,6 +14,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
 import Projects from "@/pages/Projects";
+import ProjectDetail from "@/pages/ProjectDetail";
 import Tasks from "@/pages/Tasks";
 import Clients from "@/pages/Clients";
 import Team from "@/pages/Team";
@@ -97,6 +98,7 @@ const App = () => (
                 <Route element={<AppLayout />}>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/projects" element={<Projects />} />
+                  <Route path="/projects/:id" element={<ProjectDetail />} />
                   <Route path="/tasks" element={<Tasks />} />
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/team" element={<Team />} />
