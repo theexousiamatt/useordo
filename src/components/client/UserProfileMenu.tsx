@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { initials } from "@/lib/format";
 
-export function UserProfileMenu() {
+export function UserProfileMenu({ settingsPath = "/client/settings" }: { settingsPath?: string }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const name = (user?.user_metadata?.full_name as string) || user?.email?.split("@")[0] || "Account";
@@ -35,10 +35,10 @@ export function UserProfileMenu() {
           <span className="truncate text-xs font-normal text-muted-foreground">{user?.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/client/settings")} className="gap-2">
+        <DropdownMenuItem onClick={() => navigate(settingsPath)} className="gap-2">
           <User className="h-4 w-4" /> Profile
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/client/settings")} className="gap-2">
+        <DropdownMenuItem onClick={() => navigate(settingsPath)} className="gap-2">
           <Settings className="h-4 w-4" /> Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />

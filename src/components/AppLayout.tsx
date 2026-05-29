@@ -1,15 +1,13 @@
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { AppHeader } from "@/components/AppHeader";
-import { MobileNav } from "@/components/MobileNav";
+import { OrdoSidebar } from "@/components/OrdoSidebar";
+import { OrdoTopBar } from "@/components/OrdoTopBar";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
 function FullScreenLoader() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
+    <div className="client-os flex min-h-screen items-center justify-center">
       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
     </div>
   );
@@ -71,19 +69,20 @@ export default function AppLayout() {
 
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
-        <AppSidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <AppHeader />
-          <main className="flex-1 overflow-auto px-4 py-6 pb-24 sm:px-6 md:pb-6">
-            <div className="mx-auto w-full max-w-6xl">
-              <Outlet />
-            </div>
-          </main>
-        </div>
-        <MobileNav />
+    <div className="client-os min-h-screen">
+      <div className="flex gap-6 p-4 sm:gap-8 sm:p-8">
+        {/* Desktop sidebar */}
+        <aside className="hidden w-[260px] shrink-0 lg:block">
+          <div className="sticky top-8 h-[calc(100vh-4rem)]">
+            <OrdoSidebar />
+          </div>
+        </aside>
+
+        <main className="flex min-w-0 flex-1 flex-col gap-6 sm:gap-8">
+          <OrdoTopBar />
+          <Outlet />
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }

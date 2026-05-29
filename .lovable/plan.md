@@ -1,71 +1,34 @@
-# Fix: Existing-workspace users wrongly sent to onboarding
+## Problem
 
-## Root cause
-`useWorkspace` loads workspaces by calling the `list-workspaces` edge function. The function reads the `Authorization` header and calls `admin.auth.getUser(token)`. The edge logs show this failing repeatedly with `AuthSessionMissingError: Auth session missing!`.
+The "Ordo Client OS" reference design was built only as a separate set of pages under the **`/client`** route. The main authenticated app at **`/`** still renders the original shell (`AppSidebar` + `AppHeader` + plain stat-card `Dashboard`). On top of that, all of the reference's design tokens (rounded panels, soft shadows, badge colors, surfaces) live scoped inside a `.client-os` CSS wrapper, so none of that styling reaches the main app. That's why, viewing `/`, you see the old UI and conclude the reference "isn't applied".
 
-Why it fails:
-- `load()` fires on `user?.id` change, but `supabase.functions.invoke(...)` does not reliably carry a **valid user access token**. When the auth session is still being restored (or when the functions client falls back to the publishable/anon key as `Authorization`), the token the function receives is not a user JWT, so `getUser(token)` rejects.
-- On any error, `useWorkspace` sets `workspaces = []` and `loading = false`.
-- `AppLayout` then hits `if (workspaces.length === 0) return <Navigate to="/onboarding" />`, so an owner of 2 workspaces (confirmed in the DB) is pushed into onboarding.
+You chose to apply the reference design to **both `/` and `/client`**, so the plan brings the Ordo Client OS visual language into the main internal app.
 
-This is an auth-loading / token race condition, not missing membership data.
+## What gets built
 
-## Current routing logic
-```text
-Login -> AppLayout
-  authLoading            -> spinner
-  !user                  -> /auth
-  wsLoading              -> spinner
-  workspaces.length === 0 -> /onboarding   <-- fires for owners when list-workspaces errors
-  role === "client"      -> /client
-  else                   -> dashboard
-```
-`useWorkspace.load()` runs on `user?.id` change, invokes `list-workspaces` with no explicit token, and empties `workspaces` on error.
+### 1. Promote the design tokens
+- Lift the `.client-os` token block in `src/index.css` so the Ordo Client OS surfaces, radii, shadows, and badge colors apply to the whole authenticated app (keep `.client-os` as an alias so existing `/client` pages keep working).
 
-## Updated routing logic
-1. Only query workspaces once auth is actually ready and a session exists.
-2. Always attach the real user access token to the edge function call.
-3. Distinguish "still loading / errored" from "confirmed zero workspaces" so we never redirect to onboarding on an error.
+### 2. New main-app shell (matches the reference)
+- Restyle `AppLayout` to use the Ordo panel layout: padded canvas, rounded sticky sidebar, content column with header — same structure as `ClientLayout`.
+- Create an internal sidebar in the Ordo style (reusing the `ClientSidebar` look: traffic-light dots, Ordo logo, pill nav, active state, badges) but pointing at the internal nav: Dashboard `/`, Projects, Tasks, Clients, Team, Activity, Settings.
+- Restyle the header to the Ordo `ClientHeader` pattern (title/subtitle + search + notifications + profile menu), reusing `WorkspaceSearch`, `NotificationButton`, and `UserProfileMenu` where they fit.
+- Keep the mobile nav, restyled to match.
 
-```text
-authLoading || wsLoading || wsError(unresolved) -> spinner (do NOT redirect)
-!user                                            -> /auth
-confirmed 0 workspaces (clean success)           -> /onboarding
-role === "client"                                -> /client
-else                                             -> dashboard
-```
+### 3. Redesign the main Dashboard (`/`)
+- Rebuild `src/pages/Dashboard.tsx` using the reference card components: `ProjectOverviewCard`, `ActionCenter`, `ActivityFeed`, `MilestoneTimeline`, with the same section hierarchy and spacing as `ClientDashboard`, wired to the workspace's real data (projects/tasks/activity) with the existing loading / empty / error states.
 
-## Applied fix
+### 4. Align the other internal pages
+- Apply the Ordo card / panel styling and `ClientHeader`-style page headers to Projects, Tasks, Clients, Team, Activity, and Settings so they match the reference (no logic changes — presentation only).
 
-### 1. `src/hooks/useWorkspace.tsx`
-- Pull `session` from `useAuth()`.
-- Gate `load()` so it runs only when `session?.access_token` exists; otherwise keep `loading = true` (don't flip to an empty, "ready" state).
-- Pass the token explicitly to the function:
-  ```ts
-  supabase.functions.invoke("list-workspaces", {
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  })
-  ```
-- On error, set `error` but keep `workspaces` untouched and treat the state as not-resolved (so `AppLayout` shows a spinner / retry, never onboarding).
-- Re-run `load()` when `session?.access_token` changes (not just `user?.id`).
+### 5. `/client` stays intact
+- The existing `/client` routes keep working with the same design (now sharing the promoted tokens).
 
-### 2. `src/components/AppLayout.tsx`
-- Only redirect to `/onboarding` when workspace loading finished **without error** and the list is genuinely empty.
-- While `wsLoading` or an unresolved `error` is present, render the loader (optionally with a retry) instead of redirecting.
+## Verification
+- Load `/` as a workspace owner and confirm the Ordo Client OS shell, sidebar, header, and redesigned dashboard render (no old layout).
+- Click through Projects/Tasks/Clients/Team/Activity/Settings to confirm consistent styling.
+- Confirm `/client` still renders correctly.
+- Check the preview at the current mobile-ish viewport (738px) for responsive behavior.
 
-### 3. Logging (temporary, console)
-Add structured `console.info`/`console.error` logs to make the decision traceable:
-- In `useWorkspace.load()`: log `auth user id`, whether a token was attached, the raw `list-workspaces` result (workspaces + error).
-- In `AppLayout`: log `user`, `role`, `workspaces.length`, the computed onboarding decision, and the chosen redirect destination.
-- In the `list-workspaces` edge function: log the resolved `userId`, owned count, membership count, and final returned count (helps confirm server-side recognition of owners/members).
-
-### 4. Verify
-- Reload `/` as the existing owner (who has 2 workspaces) and confirm: token attached, `list-workspaces` returns 2, decision = dashboard (no onboarding).
-- Confirm a brand-new account with no workspace still reaches onboarding.
-- Confirm a member-only (non-owner) account routes to the app, not onboarding.
-- Confirm `list-workspaces` edge logs no longer show `AuthSessionMissingError`.
-
-## Notes
-- `list-workspaces` already merges **owned** workspaces and **membership** rows, so owner recognition is correct server-side once a valid token arrives — the bug is the missing/invalid token, addressed in step 1.
-- There is no `onboarding_completed` flag in the schema; onboarding entry is driven purely by workspace existence, so no flag handling is needed.
-- Logs are temporary and can be removed once verified.
+## Technical notes
+- This is presentation/layout work; routing and data hooks (`useWorkspace`, `useClientDashboard`, page data hooks) are reused unchanged. The recent onboarding/redirect fixes in `AppLayout`'s routing logic are preserved — only the rendered shell markup changes.
