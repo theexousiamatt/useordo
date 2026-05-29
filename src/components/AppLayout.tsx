@@ -17,13 +17,14 @@ function FullScreenLoader() {
 
 export default function AppLayout() {
   const { user, loading: authLoading } = useAuth();
-  const { workspaces, loading: wsLoading } = useWorkspace();
+  const { workspaces, loading: wsLoading, role } = useWorkspace();
   const location = useLocation();
 
   if (authLoading) return <FullScreenLoader />;
   if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
   if (wsLoading) return <FullScreenLoader />;
   if (workspaces.length === 0) return <Navigate to="/onboarding" replace />;
+  if (role === "client") return <Navigate to="/client" replace />;
 
   return (
     <SidebarProvider>
