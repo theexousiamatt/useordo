@@ -1,0 +1,1 @@
+ALTER TYPE public.workspace_type ADD VALUE IF NOT EXISTS 'startup';
