@@ -24,8 +24,8 @@ const TYPES: { value: WsType; label: string; icon: typeof Briefcase; desc: strin
 ];
 
 export default function Onboarding() {
-  const { user, loading } = useAuth();
-  const { refresh, selectWorkspace, workspaces } = useWorkspace();
+  const { user, session, loading } = useAuth();
+  const { refresh, selectWorkspace, workspaces, loading: wsLoading, resolved, error, debug } = useWorkspace();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -37,6 +37,25 @@ export default function Onboarding() {
   const [invites, setInvites] = useState<string[]>([]);
 
   const slug = useMemo(() => slugify(name) || "your-workspace", [name]);
+
+  const debugSnapshot = {
+    route: "/onboarding",
+    authUserId: user?.id ?? null,
+    sessionExists: Boolean(session),
+    accessTokenExists: Boolean(session?.access_token),
+    listWorkspacesResponse: debug.lastResponse,
+    parsedWorkspaceCount: debug.parsedWorkspaceCount,
+    useWorkspace: {
+      loading: wsLoading,
+      resolved,
+      error,
+      workspacesLength: workspaces.length,
+    },
+    routingDecision: workspaces.length > 0 ? "currently-still-on-onboarding" : "show-onboarding",
+    onboardingCondition: `route is /onboarding; guard does not redirect existing workspace users; workspaces.length=${workspaces.length}`,
+  };
+
+  console.info("[Onboarding] runtime state", debugSnapshot);
 
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
@@ -114,6 +133,9 @@ export default function Onboarding() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+      <pre className="fixed bottom-3 left-3 z-50 max-h-[45vh] max-w-[min(92vw,520px)] overflow-auto rounded-md border border-border bg-card p-3 text-[11px] leading-relaxed text-card-foreground shadow-lg">
+        {JSON.stringify(debugSnapshot, null, 2)}
+      </pre>
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-25">
         <div className="absolute left-1/3 top-1/4 h-96 w-96 rounded-full bg-primary/30 blur-[120px]" />
       </div>
