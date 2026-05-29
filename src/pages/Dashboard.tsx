@@ -52,7 +52,7 @@ export default function Dashboard() {
               <ProjectOverviewCard
                 key={p.id}
                 project={p}
-                onOpen={(id) => navigate(`/projects/${id}`)}
+                onOpen={() => navigate("/projects")}
               />
             ))}
           </div>
