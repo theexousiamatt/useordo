@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { initials } from "@/lib/format";
 
-export function UserProfileMenu() {
+export function UserProfileMenu({ settingsPath = "/client/settings" }: { settingsPath?: string }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const name = (user?.user_metadata?.full_name as string) || user?.email?.split("@")[0] || "Account";
