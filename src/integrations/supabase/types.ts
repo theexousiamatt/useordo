@@ -470,6 +470,10 @@ export type Database = {
         | "task_changes_requested"
         | "file_uploaded"
         | "comment_added"
+        | "deliverable_created"
+        | "deliverable_status_changed"
+        | "client_access_granted"
+        | "client_access_revoked"
       app_role: "admin" | "client" | "team"
       approval_decision: "approved" | "changes_requested"
       project_status: "on_track" | "at_risk" | "blocked" | "done" | "planning"
@@ -619,6 +623,10 @@ export const Constants = {
         "task_changes_requested",
         "file_uploaded",
         "comment_added",
+        "deliverable_created",
+        "deliverable_status_changed",
+        "client_access_granted",
+        "client_access_revoked",
       ],
       app_role: ["admin", "client", "team"],
       approval_decision: ["approved", "changes_requested"],
