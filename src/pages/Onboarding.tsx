@@ -70,9 +70,6 @@ export default function Onboarding() {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <pre className="fixed bottom-3 left-3 z-50 max-h-[45vh] max-w-[min(92vw,520px)] overflow-auto rounded-md border border-border bg-card p-3 text-[11px] leading-relaxed text-card-foreground shadow-lg">
-          {JSON.stringify(debugSnapshot, null, 2)}
-        </pre>
       </div>
     );
   }
@@ -150,9 +147,6 @@ export default function Onboarding() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
-      <pre className="fixed bottom-3 left-3 z-50 max-h-[45vh] max-w-[min(92vw,520px)] overflow-auto rounded-md border border-border bg-card p-3 text-[11px] leading-relaxed text-card-foreground shadow-lg">
-        {JSON.stringify(debugSnapshot, null, 2)}
-      </pre>
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-25">
         <div className="absolute left-1/3 top-1/4 h-96 w-96 rounded-full bg-primary/30 blur-[120px]" />
       </div>
