@@ -17,14 +17,41 @@ function FullScreenLoader() {
 
 export default function AppLayout() {
   const { user, loading: authLoading } = useAuth();
-  const { workspaces, loading: wsLoading, role } = useWorkspace();
+  const { workspaces, loading: wsLoading, resolved, error, role } = useWorkspace();
   const location = useLocation();
 
   if (authLoading) return <FullScreenLoader />;
   if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
-  if (wsLoading) return <FullScreenLoader />;
-  if (workspaces.length === 0) return <Navigate to="/onboarding" replace />;
-  if (role === "client") return <Navigate to="/client" replace />;
+
+  // Still loading, or the last fetch failed/has not resolved cleanly:
+  // never make a routing decision (especially onboarding) on an unresolved state.
+  if (wsLoading || (!resolved && error)) {
+    console.info("[AppLayout] workspace state unresolved, holding", {
+      userId: user.id,
+      wsLoading,
+      resolved,
+      error,
+    });
+    return <FullScreenLoader />;
+  }
+
+  const decision =
+    workspaces.length === 0
+      ? "onboarding"
+      : role === "client"
+        ? "client"
+        : "dashboard";
+
+  console.info("[AppLayout] routing decision", {
+    userId: user.id,
+    role,
+    workspaceCount: workspaces.length,
+    decision,
+  });
+
+  if (decision === "onboarding") return <Navigate to="/onboarding" replace />;
+  if (decision === "client") return <Navigate to="/client" replace />;
+
 
   return (
     <SidebarProvider>

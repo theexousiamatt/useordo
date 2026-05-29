@@ -18,6 +18,8 @@ type WorkspaceContextValue = {
   currentWorkspace: Workspace | null;
   role: WorkspaceRole | null;
   loading: boolean;
+  /** True once a workspace fetch has completed successfully (no error). */
+  resolved: boolean;
   error: string | null;
   selectWorkspace: (id: string) => void;
   refresh: () => Promise<void>;
@@ -28,48 +30,82 @@ const STORAGE_KEY = "ordo:current-workspace";
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(
     () => localStorage.getItem(STORAGE_KEY),
   );
   const [loading, setLoading] = useState(true);
+  const [resolved, setResolved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
+    // No authenticated user → nothing to load, but this is a resolved "zero" state.
     if (!user) {
+      console.info("[useWorkspace] no auth user, clearing workspaces");
       setWorkspaces([]);
+      setResolved(true);
       setLoading(false);
       return;
     }
+
+    const token = session?.access_token;
+    if (!token) {
+      // Session not ready yet — keep loading, do NOT resolve to an empty state.
+      console.info("[useWorkspace] auth user present but no access token yet, waiting", {
+        userId: user.id,
+      });
+      setLoading(true);
+      setResolved(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    console.info("[useWorkspace] loading workspaces", {
+      userId: user.id,
+      tokenAttached: true,
+    });
+
     const { data, error } = await supabase.functions.invoke<{ workspaces?: Workspace[]; error?: string }>(
       "list-workspaces",
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
     );
 
     if (error) {
+      console.error("[useWorkspace] list-workspaces invoke error", error);
       setError(error.message);
+      setResolved(false);
       setLoading(false);
       return;
     }
 
     if (data?.error) {
+      console.error("[useWorkspace] list-workspaces returned error", data.error);
       setError(data.error);
+      setResolved(false);
       setLoading(false);
       return;
     }
 
     const list = data?.workspaces ?? [];
+    console.info("[useWorkspace] workspaces loaded", {
+      userId: user.id,
+      count: list.length,
+      ids: list.map((w) => w.id),
+    });
 
     setWorkspaces(list);
+    setResolved(true);
     setLoading(false);
   };
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, session?.access_token]);
 
   const selectWorkspace = (id: string) => {
     setCurrentId(id);
@@ -86,6 +122,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         currentWorkspace,
         role: currentWorkspace?.role ?? null,
         loading,
+        resolved,
         error,
         selectWorkspace,
         refresh: load,

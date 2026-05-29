@@ -1,28 +1,71 @@
-# Fix: Onboarding "Continue" loads forever
+# Fix: Existing-workspace users wrongly sent to onboarding
 
-## What's happening
-- The preview's dev server dropped its connection (`[vite] server connection lost`) right after the last DB migration, so the in-flight `Continue` action never completes and the spinner never clears.
-- `createWorkspace` in `src/pages/Onboarding.tsx` only clears the `busy` flag on a couple of explicit error branches. There is no `try/catch/finally`, so any stall or unexpected error leaves the button spinning permanently with no feedback.
-- The follow-up failure was a real RLS denial on `workspaces`: the request carried a valid logged-in token and matching `owner_id`, but the database API evaluated the policy as if `auth.uid()` was unavailable. Workspace onboarding now goes through authenticated backend functions that validate the user token server-side before creating or listing workspaces.
+## Root cause
+`useWorkspace` loads workspaces by calling the `list-workspaces` edge function. The function reads the `Authorization` header and calls `admin.auth.getUser(token)`. The edge logs show this failing repeatedly with `AuthSessionMissingError: Auth session missing!`.
 
-## Changes
+Why it fails:
+- `load()` fires on `user?.id` change, but `supabase.functions.invoke(...)` does not reliably carry a **valid user access token**. When the auth session is still being restored (or when the functions client falls back to the publishable/anon key as `Authorization`), the token the function receives is not a user JWT, so `getUser(token)` rejects.
+- On any error, `useWorkspace` sets `workspaces = []` and `loading = false`.
+- `AppLayout` then hits `if (workspaces.length === 0) return <Navigate to="/onboarding" />`, so an owner of 2 workspaces (confirmed in the DB) is pushed into onboarding.
 
-### 1. Restart the dev server
-Recover the wedged preview so the connection-lost state is cleared.
+This is an auth-loading / token race condition, not missing membership data.
 
-### 2. Harden `createWorkspace` (src/pages/Onboarding.tsx)
-- Wrap the whole flow in `try / catch / finally` and always reset `busy` in `finally`, so the button can never spin forever.
-- Surface a clear `toast.error` on any unexpected failure instead of silently hanging.
-- Treat the non-critical steps (`profiles` update, `activity_logs` insert) as best-effort: their failures should not block creation/navigation (they already aren't return-checked, but make that explicit and logged rather than awaited blocking).
-- Add a `console.error` on failures so future issues show up in logs.
+## Current routing logic
+```text
+Login -> AppLayout
+  authLoading            -> spinner
+  !user                  -> /auth
+  wsLoading              -> spinner
+  workspaces.length === 0 -> /onboarding   <-- fires for owners when list-workspaces errors
+  role === "client"      -> /client
+  else                   -> dashboard
+```
+`useWorkspace.load()` runs on `user?.id` change, invokes `list-workspaces` with no explicit token, and empties `workspaces` on error.
 
-### 3. Verify
-- Confirm onboarding completes end-to-end for the current authenticated account: workspace row is created, owner membership row is added, and the user lands on the dashboard.
-- Confirm `busy` always resets even when an error is forced.
+## Updated routing logic
+1. Only query workspaces once auth is actually ready and a session exists.
+2. Always attach the real user access token to the edge function call.
+3. Distinguish "still loading / errored" from "confirmed zero workspaces" so we never redirect to onboarding on an error.
 
-### 4. Route workspace onboarding through backend functions
-- `create-workspace` validates the current user token, creates the workspace with that user as owner, creates the owner membership row, and logs the activity.
-- `list-workspaces` validates the current user token and returns only workspaces the user owns or belongs to, so the dashboard can load after onboarding.
+```text
+authLoading || wsLoading || wsError(unresolved) -> spinner (do NOT redirect)
+!user                                            -> /auth
+confirmed 0 workspaces (clean success)           -> /onboarding
+role === "client"                                -> /client
+else                                             -> dashboard
+```
 
-## Notes / technical detail
-- The existing RLS model remains the intended authorization model. The backend functions are a controlled workaround for the current database API token/RLS evaluation mismatch while still enforcing user ownership server-side.
+## Applied fix
+
+### 1. `src/hooks/useWorkspace.tsx`
+- Pull `session` from `useAuth()`.
+- Gate `load()` so it runs only when `session?.access_token` exists; otherwise keep `loading = true` (don't flip to an empty, "ready" state).
+- Pass the token explicitly to the function:
+  ```ts
+  supabase.functions.invoke("list-workspaces", {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  })
+  ```
+- On error, set `error` but keep `workspaces` untouched and treat the state as not-resolved (so `AppLayout` shows a spinner / retry, never onboarding).
+- Re-run `load()` when `session?.access_token` changes (not just `user?.id`).
+
+### 2. `src/components/AppLayout.tsx`
+- Only redirect to `/onboarding` when workspace loading finished **without error** and the list is genuinely empty.
+- While `wsLoading` or an unresolved `error` is present, render the loader (optionally with a retry) instead of redirecting.
+
+### 3. Logging (temporary, console)
+Add structured `console.info`/`console.error` logs to make the decision traceable:
+- In `useWorkspace.load()`: log `auth user id`, whether a token was attached, the raw `list-workspaces` result (workspaces + error).
+- In `AppLayout`: log `user`, `role`, `workspaces.length`, the computed onboarding decision, and the chosen redirect destination.
+- In the `list-workspaces` edge function: log the resolved `userId`, owned count, membership count, and final returned count (helps confirm server-side recognition of owners/members).
+
+### 4. Verify
+- Reload `/` as the existing owner (who has 2 workspaces) and confirm: token attached, `list-workspaces` returns 2, decision = dashboard (no onboarding).
+- Confirm a brand-new account with no workspace still reaches onboarding.
+- Confirm a member-only (non-owner) account routes to the app, not onboarding.
+- Confirm `list-workspaces` edge logs no longer show `AuthSessionMissingError`.
+
+## Notes
+- `list-workspaces` already merges **owned** workspaces and **membership** rows, so owner recognition is correct server-side once a valid token arrives — the bug is the missing/invalid token, addressed in step 1.
+- There is no `onboarding_completed` flag in the schema; onboarding entry is driven purely by workspace existence, so no flag handling is needed.
+- Logs are temporary and can be removed once verified.

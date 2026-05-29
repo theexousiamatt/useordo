@@ -82,6 +82,9 @@ Deno.serve(async (req) => {
       return json({ error: ownedError.message }, 400);
     }
 
+    const ownedCount = owned?.length ?? 0;
+    const membershipCount = memberships?.length ?? 0;
+
     for (const workspace of owned ?? []) {
       workspaces.set(workspace.id, {
         id: workspace.id,
@@ -93,7 +96,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    return json({ workspaces: Array.from(workspaces.values()) });
+    const result = Array.from(workspaces.values());
+    console.log("Workspace list resolved", {
+      userId,
+      ownedCount,
+      membershipCount,
+      returnedCount: result.length,
+    });
+
+    return json({ workspaces: result });
   } catch (error) {
     console.error("Unexpected workspace list failure", error);
     return json({ error: "Something went wrong. Please try again." }, 500);
