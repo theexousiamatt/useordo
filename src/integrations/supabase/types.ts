@@ -22,6 +22,7 @@ export type Database = {
           payload: Json
           project_id: string
           type: Database["public"]["Enums"]["activity_type"]
+          workspace_id: string
         }
         Insert: {
           actor_id?: string | null
@@ -30,6 +31,7 @@ export type Database = {
           payload?: Json
           project_id: string
           type: Database["public"]["Enums"]["activity_type"]
+          workspace_id: string
         }
         Update: {
           actor_id?: string | null
@@ -38,6 +40,7 @@ export type Database = {
           payload?: Json
           project_id?: string
           type?: Database["public"]["Enums"]["activity_type"]
+          workspace_id?: string
         }
         Relationships: [
           {
@@ -45,6 +48,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -77,6 +87,108 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "activity_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_plan_items: {
+        Row: {
+          accepted_at: string | null
+          ai_plan_id: string
+          applied: boolean
+          applied_entity_id: string | null
+          created_at: string
+          entity_type: Database["public"]["Enums"]["ai_item_entity_type"]
+          id: string
+          payload: Json
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          ai_plan_id: string
+          applied?: boolean
+          applied_entity_id?: string | null
+          created_at?: string
+          entity_type: Database["public"]["Enums"]["ai_item_entity_type"]
+          id?: string
+          payload?: Json
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          ai_plan_id?: string
+          applied?: boolean
+          applied_entity_id?: string | null
+          created_at?: string
+          entity_type?: Database["public"]["Enums"]["ai_item_entity_type"]
+          id?: string
+          payload?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_plan_items_ai_plan_id_fkey"
+            columns: ["ai_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ai_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_plan_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_plans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          model: string | null
+          project_id: string | null
+          prompt: string
+          status: Database["public"]["Enums"]["ai_plan_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string | null
+          project_id?: string | null
+          prompt: string
+          status?: Database["public"]["Enums"]["ai_plan_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string | null
+          project_id?: string | null
+          prompt?: string
+          status?: Database["public"]["Enums"]["ai_plan_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_plans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_plans_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -119,6 +231,188 @@ export type Database = {
           },
         ]
       }
+      client_access: {
+        Row: {
+          access_level: Database["public"]["Enums"]["client_access_level"]
+          client_user_id: string
+          created_at: string
+          id: string
+          invited_by: string | null
+          project_id: string
+          revoked_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          access_level?: Database["public"]["Enums"]["client_access_level"]
+          client_user_id: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          project_id: string
+          revoked_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          access_level?: Database["public"]["Enums"]["client_access_level"]
+          client_user_id?: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          project_id?: string
+          revoked_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_access_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_access_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["comment_entity_type"]
+          id: string
+          is_client_visible: boolean
+          parent_comment_id: string | null
+          project_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["comment_entity_type"]
+          id?: string
+          is_client_visible?: boolean
+          parent_comment_id?: string | null
+          project_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["comment_entity_type"]
+          id?: string
+          is_client_visible?: boolean
+          parent_comment_id?: string | null
+          project_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deliverables: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          description: string | null
+          due_date: string | null
+          file_id: string | null
+          id: string
+          project_id: string
+          status: Database["public"]["Enums"]["deliverable_status"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          file_id?: string | null
+          id?: string
+          project_id: string
+          status?: Database["public"]["Enums"]["deliverable_status"]
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          file_id?: string | null
+          id?: string
+          project_id?: string
+          status?: Database["public"]["Enums"]["deliverable_status"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliverables_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverables_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverables_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       files: {
         Row: {
           created_at: string
@@ -129,6 +423,7 @@ export type Database = {
           size_bytes: number | null
           storage_path: string
           uploaded_by: string | null
+          workspace_id: string
         }
         Insert: {
           created_at?: string
@@ -139,6 +434,7 @@ export type Database = {
           size_bytes?: number | null
           storage_path: string
           uploaded_by?: string | null
+          workspace_id: string
         }
         Update: {
           created_at?: string
@@ -149,6 +445,7 @@ export type Database = {
           size_bytes?: number | null
           storage_path?: string
           uploaded_by?: string | null
+          workspace_id?: string
         }
         Relationships: [
           {
@@ -156,6 +453,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -169,6 +473,7 @@ export type Database = {
           id: string
           project_id: string
           title: string
+          workspace_id: string
         }
         Insert: {
           completed?: boolean
@@ -178,6 +483,7 @@ export type Database = {
           id?: string
           project_id: string
           title: string
+          workspace_id: string
         }
         Update: {
           completed?: boolean
@@ -187,6 +493,7 @@ export type Database = {
           id?: string
           project_id?: string
           title?: string
+          workspace_id?: string
         }
         Relationships: [
           {
@@ -194,6 +501,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milestones_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -272,6 +586,7 @@ export type Database = {
           start_date: string | null
           status: Database["public"]["Enums"]["project_status"]
           updated_at: string
+          workspace_id: string
         }
         Insert: {
           created_at?: string
@@ -284,6 +599,7 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
+          workspace_id: string
         }
         Update: {
           created_at?: string
@@ -296,8 +612,17 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
+          workspace_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -310,6 +635,7 @@ export type Database = {
           status: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at: string
+          workspace_id: string
         }
         Insert: {
           assignee_id?: string | null
@@ -321,6 +647,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at?: string
+          workspace_id: string
         }
         Update: {
           assignee_id?: string | null
@@ -332,6 +659,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
+          workspace_id?: string
         }
         Relationships: [
           {
@@ -339,6 +667,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -450,6 +785,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_client_for_project: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
@@ -470,8 +809,22 @@ export type Database = {
         | "task_changes_requested"
         | "file_uploaded"
         | "comment_added"
+        | "deliverable_created"
+        | "deliverable_status_changed"
+        | "client_access_granted"
+        | "client_access_revoked"
+      ai_item_entity_type: "task" | "milestone" | "deliverable"
+      ai_plan_status: "queued" | "running" | "complete" | "failed"
       app_role: "admin" | "client" | "team"
       approval_decision: "approved" | "changes_requested"
+      client_access_level: "viewer" | "approver"
+      comment_entity_type: "project" | "task" | "milestone" | "deliverable"
+      deliverable_status:
+        | "draft"
+        | "in_review"
+        | "approved"
+        | "delivered"
+        | "archived"
       project_status: "on_track" | "at_risk" | "blocked" | "done" | "planning"
       task_status:
         | "pending"
@@ -619,9 +972,24 @@ export const Constants = {
         "task_changes_requested",
         "file_uploaded",
         "comment_added",
+        "deliverable_created",
+        "deliverable_status_changed",
+        "client_access_granted",
+        "client_access_revoked",
       ],
+      ai_item_entity_type: ["task", "milestone", "deliverable"],
+      ai_plan_status: ["queued", "running", "complete", "failed"],
       app_role: ["admin", "client", "team"],
       approval_decision: ["approved", "changes_requested"],
+      client_access_level: ["viewer", "approver"],
+      comment_entity_type: ["project", "task", "milestone", "deliverable"],
+      deliverable_status: [
+        "draft",
+        "in_review",
+        "approved",
+        "delivered",
+        "archived",
+      ],
       project_status: ["on_track", "at_risk", "blocked", "done", "planning"],
       task_status: [
         "pending",
