@@ -105,6 +105,7 @@ export default function SignIn() {
 
         <OrdoSocialButton
           provider="google"
+          className="w-full"
           loading={socialPending === "google"}
           onClick={() => socialSignIn("google")}
         />
