@@ -5,5 +5,6 @@ export { OrdoCheckbox } from "./OrdoCheckbox";
 export { OrdoButton } from "./OrdoButton";
 export { OrdoAlert } from "./OrdoAlert";
 export { OrdoSocialButton } from "./OrdoSocialButton";
-export { friendlyAuthError, evaluatePassword } from "./authErrors";
+export { friendlyAuthError, friendlyAuthErrorDetailed, evaluatePassword } from "./authErrors";
+export type { AuthErrorField, DetailedAuthError } from "./authErrors";
 export { useSocialAuth } from "./useSocialAuth";
