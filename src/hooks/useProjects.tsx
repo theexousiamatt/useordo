@@ -142,6 +142,7 @@ export interface CreateProjectInput {
   due_date?: string | null;
   member_ids: string[];
   client_user_ids: string[];
+  owner_id?: string | null;
   plan_items?: AiPlanItem[];
 }
 
@@ -164,7 +165,7 @@ export function useCreateProject() {
           client_id: input.client_id ?? null,
           start_date: input.start_date ?? null,
           due_date: input.due_date ?? null,
-          owner_id: user.id,
+          owner_id: input.owner_id ?? user.id,
           created_by: user.id,
           status: "active",
           health: "on_track",
@@ -175,8 +176,9 @@ export function useCreateProject() {
       const created = project as ProjectRow;
 
       // Build membership rows (de-duped), owner always included.
+      const ownerId = input.owner_id ?? user.id;
       const rows = new Map<string, ProjectMemberRole>();
-      rows.set(user.id, "owner");
+      rows.set(ownerId, "owner");
       input.member_ids.forEach((id) => {
         if (!rows.has(id)) rows.set(id, "member");
       });

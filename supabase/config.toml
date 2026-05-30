@@ -5,3 +5,5 @@ verify_jwt = false
 
 [functions.list-workspaces]
 verify_jwt = false
+[functions.generate-project-plan]
+verify_jwt = false
