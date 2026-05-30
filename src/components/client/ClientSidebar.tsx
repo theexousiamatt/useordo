@@ -1,36 +1,52 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clientNavItems, clientSettingsItem } from "./clientNav";
 import { useActionItems } from "@/hooks/useClientDashboard";
+import { useSidebarCollapse } from "@/components/sidebar-collapse";
 
 interface ClientSidebarProps {
   onNavigate?: () => void;
+  /** Render the compact icon-only rail. Mobile drawer always passes false. */
+  collapsed?: boolean;
 }
 
-export function ClientSidebar({ onNavigate }: ClientSidebarProps) {
+export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarProps) {
   const { pathname } = useLocation();
   const { data: actions } = useActionItems();
+  const { toggle } = useSidebarCollapse();
   const approvalsCount = actions?.length ?? 0;
 
   const isActive = (url: string, end?: boolean) =>
     end ? pathname === url : pathname === url || pathname.startsWith(url + "/");
 
+  const linkClass = (active: boolean) =>
+    cn(
+      "flex items-center rounded-small py-2.5 text-sm font-medium transition-colors",
+      collapsed ? "justify-center px-2.5" : "px-3",
+      "text-white/65 hover:bg-white/[0.08] hover:text-white/90",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
+      active && "bg-white/[0.12] text-white hover:text-white",
+    );
+
   return (
     <nav
       aria-label="Client navigation"
-      className="flex h-full flex-col bg-[hsl(var(--sidebar-brand))] px-4 py-6"
+      className={cn("flex h-full flex-col bg-[hsl(var(--sidebar-brand))] py-6", collapsed ? "px-2" : "px-4")}
     >
       {/* Header / logo */}
-      <div className="flex items-center gap-3 px-2 pb-6">
-        <div className="flex gap-1.5" aria-hidden="true">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F56]" />
-          <span className="h-2.5 w-2.5 rounded-full bg-[#FFBD2E]" />
-          <span className="h-2.5 w-2.5 rounded-full bg-[#27C93F]" />
-        </div>
-        <div className="ml-1 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+      <div className={cn("flex items-center pb-6", collapsed ? "justify-center px-0" : "gap-3 px-2")}>
+        {!collapsed && (
+          <div className="flex gap-1.5" aria-hidden="true">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F56]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#FFBD2E]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#27C93F]" />
+          </div>
+        )}
+        <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl bg-white/10", !collapsed && "ml-1")}>
           <span className="h-4 w-4 rounded-full border-[3px] border-white" />
         </div>
-        <span className="text-base font-semibold tracking-tight text-white">Ordo</span>
+        {!collapsed && <span className="text-base font-semibold tracking-tight text-white">Ordo</span>}
       </div>
 
       {/* Nav items */}
@@ -44,20 +60,20 @@ export function ClientSidebar({ onNavigate }: ClientSidebarProps) {
                 to={item.url}
                 end={item.end}
                 onClick={onNavigate}
-                className={cn(
-                  "flex items-center rounded-small px-3 py-2.5 text-sm font-medium transition-colors",
-                  "text-white/65 hover:bg-white/[0.08] hover:text-white/90",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
-                  active && "bg-white/[0.12] text-white hover:text-white",
-                )}
+                title={collapsed ? item.title : undefined}
+                aria-label={collapsed ? item.title : undefined}
+                className={cn(linkClass(active), "relative")}
               >
-                <item.icon className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />
-                <span>{item.title}</span>
-                {badge !== null && (
-                  <span className="ml-auto rounded-pill bg-white/15 px-2 py-0.5 text-xs font-semibold text-white">
-                    {badge}
-                  </span>
-                )}
+                <item.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
+                {!collapsed && <span>{item.title}</span>}
+                {badge !== null &&
+                  (collapsed ? (
+                    <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-white" aria-hidden="true" />
+                  ) : (
+                    <span className="ml-auto rounded-pill bg-white/15 px-2 py-0.5 text-xs font-semibold text-white">
+                      {badge}
+                    </span>
+                  ))}
               </NavLink>
             </li>
           );
@@ -69,18 +85,35 @@ export function ClientSidebar({ onNavigate }: ClientSidebarProps) {
         <NavLink
           to={clientSettingsItem.url}
           onClick={onNavigate}
-          className={cn(
-            "flex items-center rounded-small px-3 py-2.5 text-sm font-medium transition-colors",
-            "text-white/65 hover:bg-white/[0.08] hover:text-white/90",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
-            isActive(clientSettingsItem.url) && "bg-white/[0.12] text-white hover:text-white",
-          )}
+          title={collapsed ? clientSettingsItem.title : undefined}
+          aria-label={collapsed ? clientSettingsItem.title : undefined}
+          className={linkClass(isActive(clientSettingsItem.url))}
         >
-          <clientSettingsItem.icon className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />
-          <span>{clientSettingsItem.title}</span>
+          <clientSettingsItem.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
+          {!collapsed && <span>{clientSettingsItem.title}</span>}
         </NavLink>
       </div>
+
+      {/* Collapse / expand control (desktop only) */}
+      <button
+        type="button"
+        onClick={toggle}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className={cn(
+          "mt-3 hidden items-center rounded-small py-2.5 text-sm font-medium text-white/65 transition-colors hover:bg-white/[0.08] hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 lg:flex",
+          collapsed ? "justify-center px-2.5" : "px-3",
+        )}
+      >
+        {collapsed ? (
+          <PanelLeftOpen className="h-5 w-5 shrink-0" aria-hidden="true" />
+        ) : (
+          <>
+            <PanelLeftClose className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />
+            <span>Collapse</span>
+          </>
+        )}
+      </button>
     </nav>
   );
 }
-
