@@ -1,0 +1,60 @@
+/**
+ * Convert raw Supabase / network errors into premium, user-friendly copy.
+ * Never surface raw backend strings in the auth UI.
+ */
+export function friendlyAuthError(error: unknown): string {
+  const raw =
+    typeof error === "string"
+      ? error
+      : error && typeof error === "object" && "message" in error
+        ? String((error as { message: unknown }).message)
+        : "";
+
+  const msg = raw.toLowerCase();
+
+  if (!raw) return "Something went wrong. Please try again.";
+
+  if (msg.includes("invalid login") || msg.includes("invalid credentials"))
+    return "The email or password you entered is incorrect.";
+  if (msg.includes("email not confirmed") || msg.includes("not confirmed"))
+    return "Please verify your email before signing in. Check your inbox for the link.";
+  if (msg.includes("user already registered") || msg.includes("already been registered"))
+    return "An account with this email already exists. Try signing in instead.";
+  if (msg.includes("password should be") || msg.includes("at least 6"))
+    return "Your password must be at least 6 characters long.";
+  if (msg.includes("rate limit") || msg.includes("too many") || msg.includes("429"))
+    return "Too many attempts. Please wait a moment and try again.";
+  if (msg.includes("locked"))
+    return "This account is temporarily locked. Please try again later.";
+  if (msg.includes("expired"))
+    return "This link has expired. Please request a new one.";
+  if (msg.includes("invalid refresh token") || msg.includes("session"))
+    return "Your session has expired. Please sign in again.";
+  if (msg.includes("network") || msg.includes("fetch") || msg.includes("failed to fetch"))
+    return "Network problem. Check your connection and try again.";
+  if (msg.includes("unsupported provider") || msg.includes("provider is not enabled"))
+    return "This sign-in method isn't available yet.";
+  if (msg.includes("redirect"))
+    return "Sign-in couldn't complete. Please try again.";
+
+  return "Something went wrong. Please try again.";
+}
+
+export interface PasswordStrength {
+  score: 0 | 1 | 2 | 3 | 4;
+  label: string;
+  checks: { label: string; met: boolean }[];
+}
+
+export function evaluatePassword(password: string): PasswordStrength {
+  const checks = [
+    { label: "At least 8 characters", met: password.length >= 8 },
+    { label: "An uppercase letter", met: /[A-Z]/.test(password) },
+    { label: "A number", met: /[0-9]/.test(password) },
+    { label: "A symbol", met: /[^A-Za-z0-9]/.test(password) },
+  ];
+  const met = checks.filter((c) => c.met).length;
+  const score = (password.length === 0 ? 0 : met) as PasswordStrength["score"];
+  const labels = ["Too weak", "Weak", "Fair", "Good", "Strong"];
+  return { score, label: labels[score], checks };
+}
