@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/states/EmptyState";
 import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingCards } from "@/components/states/LoadingState";
-import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
+import { CreateProjectDrawer } from "@/components/projects/CreateProjectDrawer";
 import { HealthBadge, StatusBadge } from "@/components/projects/ProjectBadges";
 import { MemberAvatars } from "@/components/projects/MemberAvatars";
 import { useProjects, type ProjectWithMembers } from "@/hooks/useProjects";
