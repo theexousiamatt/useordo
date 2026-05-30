@@ -5,6 +5,7 @@ import { navForRole, type NavItem } from "@/components/navigation";
 import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useSidebarCollapse } from "@/components/sidebar-collapse";
+import { SidebarTooltip } from "@/components/SidebarTooltip";
 
 interface OrdoSidebarProps {
   onNavigate?: () => void;
