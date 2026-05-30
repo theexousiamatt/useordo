@@ -51,7 +51,7 @@ export default function Projects() {
         </div>
       )}
 
-      <CreateProjectDialog
+      <CreateProjectDrawer
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onCreated={(id) => navigate(`/projects/${id}`)}
