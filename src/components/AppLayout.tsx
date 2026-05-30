@@ -14,14 +14,14 @@ function AppShell() {
       {/* Fixed structural sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-200 lg:block",
+          "fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-300 ease-in-out lg:block",
           collapsed ? "w-[76px]" : "w-[268px]",
         )}
       >
         <OrdoSidebar collapsed={collapsed} />
       </aside>
 
-      <div className={cn("flex min-h-screen flex-col transition-[margin] duration-200", collapsed ? "lg:ml-[76px]" : "lg:ml-[268px]")}>
+      <div className={cn("flex min-h-screen flex-col transition-[margin] duration-300 ease-in-out", collapsed ? "lg:ml-[76px]" : "lg:ml-[268px]")}>
         <div className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8">
           <OrdoTopBar />
           <main className="flex min-w-0 flex-1 flex-col gap-6 sm:gap-8">
