@@ -40,6 +40,53 @@ export function friendlyAuthError(error: unknown): string {
   return "Something went wrong. Please try again.";
 }
 
+export type AuthErrorField = "email" | "password" | "fullName" | null;
+
+export interface DetailedAuthError {
+  message: string;
+  field: AuthErrorField;
+}
+
+/**
+ * Map a raw Supabase / network error to friendly copy plus the input field
+ * (if any) that the message relates to, so the UI can highlight it.
+ */
+export function friendlyAuthErrorDetailed(error: unknown): DetailedAuthError {
+  const raw =
+    typeof error === "string"
+      ? error
+      : error && typeof error === "object" && "message" in error
+        ? String((error as { message: unknown }).message)
+        : "";
+
+  const msg = raw.toLowerCase();
+  const message = friendlyAuthError(error);
+
+  let field: AuthErrorField = null;
+  if (
+    msg.includes("already registered") ||
+    msg.includes("already been registered") ||
+    msg.includes("invalid email") ||
+    msg.includes("email address is invalid") ||
+    msg.includes("unable to validate email") ||
+    msg.includes("email not confirmed") ||
+    msg.includes("not confirmed")
+  ) {
+    field = "email";
+  } else if (
+    msg.includes("password should be") ||
+    msg.includes("at least 6") ||
+    msg.includes("password is too weak") ||
+    msg.includes("weak password") ||
+    msg.includes("pwned") ||
+    msg.includes("leaked")
+  ) {
+    field = "password";
+  }
+
+  return { message, field };
+}
+
 export interface PasswordStrength {
   score: 0 | 1 | 2 | 3 | 4;
   label: string;

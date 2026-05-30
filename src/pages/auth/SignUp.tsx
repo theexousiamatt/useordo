@@ -9,10 +9,11 @@ import {
   OrdoButton,
   OrdoAlert,
   OrdoSocialButton,
-  friendlyAuthError,
+  friendlyAuthErrorDetailed,
   evaluatePassword,
   useSocialAuth,
 } from "@/components/auth";
+import type { AuthErrorField } from "@/components/auth";
 
 export default function SignUp() {
   const { user, loading } = useAuth();
@@ -25,6 +26,7 @@ export default function SignUp() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<AuthErrorField>(null);
 
   if (loading) return null;
   if (user) return <Navigate to="/" replace />;
@@ -32,12 +34,15 @@ export default function SignUp() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldError(null);
     if (evaluatePassword(password).score < 2) {
       setError("Please choose a stronger password (at least 8 characters).");
+      setFieldError("password");
       return;
     }
     if (password !== confirm) {
       setError("Passwords don't match. Please re-enter them.");
+      setFieldError("password");
       return;
     }
     setBusy(true);
@@ -51,7 +56,9 @@ export default function SignUp() {
     });
     setBusy(false);
     if (error) {
-      setError(friendlyAuthError(error));
+      const detailed = friendlyAuthErrorDetailed(error);
+      setError(detailed.message);
+      setFieldError(detailed.field);
       return;
     }
     navigate(`/auth/verify-email?email=${encodeURIComponent(email)}`);
@@ -68,7 +75,7 @@ export default function SignUp() {
           <p className="mt-1 text-muted-foreground">Start your free Ordo workspace.</p>
         </div>
 
-        {error && (
+        {error && !fieldError && (
           <OrdoAlert variant="error" className="mb-5">
             {error}
           </OrdoAlert>
@@ -88,9 +95,13 @@ export default function SignUp() {
             type="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (fieldError === "email") setFieldError(null);
+            }}
             placeholder="you@company.com"
             autoComplete="email"
+            error={fieldError === "email" ? error ?? undefined : undefined}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <OrdoPasswordInput
@@ -98,8 +109,12 @@ export default function SignUp() {
               required
               showStrength
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (fieldError === "password") setFieldError(null);
+              }}
               autoComplete="new-password"
+              error={fieldError === "password" ? error ?? undefined : undefined}
             />
             <OrdoPasswordInput
               label="Confirm password"
@@ -107,9 +122,16 @@ export default function SignUp() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               autoComplete="new-password"
-              error={confirm && confirm !== password ? "Passwords don't match" : undefined}
+              error={
+                confirm && confirm !== password
+                  ? "Passwords don't match"
+                  : fieldError === "password"
+                    ? " "
+                    : undefined
+              }
             />
           </div>
+
 
           <OrdoButton type="submit" loading={busy}>
             Create account
