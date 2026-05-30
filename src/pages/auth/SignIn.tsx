@@ -103,18 +103,11 @@ export default function SignIn() {
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        <div className="flex gap-3">
-          <OrdoSocialButton
-            provider="google"
-            loading={socialPending === "google"}
-            onClick={() => socialSignIn("google")}
-          />
-          <OrdoSocialButton
-            provider="github"
-            loading={socialPending === "github"}
-            onClick={() => socialSignIn("github")}
-          />
-        </div>
+        <OrdoSocialButton
+          provider="google"
+          loading={socialPending === "google"}
+          onClick={() => socialSignIn("google")}
+        />
 
         <p className="mt-7 text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
