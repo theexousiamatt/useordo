@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { clientNavItems, clientSettingsItem } from "./clientNav";
 import { useActionItems } from "@/hooks/useClientDashboard";
 import { useSidebarCollapse } from "@/components/sidebar-collapse";
+import { SidebarTooltip } from "@/components/SidebarTooltip";
 
 interface ClientSidebarProps {
   onNavigate?: () => void;
