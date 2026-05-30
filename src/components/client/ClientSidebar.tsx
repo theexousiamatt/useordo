@@ -46,7 +46,7 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl bg-white/10", !collapsed && "ml-1")}>
           <span className="h-4 w-4 rounded-full border-[3px] border-white" />
         </div>
-        {!collapsed && <span className="text-base font-semibold tracking-tight text-white">Ordo</span>}
+        {!collapsed && <span className="animate-fade-in whitespace-nowrap text-base font-semibold tracking-tight text-white">Ordo</span>}
       </div>
 
       {/* Nav items */}
@@ -65,7 +65,7 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
                 className={cn(linkClass(active), "relative")}
               >
                 <item.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
-                {!collapsed && <span>{item.title}</span>}
+                {!collapsed && <span className="animate-fade-in whitespace-nowrap">{item.title}</span>}
                 {badge !== null &&
                   (collapsed ? (
                     <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-white" aria-hidden="true" />
@@ -90,7 +90,7 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
           className={linkClass(isActive(clientSettingsItem.url))}
         >
           <clientSettingsItem.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
-          {!collapsed && <span>{clientSettingsItem.title}</span>}
+          {!collapsed && <span className="animate-fade-in whitespace-nowrap">{clientSettingsItem.title}</span>}
         </NavLink>
       </div>
 
@@ -110,7 +110,7 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
         ) : (
           <>
             <PanelLeftClose className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />
-            <span>Collapse</span>
+            <span className="animate-fade-in whitespace-nowrap">Collapse</span>
           </>
         )}
       </button>

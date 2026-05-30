@@ -112,7 +112,7 @@ export function OrdoSidebar({ onNavigate, collapsed = false }: OrdoSidebarProps)
         ) : (
           <>
             <PanelLeftClose className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />
-            <span>Collapse</span>
+            <span className="animate-fade-in whitespace-nowrap">Collapse</span>
           </>
         )}
       </button>
