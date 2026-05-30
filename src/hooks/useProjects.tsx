@@ -142,6 +142,7 @@ export interface CreateProjectInput {
   due_date?: string | null;
   member_ids: string[];
   client_user_ids: string[];
+  owner_id?: string | null;
   plan_items?: AiPlanItem[];
 }
 
