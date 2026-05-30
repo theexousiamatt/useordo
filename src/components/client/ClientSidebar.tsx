@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { clientNavItems, clientSettingsItem } from "./clientNav";
 import { useActionItems } from "@/hooks/useClientDashboard";
 import { useSidebarCollapse } from "@/components/sidebar-collapse";
+import { SidebarTooltip } from "@/components/SidebarTooltip";
 
 interface ClientSidebarProps {
   onNavigate?: () => void;
@@ -56,25 +57,26 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
           const badge = item.badgeKey === "approvals" && approvalsCount > 0 ? approvalsCount : null;
           return (
             <li key={item.title}>
-              <NavLink
-                to={item.url}
-                end={item.end}
-                onClick={onNavigate}
-                title={collapsed ? item.title : undefined}
-                aria-label={collapsed ? item.title : undefined}
-                className={cn(linkClass(active), "relative")}
-              >
-                <item.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
-                {!collapsed && <span className="animate-fade-in whitespace-nowrap">{item.title}</span>}
-                {badge !== null &&
-                  (collapsed ? (
-                    <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-white" aria-hidden="true" />
-                  ) : (
-                    <span className="ml-auto rounded-pill bg-white/15 px-2 py-0.5 text-xs font-semibold text-white">
-                      {badge}
-                    </span>
-                  ))}
-              </NavLink>
+              <SidebarTooltip label={item.title} enabled={collapsed}>
+                <NavLink
+                  to={item.url}
+                  end={item.end}
+                  onClick={onNavigate}
+                  aria-label={collapsed ? item.title : undefined}
+                  className={cn(linkClass(active), "relative")}
+                >
+                  <item.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
+                  {!collapsed && <span className="animate-fade-in whitespace-nowrap">{item.title}</span>}
+                  {badge !== null &&
+                    (collapsed ? (
+                      <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-white" aria-hidden="true" />
+                    ) : (
+                      <span className="ml-auto rounded-pill bg-white/15 px-2 py-0.5 text-xs font-semibold text-white">
+                        {badge}
+                      </span>
+                    ))}
+                </NavLink>
+              </SidebarTooltip>
             </li>
           );
         })}
@@ -82,17 +84,19 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
 
       {/* Settings */}
       <div className="mt-4 border-t border-white/10 pt-4">
-        <NavLink
-          to={clientSettingsItem.url}
-          onClick={onNavigate}
-          title={collapsed ? clientSettingsItem.title : undefined}
-          aria-label={collapsed ? clientSettingsItem.title : undefined}
-          className={linkClass(isActive(clientSettingsItem.url))}
-        >
-          <clientSettingsItem.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
-          {!collapsed && <span className="animate-fade-in whitespace-nowrap">{clientSettingsItem.title}</span>}
-        </NavLink>
+        <SidebarTooltip label={clientSettingsItem.title} enabled={collapsed}>
+          <NavLink
+            to={clientSettingsItem.url}
+            onClick={onNavigate}
+            aria-label={collapsed ? clientSettingsItem.title : undefined}
+            className={linkClass(isActive(clientSettingsItem.url))}
+          >
+            <clientSettingsItem.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
+            {!collapsed && <span className="animate-fade-in whitespace-nowrap">{clientSettingsItem.title}</span>}
+          </NavLink>
+        </SidebarTooltip>
       </div>
+
 
       {/* Collapse / expand control (desktop only) */}
       <button
