@@ -84,17 +84,19 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
 
       {/* Settings */}
       <div className="mt-4 border-t border-white/10 pt-4">
-        <NavLink
-          to={clientSettingsItem.url}
-          onClick={onNavigate}
-          title={collapsed ? clientSettingsItem.title : undefined}
-          aria-label={collapsed ? clientSettingsItem.title : undefined}
-          className={linkClass(isActive(clientSettingsItem.url))}
-        >
-          <clientSettingsItem.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
-          {!collapsed && <span className="animate-fade-in whitespace-nowrap">{clientSettingsItem.title}</span>}
-        </NavLink>
+        <SidebarTooltip label={clientSettingsItem.title} enabled={collapsed}>
+          <NavLink
+            to={clientSettingsItem.url}
+            onClick={onNavigate}
+            aria-label={collapsed ? clientSettingsItem.title : undefined}
+            className={linkClass(isActive(clientSettingsItem.url))}
+          >
+            <clientSettingsItem.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
+            {!collapsed && <span className="animate-fade-in whitespace-nowrap">{clientSettingsItem.title}</span>}
+          </NavLink>
+        </SidebarTooltip>
       </div>
+
 
       {/* Collapse / expand control (desktop only) */}
       <button
