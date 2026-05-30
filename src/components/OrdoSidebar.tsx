@@ -46,7 +46,7 @@ export function OrdoSidebar({ onNavigate, collapsed = false }: OrdoSidebarProps)
           className={linkClass(active)}
         >
           <item.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
-          {!collapsed && <span>{item.title}</span>}
+          {!collapsed && <span className="animate-fade-in whitespace-nowrap">{item.title}</span>}
         </NavLink>
       </li>
     );
@@ -69,7 +69,7 @@ export function OrdoSidebar({ onNavigate, collapsed = false }: OrdoSidebarProps)
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl bg-white/10", !collapsed && "ml-1")}>
           <span className="h-4 w-4 rounded-full border-[3px] border-white" />
         </div>
-        {!collapsed && <span className="text-base font-semibold tracking-tight text-white">Ordo</span>}
+        {!collapsed && <span className="animate-fade-in whitespace-nowrap text-base font-semibold tracking-tight text-white">Ordo</span>}
       </div>
 
       {/* Workspace switcher */}
@@ -91,7 +91,7 @@ export function OrdoSidebar({ onNavigate, collapsed = false }: OrdoSidebarProps)
             className={linkClass(isActive(settingsItem.url, settingsItem.end))}
           >
             <settingsItem.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
-            {!collapsed && <span>{settingsItem.title}</span>}
+            {!collapsed && <span className="animate-fade-in whitespace-nowrap">{settingsItem.title}</span>}
           </NavLink>
         </div>
       )}
@@ -112,7 +112,7 @@ export function OrdoSidebar({ onNavigate, collapsed = false }: OrdoSidebarProps)
         ) : (
           <>
             <PanelLeftClose className="mr-3 h-5 w-5 shrink-0" aria-hidden="true" />
-            <span>Collapse</span>
+            <span className="animate-fade-in whitespace-nowrap">Collapse</span>
           </>
         )}
       </button>
