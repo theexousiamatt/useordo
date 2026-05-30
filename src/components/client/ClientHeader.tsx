@@ -26,7 +26,7 @@ export function ClientHeader({ title, subtitle }: ClientHeaderProps) {
             >
               <Menu className="h-5 w-5" />
             </SheetTrigger>
-            <SheetContent side="left" className="w-[280px] border-none bg-transparent p-3">
+            <SheetContent side="left" className="w-[280px] border-none bg-transparent p-0">
               <SheetTitle className="sr-only">Navigation</SheetTitle>
               <ClientSidebar onNavigate={() => setOpen(false)} />
             </SheetContent>

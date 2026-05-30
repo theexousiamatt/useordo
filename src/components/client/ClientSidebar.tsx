@@ -18,7 +18,7 @@ export function ClientSidebar({ onNavigate }: ClientSidebarProps) {
   return (
     <nav
       aria-label="Client navigation"
-      className="flex h-full flex-col rounded-panel bg-[hsl(var(--sidebar-brand))] px-4 py-6 shadow-panel"
+      className="flex h-full flex-col bg-[hsl(var(--sidebar-brand))] px-4 py-6"
     >
       {/* Header / logo */}
       <div className="flex items-center gap-3 px-2 pb-6">
