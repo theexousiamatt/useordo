@@ -34,12 +34,15 @@ export default function SignUp() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldError(null);
     if (evaluatePassword(password).score < 2) {
       setError("Please choose a stronger password (at least 8 characters).");
+      setFieldError("password");
       return;
     }
     if (password !== confirm) {
       setError("Passwords don't match. Please re-enter them.");
+      setFieldError("password");
       return;
     }
     setBusy(true);
@@ -53,7 +56,9 @@ export default function SignUp() {
     });
     setBusy(false);
     if (error) {
-      setError(friendlyAuthError(error));
+      const detailed = friendlyAuthErrorDetailed(error);
+      setError(detailed.message);
+      setFieldError(detailed.field);
       return;
     }
     navigate(`/auth/verify-email?email=${encodeURIComponent(email)}`);
