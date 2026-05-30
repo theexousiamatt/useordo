@@ -39,11 +39,13 @@ export default function SignUp() {
     if (evaluatePassword(password).score < 2) {
       setError("Please choose a stronger password (at least 8 characters).");
       setFieldError("password");
+      logAuthError("signup_weak_password", { code: "weak_password" }, "password");
       return;
     }
     if (password !== confirm) {
       setError("Passwords don't match. Please re-enter them.");
       setFieldError("password");
+      logAuthError("signup_password_mismatch", { code: "password_mismatch" }, "password");
       return;
     }
     setBusy(true);
@@ -60,6 +62,7 @@ export default function SignUp() {
       const detailed = friendlyAuthErrorDetailed(error);
       setError(detailed.message);
       setFieldError(detailed.field);
+      logAuthError("signup_failed", error, detailed.field);
       return;
     }
     navigate(`/auth/verify-email?email=${encodeURIComponent(email)}`);
