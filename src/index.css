@@ -105,8 +105,14 @@
   --popover: 0 0% 100%;
   --popover-foreground: 210 8% 11%;
 
-  --primary: 210 8% 11%;              /* dark buttons */
+  /* Ordo brand primary — #002726 used strategically as a system color */
+  --primary: 178 100% 8%;            /* #002726 */
   --primary-foreground: 0 0% 100%;
+  --primary-hover: 178 100% 12%;     /* hover on primary actions */
+  --primary-active: 177 100% 6%;     /* pressed/active primary */
+  --primary-surface: 180 30% 96%;    /* subtle selected/tinted bg */
+  --primary-border: 178 26% 84%;     /* tinted borders on brand surfaces */
+  --primary-text: 178 90% 12%;       /* brand-colored text on light bg */
 
   --secondary: 220 14% 96%;           /* hover/active surface */
   --secondary-foreground: 210 8% 11%;
@@ -114,7 +120,7 @@
   --muted: 220 14% 96%;
   --muted-foreground: 213 6% 47%;     /* #6F767E secondary text */
 
-  --accent: 217 91% 60%;              /* #3B82F6 */
+  --accent: 178 100% 8%;             /* brand accent (focus, active) */
   --accent-foreground: 0 0% 100%;
 
   --destructive: 0 72% 51%;
@@ -128,10 +134,21 @@
 
   --border: 0 0% 94%;                 /* #EFEFEF */
   --input: 0 0% 94%;
-  --ring: 217 91% 60%;
+  --ring: 178 100% 8%;               /* brand focus ring */
+
+  /* AI experience — subtle brand-derived tint */
+  --ai-surface: 180 32% 97%;
+  --ai-border: 178 24% 86%;
+  --ai-text: 178 80% 16%;
+  --ai-glow: 178 100% 8%;
+
+  /* Sidebar — strongest branded surface */
+  --sidebar-brand: 178 100% 8%;      /* #002726 background */
+  --sidebar-ink: 0 0% 100%;          /* white logo + active text */
 
   /* tertiary text */
   --text-tertiary: 218 11% 65%;       /* #9CA3AF */
+
 
   /* radii */
   --radius-panel: 28px;

@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 function OrdoMark({ className }: { className?: string }) {
   return (
-    <div className={cn("flex h-12 w-12 items-center justify-center rounded-small bg-foreground", className)}>
+    <div className={cn("flex h-12 w-12 items-center justify-center rounded-small bg-primary", className)}>
       <span className="h-5 w-5 rounded-full border-[3px] border-card" />
     </div>
   );

@@ -22,21 +22,21 @@ export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left outline-none transition-colors hover:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-white/30"
         aria-label="Switch workspace"
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/60 text-sm font-semibold text-primary-foreground">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15 text-sm font-semibold text-white">
           {initial}
         </div>
         {!collapsed && (
           <>
             <div className="min-w-0 flex-1 leading-tight">
-              <div className="truncate text-sm font-medium">{currentWorkspace.name}</div>
-              <div className="truncate text-[11px] capitalize text-muted-foreground">
+              <div className="truncate text-sm font-medium text-white">{currentWorkspace.name}</div>
+              <div className="truncate text-[11px] capitalize text-white/60">
                 {currentWorkspace.role}
               </div>
             </div>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <ChevronsUpDown className="h-4 w-4 shrink-0 text-white/60" />
           </>
         )}
       </DropdownMenuTrigger>

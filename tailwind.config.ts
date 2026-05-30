@@ -22,6 +22,16 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover: "hsl(var(--primary-hover))",
+          active: "hsl(var(--primary-active))",
+          surface: "hsl(var(--primary-surface))",
+          border: "hsl(var(--primary-border))",
+          text: "hsl(var(--primary-text))",
+        },
+        ai: {
+          surface: "hsl(var(--ai-surface))",
+          border: "hsl(var(--ai-border))",
+          text: "hsl(var(--ai-text))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
