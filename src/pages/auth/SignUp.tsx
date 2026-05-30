@@ -75,7 +75,7 @@ export default function SignUp() {
           <p className="mt-1 text-muted-foreground">Start your free Ordo workspace.</p>
         </div>
 
-        {error && (
+        {error && !fieldError && (
           <OrdoAlert variant="error" className="mb-5">
             {error}
           </OrdoAlert>
