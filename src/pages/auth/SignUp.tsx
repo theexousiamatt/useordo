@@ -95,9 +95,13 @@ export default function SignUp() {
             type="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (fieldError === "email") setFieldError(null);
+            }}
             placeholder="you@company.com"
             autoComplete="email"
+            error={fieldError === "email" ? error ?? undefined : undefined}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <OrdoPasswordInput
@@ -105,8 +109,12 @@ export default function SignUp() {
               required
               showStrength
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (fieldError === "password") setFieldError(null);
+              }}
               autoComplete="new-password"
+              error={fieldError === "password" ? error ?? undefined : undefined}
             />
             <OrdoPasswordInput
               label="Confirm password"
@@ -114,9 +122,16 @@ export default function SignUp() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               autoComplete="new-password"
-              error={confirm && confirm !== password ? "Passwords don't match" : undefined}
+              error={
+                confirm && confirm !== password
+                  ? "Passwords don't match"
+                  : fieldError === "password"
+                    ? " "
+                    : undefined
+              }
             />
           </div>
+
 
           <OrdoButton type="submit" loading={busy}>
             Create account
