@@ -85,16 +85,17 @@ export function OrdoSidebar({ onNavigate, collapsed = false }: OrdoSidebarProps)
       {/* Settings */}
       {settingsItem && (
         <div className="mt-4 border-t border-white/10 pt-4">
-          <NavLink
-            to={settingsItem.url}
-            onClick={onNavigate}
-            title={collapsed ? settingsItem.title : undefined}
-            aria-label={collapsed ? settingsItem.title : undefined}
-            className={linkClass(isActive(settingsItem.url, settingsItem.end))}
-          >
-            <settingsItem.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
-            {!collapsed && <span className="animate-fade-in whitespace-nowrap">{settingsItem.title}</span>}
-          </NavLink>
+          <SidebarTooltip label={settingsItem.title} enabled={collapsed}>
+            <NavLink
+              to={settingsItem.url}
+              onClick={onNavigate}
+              aria-label={collapsed ? settingsItem.title : undefined}
+              className={linkClass(isActive(settingsItem.url, settingsItem.end))}
+            >
+              <settingsItem.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
+              {!collapsed && <span className="animate-fade-in whitespace-nowrap">{settingsItem.title}</span>}
+            </NavLink>
+          </SidebarTooltip>
         </div>
       )}
 
