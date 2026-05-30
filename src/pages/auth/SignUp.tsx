@@ -9,10 +9,11 @@ import {
   OrdoButton,
   OrdoAlert,
   OrdoSocialButton,
-  friendlyAuthError,
+  friendlyAuthErrorDetailed,
   evaluatePassword,
   useSocialAuth,
 } from "@/components/auth";
+import type { AuthErrorField } from "@/components/auth";
 
 export default function SignUp() {
   const { user, loading } = useAuth();
