@@ -12,6 +12,7 @@ import {
   friendlyAuthErrorDetailed,
   evaluatePassword,
   useSocialAuth,
+  logAuthError,
 } from "@/components/auth";
 import type { AuthErrorField } from "@/components/auth";
 
