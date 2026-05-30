@@ -914,6 +914,10 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      shares_workspace_with: {
+        Args: { _profile_id: string; _viewer: string }
+        Returns: boolean
+      }
     }
     Enums: {
       activity_type:
