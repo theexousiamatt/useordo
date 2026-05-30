@@ -26,6 +26,7 @@ export default function SignUp() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<AuthErrorField>(null);
 
   if (loading) return null;
   if (user) return <Navigate to="/" replace />;
