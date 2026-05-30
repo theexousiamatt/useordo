@@ -9,7 +9,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { WorkspaceProvider } from "@/hooks/useWorkspace";
 import AppLayout from "@/components/AppLayout";
-import Auth from "@/pages/Auth";
+import SignIn from "@/pages/auth/SignIn";
+import SignUp from "@/pages/auth/SignUp";
+import ForgotPassword from "@/pages/auth/ForgotPassword";
+import VerifyEmail from "@/pages/auth/VerifyEmail";
+import WorkspaceInvite from "@/pages/auth/WorkspaceInvite";
+import AccountLocked from "@/pages/auth/AccountLocked";
+import SessionExpired from "@/pages/auth/SessionExpired";
 import ResetPassword from "@/pages/ResetPassword";
 import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
@@ -49,7 +55,13 @@ const App = () => (
           <WorkspaceProvider>
             <Suspense fallback={<ClientFallback />}>
               <Routes>
-                <Route path="/auth" element={<Auth />} />
+                <Route path="/auth" element={<SignIn />} />
+                <Route path="/auth/sign-up" element={<SignUp />} />
+                <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+                <Route path="/auth/verify-email" element={<VerifyEmail />} />
+                <Route path="/auth/invite" element={<WorkspaceInvite />} />
+                <Route path="/auth/locked" element={<AccountLocked />} />
+                <Route path="/auth/session-expired" element={<SessionExpired />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/onboarding" element={<Onboarding />} />
 
