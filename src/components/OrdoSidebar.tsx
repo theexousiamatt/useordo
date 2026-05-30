@@ -22,9 +22,9 @@ export function OrdoSidebar({ onNavigate }: OrdoSidebarProps) {
   const linkClass = (active: boolean) =>
     cn(
       "flex items-center rounded-small px-3 py-2.5 text-sm font-medium transition-colors",
-      "text-muted-foreground hover:bg-secondary hover:text-foreground",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-      active && "bg-secondary text-foreground",
+      "text-white/65 hover:bg-white/[0.08] hover:text-white/90",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
+      active && "bg-white/[0.12] text-white hover:text-white",
     );
 
   const renderItem = (item: NavItem) => {
@@ -42,7 +42,7 @@ export function OrdoSidebar({ onNavigate }: OrdoSidebarProps) {
   return (
     <nav
       aria-label="Workspace navigation"
-      className="flex h-full flex-col rounded-panel bg-card px-4 py-6 shadow-panel"
+      className="flex h-full flex-col rounded-panel bg-[hsl(var(--sidebar-brand))] px-4 py-6 shadow-panel"
     >
       {/* Header / logo */}
       <div className="flex items-center gap-3 px-2 pb-4">
@@ -51,14 +51,14 @@ export function OrdoSidebar({ onNavigate }: OrdoSidebarProps) {
           <span className="h-2.5 w-2.5 rounded-full bg-[#FFBD2E]" />
           <span className="h-2.5 w-2.5 rounded-full bg-[#27C93F]" />
         </div>
-        <div className="ml-1 flex h-10 w-10 items-center justify-center rounded-xl bg-foreground">
-          <span className="h-4 w-4 rounded-full border-[3px] border-card" />
+        <div className="ml-1 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+          <span className="h-4 w-4 rounded-full border-[3px] border-white" />
         </div>
-        <span className="text-base font-semibold tracking-tight">Ordo</span>
+        <span className="text-base font-semibold tracking-tight text-white">Ordo</span>
       </div>
 
       {/* Workspace switcher */}
-      <div className="mb-2 rounded-small bg-secondary/60 p-1">
+      <div className="mb-2 rounded-small bg-white/[0.06] p-1">
         <WorkspaceSwitcher />
       </div>
 
@@ -67,7 +67,7 @@ export function OrdoSidebar({ onNavigate }: OrdoSidebarProps) {
 
       {/* Settings */}
       {settingsItem && (
-        <div className="mt-4 border-t border-border pt-4">
+        <div className="mt-4 border-t border-white/10 pt-4">
           <NavLink
             to={settingsItem.url}
             onClick={onNavigate}
@@ -81,3 +81,4 @@ export function OrdoSidebar({ onNavigate }: OrdoSidebarProps) {
     </nav>
   );
 }
+
