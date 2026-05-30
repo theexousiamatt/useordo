@@ -22,6 +22,7 @@ export default function SignUp() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +34,10 @@ export default function SignUp() {
     setError(null);
     if (evaluatePassword(password).score < 2) {
       setError("Please choose a stronger password (at least 8 characters).");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords don't match. Please re-enter them.");
       return;
     }
     setBusy(true);
@@ -87,14 +92,24 @@ export default function SignUp() {
             placeholder="you@company.com"
             autoComplete="email"
           />
-          <OrdoPasswordInput
-            label="Password"
-            required
-            showStrength
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <OrdoPasswordInput
+              label="Password"
+              required
+              showStrength
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            <OrdoPasswordInput
+              label="Confirm password"
+              required
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
+              error={confirm && confirm !== password ? "Passwords don't match" : undefined}
+            />
+          </div>
 
           <OrdoButton type="submit" loading={busy}>
             Create account
