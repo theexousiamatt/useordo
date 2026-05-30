@@ -8,3 +8,5 @@ export { OrdoSocialButton } from "./OrdoSocialButton";
 export { friendlyAuthError, friendlyAuthErrorDetailed, evaluatePassword } from "./authErrors";
 export type { AuthErrorField, DetailedAuthError } from "./authErrors";
 export { useSocialAuth } from "./useSocialAuth";
+export { logAuthError } from "./authLogger";
+export type { AuthErrorLog } from "./authLogger";
