@@ -97,20 +97,8 @@ export default function AppLayout() {
 
 
   return (
-    <div className="client-os min-h-screen bg-background">
-      {/* Fixed structural sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[268px] lg:block">
-        <OrdoSidebar />
-      </aside>
-
-      <div className="flex min-h-screen flex-col lg:ml-[268px]">
-        <div className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8">
-          <OrdoTopBar />
-          <main className="flex min-w-0 flex-1 flex-col gap-6 sm:gap-8">
-            <Outlet />
-          </main>
-        </div>
-      </div>
-    </div>
+    <SidebarCollapseProvider>
+      <AppShell />
+    </SidebarCollapseProvider>
   );
 }
