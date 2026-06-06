@@ -79,7 +79,7 @@ console.log("1. RLS enabled on all project-related tables");
     SELECT c.relname, c.relrowsecurity
     FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname='public' AND c.relkind='r' AND c.relname IN (${tableList});`);
-  const seen = new Map(rows.map((r) => [r[0], r[1] === "t"]));
+  const seen = new Map(rows.map((r) => [r[0], r[1] === true || r[1] === "t"]));
   for (const t of TABLES) {
     if (!seen.has(t)) fail(`${t}: table not found`);
     else if (!seen.get(t)) fail(`${t}: RLS NOT enabled`);
