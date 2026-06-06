@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { scopedSelect } from "@/lib/workspaceScope";
 
 export type ProjectStatus = "on_track" | "at_risk" | "blocked" | "done" | "planning";
 export type TaskStatus =
@@ -47,17 +48,19 @@ export interface Milestone {
   project_name: string;
 }
 
-/** Projects the client can see (RLS scopes to membership). */
+/** Projects in the active workspace (scoped + RLS). */
 export function useClientProjects() {
-  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
   return useQuery({
-    queryKey: ["client-projects", user?.id],
-    enabled: !!user,
+    queryKey: ["client-projects", workspaceId],
+    enabled: !!workspaceId,
     queryFn: async (): Promise<ClientProject[]> => {
-      const { data: projects, error } = await supabase
-        .from("projects")
-        .select("id, name, description, status, progress, due_date")
-        .order("created_at", { ascending: false });
+      const { data: projects, error } = await scopedSelect(
+        "projects",
+        workspaceId,
+        "id, name, description, status, progress, due_date",
+      ).order("created_at", { ascending: false });
       if (error) throw error;
 
       const list = projects ?? [];
@@ -65,9 +68,11 @@ export function useClientProjects() {
 
       // Derive "current phase" from the first incomplete milestone per project.
       const ids = list.map((p) => p.id);
-      const { data: milestones } = await supabase
-        .from("milestones")
-        .select("project_id, title, completed, due_date")
+      const { data: milestones } = await scopedSelect(
+        "milestones",
+        workspaceId,
+        "project_id, title, completed, due_date",
+      )
         .in("project_id", ids)
         .eq("completed", false)
         .order("due_date", { ascending: true });
@@ -85,31 +90,40 @@ export function useClientProjects() {
   });
 }
 
-/** Helper: build a project id -> name lookup (no FK relationships exist for embeds). */
-async function projectNameMap(ids: string[]): Promise<Map<string, string>> {
+/** Helper: build a project id -> name lookup, scoped to the active workspace. */
+async function projectNameMap(
+  ids: string[],
+  workspaceId: string,
+): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   if (ids.length === 0) return map;
   const unique = Array.from(new Set(ids));
-  const { data } = await supabase.from("projects").select("id, name").in("id", unique);
+  const { data } = await scopedSelect("projects", workspaceId, "id, name").in("id", unique);
   (data ?? []).forEach((p) => map.set(p.id, p.name));
   return map;
 }
 
 /** Tasks needing client attention (approvals / change requests). */
 export function useActionItems() {
-  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
   return useQuery({
-    queryKey: ["client-actions", user?.id],
-    enabled: !!user,
+    queryKey: ["client-actions", workspaceId],
+    enabled: !!workspaceId,
     queryFn: async (): Promise<ActionItem[]> => {
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("id, title, status, due_date, project_id")
+      const { data, error } = await scopedSelect(
+        "tasks",
+        workspaceId,
+        "id, title, status, due_date, project_id",
+      )
         .in("status", ["awaiting_approval", "changes_requested"])
         .order("due_date", { ascending: true, nullsFirst: false });
       if (error) throw error;
       const rows = data ?? [];
-      const names = await projectNameMap(rows.map((t) => t.project_id));
+      const names = await projectNameMap(
+        rows.map((t) => t.project_id),
+        workspaceId!,
+      );
       return rows.map((t) => ({
         id: t.id,
         title: t.title,
@@ -123,14 +137,17 @@ export function useActionItems() {
 }
 
 export function useClientActivity(limit = 8) {
-  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
   return useQuery({
-    queryKey: ["client-activity", user?.id, limit],
-    enabled: !!user,
+    queryKey: ["client-activity", workspaceId, limit],
+    enabled: !!workspaceId,
     queryFn: async (): Promise<ActivityEntry[]> => {
-      const { data, error } = await supabase
-        .from("activity")
-        .select("id, type, payload, created_at")
+      const { data, error } = await scopedSelect(
+        "activity",
+        workspaceId,
+        "id, type, payload, created_at",
+      )
         .order("created_at", { ascending: false })
         .limit(limit);
       if (error) throw error;
@@ -140,20 +157,26 @@ export function useClientActivity(limit = 8) {
 }
 
 export function useClientMilestones(limit = 6) {
-  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
   return useQuery({
-    queryKey: ["client-milestones", user?.id, limit],
-    enabled: !!user,
+    queryKey: ["client-milestones", workspaceId, limit],
+    enabled: !!workspaceId,
     queryFn: async (): Promise<Milestone[]> => {
-      const { data, error } = await supabase
-        .from("milestones")
-        .select("id, title, due_date, completed, completed_at, project_id")
+      const { data, error } = await scopedSelect(
+        "milestones",
+        workspaceId,
+        "id, title, due_date, completed, completed_at, project_id",
+      )
         .order("completed", { ascending: true })
         .order("due_date", { ascending: true, nullsFirst: false })
         .limit(limit);
       if (error) throw error;
       const rows = data ?? [];
-      const names = await projectNameMap(rows.map((m) => m.project_id));
+      const names = await projectNameMap(
+        rows.map((m) => m.project_id),
+        workspaceId!,
+      );
       return rows.map((m) => ({
         id: m.id,
         title: m.title,
@@ -166,4 +189,3 @@ export function useClientMilestones(limit = 6) {
     },
   });
 }
-
