@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "verify:rls": "node scripts/verify-rls.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {
