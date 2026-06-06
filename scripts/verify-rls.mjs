@@ -46,17 +46,21 @@ if (!CONN) {
 
 const tableList = TABLES.map((t) => `'${t}'`).join(",");
 
+/**
+ * Run a SELECT and return rows as arrays. The query is wrapped so Postgres
+ * emits a single JSON line, which is immune to newlines inside policy
+ * expressions (qual/with_check often span multiple lines).
+ */
 function runSql(sql) {
+  const trimmed = sql.trim().replace(/;\s*$/, "");
+  const wrapped = `SELECT coalesce(json_agg(t.*), '[]'::json)::text FROM (${trimmed}) t;`;
   const out = execFileSync(
     "psql",
-    [CONN, "-X", "-A", "-F", "\u001f", "-t", "-c", sql],
+    [CONN, "-X", "-A", "-t", "-c", wrapped],
     { encoding: "utf8" },
   );
-  return out
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map((row) => row.split("\u001f"));
+  const parsed = JSON.parse(out.trim() || "[]");
+  return parsed.map((obj) => Object.values(obj));
 }
 
 const failures = [];
