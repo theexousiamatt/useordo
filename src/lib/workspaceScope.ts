@@ -42,5 +42,13 @@ export function scopedSelect(
       `[workspaceScope] Refusing to query "${table}" without an active workspace id.`,
     );
   }
-  return supabase.from(table).select(columns).eq("workspace_id", workspaceId);
+  // The runtime table name is a union, which defeats Supabase's per-table column
+  // typing and triggers "excessively deep" inference. Use the loosely-typed
+  // client here; callers cast rows to their domain interfaces.
+  const client = supabase as unknown as {
+    from: (table: string) => {
+      select: (columns: string) => any;
+    };
+  };
+  return client.from(table).select(columns).eq("workspace_id", workspaceId) as any;
 }
