@@ -117,7 +117,7 @@ console.log("\n3. No policy grants anon/public access");
 console.log("\n4. Policy expressions are workspace/project scoped");
 {
   const rows = runSql(`
-    SELECT tablename, policyname, coalesce(qual,''), coalesce(with_check,'')
+    SELECT tablename, policyname, coalesce(qual,'') AS using_expr, coalesce(with_check,'') AS check_expr
     FROM pg_policies
     WHERE schemaname='public' AND tablename IN (${tableList});`);
   let unscoped = 0;
