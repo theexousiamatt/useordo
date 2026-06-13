@@ -237,3 +237,53 @@ export function useDeleteTask(projectId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
   });
 }
+
+/** Duplicate a task into the same column, just after the original. */
+export function useDuplicateTask(projectId: string, workspaceId: string) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (task: TaskRow) => {
+      const existing = qc.getQueryData<TaskRow[]>(["project-tasks", projectId]) ?? [];
+      const position = existing.filter((t) => t.status === task.status).length;
+      const { error } = await supabase.from("tasks").insert({
+        workspace_id: workspaceId,
+        project_id: projectId,
+        title: `${task.title} (copy)`,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        position,
+        assignee_id: task.assignee_id,
+        due_date: task.due_date,
+        created_by: user?.id ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+  });
+}
+
+/** Apply the same field patch to many tasks at once. */
+export function useBulkUpdateTasks(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, patch }: { ids: string[]; patch: Partial<TaskRow> }) => {
+      const { error } = await supabase.from("tasks").update(patch).in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+  });
+}
+
+/** Delete many tasks at once. */
+export function useBulkDeleteTasks(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("tasks").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+  });
+}
