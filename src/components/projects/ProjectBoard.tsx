@@ -3,6 +3,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   closestCorners,
@@ -12,19 +13,17 @@ import {
 import {
   SortableContext,
   useSortable,
+  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
-import { Plus, GripVertical, Loader2 } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { initials } from "@/lib/format";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
-import { PriorityBadge } from "@/components/projects/ProjectBadges";
+import { OrdoTaskCard, COLUMN_THEME } from "@/components/ordo/OrdoTaskCard";
 import {
   useCreateTask,
   useReorderTasks,
@@ -56,6 +55,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const byStatus = (status: TaskStatus) =>
@@ -75,7 +75,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     const activeTaskItem = items.find((t) => t.id === active.id);
     if (!activeTaskItem) return;
 
-    // Resolve target column: dropping on a column id or on another task.
     const overId = String(over.id);
     const overTask = items.find((t) => t.id === overId);
     const targetStatus = (overTask?.status ?? overId) as TaskStatus;
@@ -85,7 +84,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     const moving = next.find((t) => t.id === active.id)!;
     moving.status = targetStatus;
 
-    // Re-sequence positions within affected columns.
     const affected = new Set<TaskStatus>([activeTaskItem.status, targetStatus]);
     const updates: { id: string; status: TaskStatus; position: number }[] = [];
     affected.forEach((status) => {
@@ -126,7 +124,18 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
       <DragOverlay>
         {activeTask && (
-          <TaskCard task={activeTask} member={memberMap.get(activeTask.assignee_id ?? "")} overlay />
+          <div className="w-72">
+            <OrdoTaskCard
+              title={activeTask.title}
+              status={activeTask.status}
+              priority={activeTask.priority}
+              description={activeTask.description}
+              dueDate={activeTask.due_date}
+              assignees={memberMap.get(activeTask.assignee_id ?? "") ? [memberMap.get(activeTask.assignee_id ?? "")!] : []}
+              interactive={false}
+              overlay
+            />
+          </div>
         )}
       </DragOverlay>
     </DndContext>
@@ -151,6 +160,7 @@ function Column({
   const { setNodeRef, isOver } = useDroppable({ id });
   const [composing, setComposing] = useState(false);
   const [value, setValue] = useState("");
+  const theme = COLUMN_THEME[id];
 
   const submit = () => {
     if (value.trim()) {
@@ -162,14 +172,21 @@ function Column({
 
   return (
     <div className="flex w-72 shrink-0 flex-col">
-      <div className="mb-2 flex items-center justify-between px-1">
+      <div className="mb-3 flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">{title}</span>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+          <span className={cn("h-2 w-2 rounded-full", theme.dot)} />
+          <span className={cn("text-sm font-semibold", theme.header)}>{title}</span>
+          <span className="rounded-pill bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
             {tasks.length}
           </span>
         </div>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setComposing(true)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={() => setComposing(true)}
+          aria-label={`Add task to ${title}`}
+        >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -177,8 +194,8 @@ function Column({
       <div
         ref={setNodeRef}
         className={cn(
-          "flex min-h-24 flex-1 flex-col gap-2 rounded-lg border border-dashed border-transparent p-1 transition-colors",
-          isOver && "border-primary/40 bg-primary/5",
+          "flex min-h-24 flex-1 flex-col gap-3 rounded-card border border-dashed border-transparent p-1.5 transition-colors",
+          isOver && "border-primary/30 bg-primary/5",
         )}
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
@@ -188,7 +205,7 @@ function Column({
         </SortableContext>
 
         {composing && (
-          <div className="rounded-lg border border-border bg-card p-2">
+          <div className="rounded-card border border-border bg-card p-2">
             <Input
               autoFocus
               value={value}
@@ -232,43 +249,15 @@ function SortableTask({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(isDragging && "opacity-40")}
     >
-      <TaskCard task={task} member={member} dragHandleProps={{ ...attributes, ...listeners }} />
+      <OrdoTaskCard
+        title={task.title}
+        status={task.status}
+        priority={task.priority}
+        description={task.description}
+        dueDate={task.due_date}
+        assignees={member ? [member] : []}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
     </div>
-  );
-}
-
-function TaskCard({
-  task,
-  member,
-  dragHandleProps,
-  overlay,
-}: {
-  task: TaskRow;
-  member?: ProjectMemberProfile;
-  dragHandleProps?: Record<string, unknown>;
-  overlay?: boolean;
-}) {
-  return (
-    <Card className={cn("p-3", overlay && "rotate-2 shadow-lg")}>
-      <div className="flex items-start gap-1.5">
-        <button
-          {...dragHandleProps}
-          className="mt-0.5 cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground"
-          aria-label="Drag task"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
-        <p className="flex-1 text-sm leading-snug">{task.title}</p>
-      </div>
-      <div className="mt-2 flex items-center justify-between pl-5">
-        <PriorityBadge priority={task.priority} />
-        {member && (
-          <Avatar className="h-6 w-6">
-            {member.avatar_url && <AvatarImage src={member.avatar_url} alt={member.full_name ?? ""} />}
-            <AvatarFallback className="text-[10px]">{initials(member.full_name)}</AvatarFallback>
-          </Avatar>
-        )}
-      </div>
-    </Card>
   );
 }
