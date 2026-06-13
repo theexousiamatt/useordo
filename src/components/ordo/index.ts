@@ -17,6 +17,29 @@ export { OrdoDatePicker } from "./OrdoDatePicker";
 export { OrdoForm, OrdoFormSection, OrdoFormRow } from "./OrdoForm";
 export { OrdoTaskCard, COLUMN_THEME, type OrdoTaskCardProps } from "./OrdoTaskCard";
 
+// Universal interaction framework — reuse across every Ordo module.
+export {
+  OrdoContextMenu,
+  OrdoOverflowMenu,
+  type OrdoMenuConfig,
+  type OrdoMenuSection,
+  type OrdoMenuItem,
+} from "./OrdoMenu";
+export {
+  OrdoCardContextMenu,
+  OrdoCardOverflowMenu,
+  buildTaskMenuConfig,
+  type TaskMenuHandlers,
+} from "./OrdoCardContextMenu";
+export {
+  OrdoColumnContextMenu,
+  OrdoColumnOverflowMenu,
+  buildColumnMenuConfig,
+  type ColumnMenuHandlers,
+} from "./OrdoColumnContextMenu";
+export { OrdoBulkActionMenu, type BulkActionHandlers } from "./OrdoBulkActionMenu";
+export { OrdoQuickEditPanel, type QuickEditPatch } from "./OrdoQuickEditPanel";
+
 // Re-exports of existing canonical primitives for a single import surface.
 export { PageHeader } from "@/components/PageHeader";
 export { EmptyState } from "@/components/states/EmptyState";
