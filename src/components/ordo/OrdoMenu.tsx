@@ -62,15 +62,17 @@ export interface OrdoMenuSection {
 export type OrdoMenuConfig = OrdoMenuSection[];
 
 /** Component set shared between ContextMenu and DropdownMenu primitives. */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 interface Primitives {
-  Item: typeof ContextMenuItem | typeof DropdownMenuItem;
-  Label: typeof ContextMenuLabel | typeof DropdownMenuLabel;
-  Separator: typeof ContextMenuSeparator | typeof DropdownMenuSeparator;
-  Shortcut: typeof ContextMenuShortcut | typeof DropdownMenuShortcut;
-  Sub: typeof ContextMenuSub | typeof DropdownMenuSub;
-  SubTrigger: typeof ContextMenuSubTrigger | typeof DropdownMenuSubTrigger;
-  SubContent: typeof ContextMenuSubContent | typeof DropdownMenuSubContent;
+  Item: React.ComponentType<any>;
+  Label: React.ComponentType<any>;
+  Separator: React.ComponentType<any>;
+  Shortcut: React.ComponentType<any>;
+  Sub: React.ComponentType<any>;
+  SubTrigger: React.ComponentType<any>;
+  SubContent: React.ComponentType<any>;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const CONTEXT_PRIMS: Primitives = {
   Item: ContextMenuItem,
