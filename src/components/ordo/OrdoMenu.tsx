@@ -64,13 +64,13 @@ export type OrdoMenuConfig = OrdoMenuSection[];
 /** Component set shared between ContextMenu and DropdownMenu primitives. */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface Primitives {
-  Item: React.ComponentType<any>;
-  Label: React.ComponentType<any>;
-  Separator: React.ComponentType<any>;
-  Shortcut: React.ComponentType<any>;
-  Sub: React.ComponentType<any>;
-  SubTrigger: React.ComponentType<any>;
-  SubContent: React.ComponentType<any>;
+  Item: ComponentType<any>;
+  Label: ComponentType<any>;
+  Separator: ComponentType<any>;
+  Shortcut: ComponentType<any>;
+  Sub: ComponentType<any>;
+  SubTrigger: ComponentType<any>;
+  SubContent: ComponentType<any>;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
