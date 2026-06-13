@@ -15,6 +15,7 @@ export { OrdoSelect, type OrdoSelectOption } from "./OrdoSelect";
 export { OrdoMultiSelect, type OrdoMultiSelectOption } from "./OrdoMultiSelect";
 export { OrdoDatePicker } from "./OrdoDatePicker";
 export { OrdoForm, OrdoFormSection, OrdoFormRow } from "./OrdoForm";
+export { OrdoTaskCard, COLUMN_THEME, type OrdoTaskCardProps } from "./OrdoTaskCard";
 
 // Re-exports of existing canonical primitives for a single import surface.
 export { PageHeader } from "@/components/PageHeader";
