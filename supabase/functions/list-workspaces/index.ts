@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-type WorkspaceRole = "owner" | "member" | "client";
+type WorkspaceRole = "owner" | "manager" | "member" | "client";
 
 type Workspace = {
   id: string;
