@@ -12,7 +12,6 @@ import {
   Trash2,
   CircleUserRound,
   MoreHorizontal,
-  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
