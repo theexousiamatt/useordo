@@ -954,7 +954,7 @@ export type Database = {
         | "approved"
         | "changes_requested"
         | "done"
-      workspace_role: "owner" | "member" | "client"
+      workspace_role: "owner" | "member" | "client" | "manager"
       workspace_type:
         | "freelancer"
         | "agency"
@@ -1125,7 +1125,7 @@ export const Constants = {
         "changes_requested",
         "done",
       ],
-      workspace_role: ["owner", "member", "client"],
+      workspace_role: ["owner", "member", "client", "manager"],
       workspace_type: [
         "freelancer",
         "agency",
