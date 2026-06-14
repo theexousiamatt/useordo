@@ -19,12 +19,12 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard, end: true, roles: ["owner", "member", "client"] },
-  { title: "Projects", url: "/projects", icon: FolderKanban, roles: ["owner", "member", "client"] },
-  { title: "Tasks", url: "/tasks", icon: CheckSquare, roles: ["owner", "member"] },
-  { title: "Clients", url: "/clients", icon: Users, roles: ["owner", "member"] },
-  { title: "Team", url: "/team", icon: UserCog, roles: ["owner", "member"] },
-  { title: "Activity", url: "/activity", icon: Activity, roles: ["owner", "member", "client"] },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, end: true, roles: ["owner", "manager", "member", "client"] },
+  { title: "Projects", url: "/projects", icon: FolderKanban, roles: ["owner", "manager", "member", "client"] },
+  { title: "Tasks", url: "/tasks", icon: CheckSquare, roles: ["owner", "manager", "member"] },
+  { title: "Clients", url: "/clients", icon: Users, roles: ["owner", "manager"] },
+  { title: "Team", url: "/team", icon: UserCog, roles: ["owner", "manager"] },
+  { title: "Activity", url: "/activity", icon: Activity, roles: ["owner", "manager", "member", "client"] },
   { title: "Settings", url: "/settings", icon: Settings, roles: ["owner"] },
 ];
 
