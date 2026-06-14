@@ -1,39 +1,80 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Building2, UserCircle2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import {
-  AuthLayout,
-  OrdoButton,
-  OrdoAlert,
-} from "@/components/auth";
+import { AuthLayout, OrdoButton, OrdoAlert } from "@/components/auth";
+import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { roleLabel } from "@/lib/roles";
 
-/**
- * Workspace invitation screen. Reads invite details from query params
- * (?workspace=&inviter=&role=) so it works for email-link invites.
- */
+interface Preview {
+  valid: boolean;
+  status: string;
+  email: string;
+  role: string;
+  workspaceId: string;
+  workspaceName: string;
+  inviterName: string;
+  expiresAt: string;
+}
+
 export default function WorkspaceInvite() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const workspace = params.get("workspace") || "a workspace";
-  const inviter = params.get("inviter") || "A teammate";
-  const role = params.get("role") || "Member";
-  const expired = params.get("expired") === "true";
+  const token = params.get("token") ?? "";
+  const { refresh, selectWorkspace } = useWorkspace();
 
+  const [loading, setLoading] = useState(true);
+  const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState<"accept" | "decline" | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    (async () => {
+      const { data, error } = await supabase.functions.invoke("accept-invitation", {
+        body: { token, accept: false },
+      });
+      if (error || (data as any)?.error) {
+        setPreview(null);
+      } else {
+        setPreview((data as any).invite as Preview);
+      }
+      setLoading(false);
+    })();
+  }, [token]);
 
   const accept = async () => {
     setBusy("accept");
-    // Invite acceptance is finalized during onboarding / workspace join.
-    toast.success(`Joining ${workspace}…`);
-    navigate(`/onboarding?invite=${encodeURIComponent(workspace)}`);
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      // Send to sign up, returning here afterwards.
+      navigate(`/auth/sign-up?redirect=${encodeURIComponent(`/auth/invite?token=${token}`)}`);
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("accept-invitation", {
+      body: { token, accept: true },
+    });
+    setBusy(null);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error ?? "Could not accept invitation");
+      return;
+    }
+    const result = data as { workspaceId: string; workspaceName: string };
+    toast.success(`Welcome to ${result.workspaceName}`);
+    await refresh();
+    selectWorkspace(result.workspaceId);
+    navigate("/");
   };
 
-  const decline = async () => {
-    setBusy("decline");
+  const decline = () => {
     toast.info("Invitation declined.");
     navigate("/auth");
   };
+
+  const invalid = !token || (!loading && (!preview || !preview.valid));
 
   return (
     <AuthLayout
@@ -42,10 +83,16 @@ export default function WorkspaceInvite() {
       panelSubtitle="Join your team on Ordo to collaborate on projects, deliverables and approvals in one place."
     >
       <div className="mx-auto w-full max-w-sm">
-        {expired ? (
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading invitation…</p>
+        ) : invalid ? (
           <div className="space-y-6">
-            <OrdoAlert variant="warning" title="Invitation expired">
-              This invitation link is no longer valid. Ask {inviter} to send a new one.
+            <OrdoAlert variant="warning" title="Invitation unavailable">
+              {preview?.status === "expired"
+                ? "This invitation has expired. Ask the sender for a new one."
+                : preview?.status === "revoked"
+                  ? "This invitation has been revoked."
+                  : "This invitation link is no longer valid."}
             </OrdoAlert>
             <OrdoButton variant="outline" onClick={() => navigate("/auth")}>
               Back to sign in
@@ -59,9 +106,9 @@ export default function WorkspaceInvite() {
             </div>
 
             <div className="space-y-3 rounded-card border border-border bg-secondary/40 p-5">
-              <Detail icon={Building2} label="Workspace" value={workspace} />
-              <Detail icon={UserCircle2} label="Invited by" value={inviter} />
-              <Detail icon={ShieldCheck} label="Role" value={role} />
+              <Detail icon={Building2} label="Workspace" value={preview!.workspaceName} />
+              <Detail icon={UserCircle2} label="Invited by" value={preview!.inviterName} />
+              <Detail icon={ShieldCheck} label="Role" value={roleLabel(preview!.role)} />
             </div>
 
             <div className="mt-7 space-y-3">
