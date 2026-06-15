@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { OnboardingSidebar } from "./OnboardingSidebar";
 import { OnboardingStepper } from "./OnboardingStepper";
+import { OrdoIcon } from "@/components/brand";
 
 interface OnboardingShellProps {
   current: number;
