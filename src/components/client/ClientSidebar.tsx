@@ -36,18 +36,12 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
       className={cn("flex h-full flex-col bg-[hsl(var(--sidebar-brand))] py-6", collapsed ? "px-2" : "px-4")}
     >
       {/* Header / logo */}
-      <div className={cn("flex items-center pb-6", collapsed ? "justify-center px-0" : "gap-3 px-2")}>
-        {!collapsed && (
-          <div className="flex gap-1.5" aria-hidden="true">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F56]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#FFBD2E]" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#27C93F]" />
-          </div>
+      <div className={cn("flex items-center pb-6", collapsed ? "justify-center px-2" : "gap-3 px-2")}>
+        {collapsed ? (
+          <OrdoIcon tone="dark" className="h-7 w-7" title="Ordo" />
+        ) : (
+          <OrdoLogo tone="dark" className="h-7 animate-fade-in" />
         )}
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl bg-white/10", !collapsed && "ml-1")}>
-          <span className="h-4 w-4 rounded-full border-[3px] border-white" />
-        </div>
-        {!collapsed && <span className="animate-fade-in whitespace-nowrap text-base font-semibold tracking-tight text-white">Ordo</span>}
       </div>
 
       {/* Nav items */}
