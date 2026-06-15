@@ -5,6 +5,7 @@ import { clientNavItems, clientSettingsItem } from "./clientNav";
 import { useActionItems } from "@/hooks/useClientDashboard";
 import { useSidebarCollapse } from "@/components/sidebar-collapse";
 import { SidebarTooltip } from "@/components/SidebarTooltip";
+import { OrdoLogo, OrdoIcon } from "@/components/brand";
 
 interface ClientSidebarProps {
   onNavigate?: () => void;
