@@ -13,11 +13,7 @@ interface OnboardingShellProps {
 }
 
 function OrdoMark() {
-  return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-small bg-foreground">
-      <span className="h-4 w-4 rounded-full border-[3px] border-card" />
-    </div>
-  );
+  return <OrdoIcon tone="light" className="h-9 w-9" title="Ordo" />;
 }
 
 /**
