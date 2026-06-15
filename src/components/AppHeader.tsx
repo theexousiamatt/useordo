@@ -11,6 +11,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { initials } from "@/lib/format";
+import { OrdoLogo } from "@/components/brand";
 
 export function AppHeader() {
   const { user, signOut } = useAuth();
