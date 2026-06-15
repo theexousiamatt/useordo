@@ -1,4 +1,5 @@
 import { OnboardingStepper } from "./OnboardingStepper";
+import { OrdoIcon } from "@/components/brand";
 
 interface OnboardingSidebarProps {
   current: number;
