@@ -6,6 +6,7 @@ import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useSidebarCollapse } from "@/components/sidebar-collapse";
 import { SidebarTooltip } from "@/components/SidebarTooltip";
+import { OrdoLogo, OrdoIcon } from "@/components/brand";
 
 interface OrdoSidebarProps {
   onNavigate?: () => void;
