@@ -1,12 +1,9 @@
 import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { OrdoLogo } from "@/components/brand";
 
 function OrdoMark({ className }: { className?: string }) {
-  return (
-    <div className={cn("flex h-12 w-12 items-center justify-center rounded-small bg-primary", className)}>
-      <span className="h-5 w-5 rounded-full border-[3px] border-card" />
-    </div>
-  );
+  return <OrdoLogo tone="light" className={cn("h-8", className)} />;
 }
 
 /** A lightweight product preview mockup shown on the auth left panel. */

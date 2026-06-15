@@ -1,4 +1,5 @@
 import { OnboardingStepper } from "./OnboardingStepper";
+import { OrdoIcon } from "@/components/brand";
 
 interface OnboardingSidebarProps {
   current: number;
@@ -8,11 +9,7 @@ interface OnboardingSidebarProps {
 }
 
 function OrdoMark() {
-  return (
-    <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-small bg-foreground">
-      <span className="h-5 w-5 rounded-full border-[3px] border-card" />
-    </div>
-  );
+  return <OrdoIcon tone="light" className="mb-6 h-10 w-10" title="Ordo" />;
 }
 
 /**

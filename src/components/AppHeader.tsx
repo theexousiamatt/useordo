@@ -11,6 +11,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { initials } from "@/lib/format";
+import { OrdoLogo } from "@/components/brand";
 
 export function AppHeader() {
   const { user, signOut } = useAuth();
@@ -19,7 +20,7 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
       <SidebarTrigger className="hidden md:flex" aria-label="Toggle sidebar" />
-      <div className="md:hidden text-sm font-semibold tracking-tight">Ordo</div>
+      <OrdoLogo tone="light" className="h-6 md:hidden" />
       <div className="flex-1" />
       <DropdownMenu>
         <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Account menu">
