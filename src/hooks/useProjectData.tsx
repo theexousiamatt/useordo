@@ -174,7 +174,11 @@ export function useUpdateDeliverableStatus(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { id: string; status: DeliverableStatus }) => {
-      const patch: Record<string, unknown> = { status: input.status };
+      const patch: {
+        status: DeliverableStatus;
+        approved_at?: string;
+        approved_by?: string | null;
+      } = { status: input.status };
       if (input.status === "approved") {
         patch.approved_at = new Date().toISOString();
         patch.approved_by = user?.id ?? null;
