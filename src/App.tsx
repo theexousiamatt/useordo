@@ -17,6 +17,7 @@ import WorkspaceInvite from "@/pages/auth/WorkspaceInvite";
 import AccountLocked from "@/pages/auth/AccountLocked";
 import SessionExpired from "@/pages/auth/SessionExpired";
 import ResetPassword from "@/pages/ResetPassword";
+import Unsubscribe from "@/pages/Unsubscribe";
 import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
 import Projects from "@/pages/Projects";
