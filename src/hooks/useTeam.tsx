@@ -105,6 +105,10 @@ export function useTeam() {
       if (!workspaceId) return false;
       setBusy(true);
       const { data: auth } = await supabase.auth.getUser();
+      const inviterName =
+        (auth.user?.user_metadata?.full_name as string) ??
+        auth.user?.email ??
+        "A teammate";
       const rows = emails.map((email) => ({
         workspace_id: workspaceId,
         email: email.toLowerCase().trim(),
@@ -112,17 +116,36 @@ export function useTeam() {
         invited_by: auth.user?.id ?? null,
         status: "pending",
       }));
-      const { error } = await db.from("workspace_invitations").insert(rows);
+      const { data: inserted, error } = await db
+        .from("workspace_invitations")
+        .insert(rows)
+        .select("id, email, token");
       setBusy(false);
       if (error) {
         toast.error(error.message ?? "Could not send invitations");
         return false;
       }
+      // Send branded invitation emails (non-blocking).
+      await Promise.all(
+        (inserted ?? []).map((inv: any) =>
+          sendAppEmail({
+            template: "workspace-invitation",
+            to: inv.email,
+            idempotencyKey: `invite-${inv.id}`,
+            data: {
+              inviterName,
+              workspaceName: currentWorkspace?.name ?? "a workspace",
+              role,
+              acceptUrl: inviteLink(inv.token),
+            },
+          }),
+        ),
+      );
       toast.success(`${rows.length} invitation${rows.length > 1 ? "s" : ""} sent`);
       await load();
       return true;
     },
-    [workspaceId, load],
+    [workspaceId, load, currentWorkspace],
   );
 
   const changeRole = useCallback(
