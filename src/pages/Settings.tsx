@@ -57,6 +57,28 @@ export default function Settings() {
     toast.success("Workspace updated.");
   };
 
+  const deleteWorkspace = async () => {
+    if (!currentWorkspace) return;
+    setDeleting(true);
+    const { data, error } = await supabase.functions.invoke("delete-workspace", {
+      body: { workspaceId: currentWorkspace.id },
+    });
+    setDeleting(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error ?? error?.message ?? "Could not delete workspace");
+      return;
+    }
+    toast.success("Workspace deleted.");
+    const next = workspaces.find((w) => w.id !== currentWorkspace.id);
+    if (next) {
+      selectWorkspace(next.id);
+      await refresh();
+      navigate("/");
+    } else {
+      navigate("/onboarding");
+    }
+  };
+
   return (
     <div>
       <PageHeader title="Settings" description="Manage your workspace configuration." />
