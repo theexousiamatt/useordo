@@ -24,9 +24,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export default function Settings() {
-  const { currentWorkspace, role, refresh } = useWorkspace();
+  const navigate = useNavigate();
+  const { currentWorkspace, role, refresh, selectWorkspace, workspaces } = useWorkspace();
   const [name, setName] = useState(currentWorkspace?.name ?? "");
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
 
   if (role !== "owner") {
     return (
