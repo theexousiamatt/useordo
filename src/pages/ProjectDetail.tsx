@@ -11,6 +11,7 @@ import { ProjectBoard } from "@/components/projects/ProjectBoard";
 import { MilestonesTab } from "@/components/projects/MilestonesTab";
 import { DeliverablesTab } from "@/components/projects/DeliverablesTab";
 import { ActivityTab } from "@/components/projects/ActivityTab";
+import { FilesTab } from "@/components/projects/FilesTab";
 import {
   useProject,
   useProjectMembers,
