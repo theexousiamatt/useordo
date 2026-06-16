@@ -194,15 +194,30 @@ export function useTeam() {
   const resendInvite = useCallback(
     async (inviteId: string) => {
       const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { error } = await db
+      const { data: updated, error } = await db
         .from("workspace_invitations")
         .update({ status: "pending", expires_at: expires })
-        .eq("id", inviteId);
+        .eq("id", inviteId)
+        .select("id, email, token, role")
+        .single();
       if (error) return toast.error("Could not resend invitation");
+      if (updated) {
+        await sendAppEmail({
+          template: "workspace-invitation",
+          to: updated.email,
+          idempotencyKey: `invite-resend-${updated.id}-${Date.now()}`,
+          data: {
+            inviterName: "A teammate",
+            workspaceName: currentWorkspace?.name ?? "a workspace",
+            role: updated.role,
+            acceptUrl: inviteLink(updated.token),
+          },
+        });
+      }
       toast.success("Invitation resent");
       await load();
     },
-    [load],
+    [load, currentWorkspace],
   );
 
   return {
