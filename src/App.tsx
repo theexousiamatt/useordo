@@ -64,6 +64,7 @@ const App = () => (
                 <Route path="/auth/locked" element={<AccountLocked />} />
                 <Route path="/auth/session-expired" element={<SessionExpired />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/unsubscribe" element={<Unsubscribe />} />
                 <Route path="/onboarding" element={<Onboarding />} />
 
                 {/* Client-facing workspace */}
