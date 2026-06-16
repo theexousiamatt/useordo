@@ -85,6 +85,7 @@ export default function ProjectDetail() {
           <TabsTrigger value="board">Board</TabsTrigger>
           <TabsTrigger value="milestones">Milestones</TabsTrigger>
           <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
+          <TabsTrigger value="files">Files</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
