@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogФooter,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -73,12 +73,12 @@ function CreateDeliverableDialog({ projectId }: { projectId: string }) {
             Requires client approval
           </label>
         </div>
-        <DialogФooter>
+        <DialogFooter>
           <Button onClick={submit} disabled={create.isPending || !title.trim()}>
             {create.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Create
           </Button>
-        </DialogФooter>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
