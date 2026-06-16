@@ -103,6 +103,9 @@ export default function ProjectDetail() {
         <TabsContent value="deliverables" className="mt-6">
           <DeliverablesTab projectId={project.id} />
         </TabsContent>
+        <TabsContent value="files" className="mt-6">
+          <FilesTab projectId={project.id} />
+        </TabsContent>
         <TabsContent value="activity" className="mt-6">
           <ActivityTab projectId={project.id} />
         </TabsContent>
