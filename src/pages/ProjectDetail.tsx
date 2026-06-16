@@ -11,6 +11,7 @@ import { ProjectBoard } from "@/components/projects/ProjectBoard";
 import { MilestonesTab } from "@/components/projects/MilestonesTab";
 import { DeliverablesTab } from "@/components/projects/DeliverablesTab";
 import { ActivityTab } from "@/components/projects/ActivityTab";
+import { FilesTab } from "@/components/projects/FilesTab";
 import {
   useProject,
   useProjectMembers,
@@ -84,6 +85,7 @@ export default function ProjectDetail() {
           <TabsTrigger value="board">Board</TabsTrigger>
           <TabsTrigger value="milestones">Milestones</TabsTrigger>
           <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
+          <TabsTrigger value="files">Files</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
@@ -100,6 +102,9 @@ export default function ProjectDetail() {
         </TabsContent>
         <TabsContent value="deliverables" className="mt-6">
           <DeliverablesTab projectId={project.id} />
+        </TabsContent>
+        <TabsContent value="files" className="mt-6">
+          <FilesTab projectId={project.id} />
         </TabsContent>
         <TabsContent value="activity" className="mt-6">
           <ActivityTab projectId={project.id} />

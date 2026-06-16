@@ -17,6 +17,7 @@ import WorkspaceInvite from "@/pages/auth/WorkspaceInvite";
 import AccountLocked from "@/pages/auth/AccountLocked";
 import SessionExpired from "@/pages/auth/SessionExpired";
 import ResetPassword from "@/pages/ResetPassword";
+import Unsubscribe from "@/pages/Unsubscribe";
 import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
 import Projects from "@/pages/Projects";
@@ -63,6 +64,7 @@ const App = () => (
                 <Route path="/auth/locked" element={<AccountLocked />} />
                 <Route path="/auth/session-expired" element={<SessionExpired />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/unsubscribe" element={<Unsubscribe />} />
                 <Route path="/onboarding" element={<Onboarding />} />
 
                 {/* Client-facing workspace */}

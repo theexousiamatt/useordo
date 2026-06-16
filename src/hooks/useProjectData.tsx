@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import type {
   DeliverableStatus,
   MilestoneStatus,
@@ -145,6 +146,54 @@ export function useProjectDeliverables(projectId?: string) {
     },
   });
 }
+
+export function useCreateDeliverable(projectId: string) {
+  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { title: string; description?: string; requiresApproval: boolean }) => {
+      if (!currentWorkspace) throw new Error("No active workspace.");
+      const { error } = await supabase.from("deliverables").insert({
+        project_id: projectId,
+        workspace_id: currentWorkspace.id,
+        title: input.title,
+        description: input.description ?? null,
+        status: "draft",
+        requires_approval: input.requiresApproval,
+        created_by: user?.id ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-deliverables", projectId] }),
+  });
+}
+
+export function useUpdateDeliverableStatus(projectId: string) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; status: DeliverableStatus }) => {
+      const patch: {
+        status: DeliverableStatus;
+        approved_at?: string;
+        approved_by?: string | null;
+      } = { status: input.status };
+      if (input.status === "approved") {
+        patch.approved_at = new Date().toISOString();
+        patch.approved_by = user?.id ?? null;
+      }
+      const { error } = await supabase
+        .from("deliverables")
+        .update(patch)
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-deliverables", projectId] }),
+  });
+}
+
+
 
 export function useProjectActivity(projectId?: string, limit = 20) {
   return useQuery({

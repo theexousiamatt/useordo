@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace, type WorkspaceRole } from "@/hooks/useWorkspace";
+import { sendAppEmail } from "@/lib/email";
 import { toast } from "sonner";
 
 export interface TeamMember {
@@ -104,6 +105,10 @@ export function useTeam() {
       if (!workspaceId) return false;
       setBusy(true);
       const { data: auth } = await supabase.auth.getUser();
+      const inviterName =
+        (auth.user?.user_metadata?.full_name as string) ??
+        auth.user?.email ??
+        "A teammate";
       const rows = emails.map((email) => ({
         workspace_id: workspaceId,
         email: email.toLowerCase().trim(),
@@ -111,17 +116,36 @@ export function useTeam() {
         invited_by: auth.user?.id ?? null,
         status: "pending",
       }));
-      const { error } = await db.from("workspace_invitations").insert(rows);
+      const { data: inserted, error } = await db
+        .from("workspace_invitations")
+        .insert(rows)
+        .select("id, email, token");
       setBusy(false);
       if (error) {
         toast.error(error.message ?? "Could not send invitations");
         return false;
       }
+      // Send branded invitation emails (non-blocking).
+      await Promise.all(
+        (inserted ?? []).map((inv: any) =>
+          sendAppEmail({
+            template: "workspace-invitation",
+            to: inv.email,
+            idempotencyKey: `invite-${inv.id}`,
+            data: {
+              inviterName,
+              workspaceName: currentWorkspace?.name ?? "a workspace",
+              role,
+              acceptUrl: inviteLink(inv.token),
+            },
+          }),
+        ),
+      );
       toast.success(`${rows.length} invitation${rows.length > 1 ? "s" : ""} sent`);
       await load();
       return true;
     },
-    [workspaceId, load],
+    [workspaceId, load, currentWorkspace],
   );
 
   const changeRole = useCallback(
@@ -170,15 +194,30 @@ export function useTeam() {
   const resendInvite = useCallback(
     async (inviteId: string) => {
       const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { error } = await db
+      const { data: updated, error } = await db
         .from("workspace_invitations")
         .update({ status: "pending", expires_at: expires })
-        .eq("id", inviteId);
+        .eq("id", inviteId)
+        .select("id, email, token, role")
+        .single();
       if (error) return toast.error("Could not resend invitation");
+      if (updated) {
+        await sendAppEmail({
+          template: "workspace-invitation",
+          to: updated.email,
+          idempotencyKey: `invite-resend-${updated.id}-${Date.now()}`,
+          data: {
+            inviterName: "A teammate",
+            workspaceName: currentWorkspace?.name ?? "a workspace",
+            role: updated.role,
+            acceptUrl: inviteLink(updated.token),
+          },
+        });
+      }
       toast.success("Invitation resent");
       await load();
     },
-    [load],
+    [load, currentWorkspace],
   );
 
   return {
