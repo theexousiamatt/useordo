@@ -182,9 +182,23 @@ export default function ProjectDetail() {
           <ActivityTab projectId={project.id} />
         </TabsContent>
       </Tabs>
+
+      <ProjectSettingsDrawer
+        project={project as ProjectRow}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        canManage={perms.canManage}
+      />
+      <DeleteProjectDialog
+        project={project as ProjectRow}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDeleted={() => navigate("/projects")}
+      />
     </div>
   );
 }
+
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
