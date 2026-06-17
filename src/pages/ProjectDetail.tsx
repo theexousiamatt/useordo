@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays } from "lucide-react";
+import { ArrowLeft, CalendarDays, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ErrorState } from "@/components/states/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { HealthBadge, StatusBadge } from "@/components/projects/ProjectBadges";
 import { MemberAvatars } from "@/components/projects/MemberAvatars";
 import { ProjectBoard } from "@/components/projects/ProjectBoard";
@@ -12,12 +15,26 @@ import { MilestonesTab } from "@/components/projects/MilestonesTab";
 import { DeliverablesTab } from "@/components/projects/DeliverablesTab";
 import { ActivityTab } from "@/components/projects/ActivityTab";
 import { FilesTab } from "@/components/projects/FilesTab";
+import { ProjectSettingsDrawer } from "@/components/projects/ProjectSettingsDrawer";
+import { DeleteProjectDialog } from "@/components/projects/DeleteProjectDialog";
+import {
+  ProjectOverflowMenu,
+  type ProjectMenuHandlers,
+} from "@/components/projects/ProjectActionsMenu";
+import { useProjectPermissions } from "@/hooks/useProjectPermissions";
 import {
   useProject,
   useProjectMembers,
   useProjectTasks,
 } from "@/hooks/useProjectData";
+import {
+  useArchiveProject,
+  useUpdateProject,
+  type ProjectRow,
+} from "@/hooks/useProjects";
+
 import { dateShort } from "@/lib/format";
+
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +42,46 @@ export default function ProjectDetail() {
   const { data: project, isLoading, isError, refetch } = useProject(id);
   const { data: members = [] } = useProjectMembers(id);
   const { data: tasks = [] } = useProjectTasks(id);
+  const perms = useProjectPermissions(project);
+  const archiveProject = useArchiveProject();
+  const updateProject = useUpdateProject();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const handlers: ProjectMenuHandlers = {
+    onOpen: () => {},
+    onSettings: () => setSettingsOpen(true),
+    onSetStatus: async (p, status) => {
+      try {
+        await updateProject.mutateAsync({ id: p.id, status });
+        toast.success("Status updated.");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to update status.");
+      }
+    },
+    onArchive: async (p) => {
+      try {
+        await archiveProject.mutateAsync({ id: p.id, archived: true });
+        toast.success("Project archived.");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to archive.");
+      }
+    },
+    onRestore: async (p) => {
+      try {
+        await archiveProject.mutateAsync({ id: p.id, archived: false });
+        toast.success("Project restored.");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to restore.");
+      }
+    },
+    onCopyLink: (p) => {
+      navigator.clipboard.writeText(`${window.location.origin}/projects/${p.id}`);
+      toast.success("Link copied.");
+    },
+    onDelete: () => setDeleteOpen(true),
+  };
+
 
   if (isError) {
     return (
@@ -56,7 +113,9 @@ export default function ProjectDetail() {
             <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
             <StatusBadge status={project.status} />
             <HealthBadge health={project.health} />
+            {project.archived_at && <Badge variant="secondary">Archived</Badge>}
           </div>
+
           {project.description && (
             <p className="max-w-2xl text-sm text-muted-foreground">{project.description}</p>
           )}
@@ -71,14 +130,27 @@ export default function ProjectDetail() {
           </div>
         </div>
 
-        <div className="w-full max-w-xs space-y-1.5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">{project.progress}%</span>
+        <div className="flex items-start gap-3">
+          <div className="w-full max-w-xs space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Progress</span>
+              <span className="font-medium">{project.progress}%</span>
+            </div>
+            <Progress value={project.progress} className="h-2" />
           </div>
-          <Progress value={project.progress} className="h-2" />
+          <ProjectOverflowMenu
+            project={project as ProjectRow}
+            perms={perms}
+            handlers={handlers}
+            trigger={
+              <Button variant="outline" size="icon" aria-label="Project actions">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            }
+          />
         </div>
       </div>
+
 
       <Tabs defaultValue="board">
         <TabsList>
@@ -110,9 +182,23 @@ export default function ProjectDetail() {
           <ActivityTab projectId={project.id} />
         </TabsContent>
       </Tabs>
+
+      <ProjectSettingsDrawer
+        project={project as ProjectRow}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        canManage={perms.canManage}
+      />
+      <DeleteProjectDialog
+        project={project as ProjectRow}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDeleted={() => navigate("/projects")}
+      />
     </div>
   );
 }
+
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (

@@ -21,9 +21,12 @@ export interface ProjectRow {
   due_date: string | null;
   owner_id: string | null;
   created_by: string | null;
+  archived_at: string | null;
+  visibility: "workspace" | "restricted";
   created_at: string;
   updated_at: string;
 }
+
 
 export interface ProjectMemberProfile {
   user_id: string;
@@ -84,21 +87,24 @@ export function useWorkspaceMembers() {
 }
 
 /** All projects in the current workspace, with member profiles attached. */
-export function useProjects() {
+export function useProjects(options?: { includeArchived?: boolean }) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
+  const includeArchived = options?.includeArchived ?? false;
   return useQuery({
-    queryKey: ["projects", workspaceId],
+    queryKey: ["projects", workspaceId, includeArchived],
     enabled: !!workspaceId,
     queryFn: async (): Promise<ProjectWithMembers[]> => {
-      const { data: projects, error } = await supabase
+      let query = supabase
         .from("projects")
         .select("*")
-        .eq("workspace_id", workspaceId!)
-        .order("updated_at", { ascending: false });
+        .eq("workspace_id", workspaceId!);
+      if (!includeArchived) query = query.is("archived_at", null);
+      const { data: projects, error } = await query.order("updated_at", { ascending: false });
       if (error) throw error;
       const list = (projects ?? []) as ProjectRow[];
       if (list.length === 0) return [];
+
 
       const ids = list.map((p) => p.id);
       const { data: members } = await supabase
@@ -233,3 +239,78 @@ export function useCreateProject() {
     },
   });
 }
+
+export interface UpdateProjectInput {
+  id: string;
+  name?: string;
+  description?: string | null;
+  due_date?: string | null;
+  client_id?: string | null;
+  status?: ProjectStatus;
+  owner_id?: string | null;
+}
+
+/** Edit core project settings (rename, description, due date, client, status, owner). */
+export function useUpdateProject() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  const workspaceId = currentWorkspace?.id;
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: UpdateProjectInput) => {
+      const { error } = await supabase.from("projects").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["project", vars.id] });
+    },
+  });
+}
+
+/** Soft-delete: archive (hide from active views) or restore a project. */
+export function useArchiveProject() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  const workspaceId = currentWorkspace?.id;
+  return useMutation({
+    mutationFn: async ({ id, archived }: { id: string; archived: boolean }) => {
+      const { error } = await supabase
+        .from("projects")
+        .update(
+          archived
+            ? { archived_at: new Date().toISOString(), status: "archived" }
+            : { archived_at: null, status: "active" },
+        )
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["project", vars.id] });
+    },
+  });
+}
+
+export interface DeletionReport {
+  project_id: string;
+  deleted: boolean;
+  records: Record<string, number>;
+}
+
+/** Owner-only hard delete. Cascades child records and returns a report. */
+export function useDeleteProject() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  const workspaceId = currentWorkspace?.id;
+  return useMutation({
+    mutationFn: async (id: string): Promise<DeletionReport> => {
+      const { data, error } = await supabase.rpc("delete_project", { _project_id: id });
+      if (error) throw error;
+      return data as unknown as DeletionReport;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
+    },
+  });
+}
+
