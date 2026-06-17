@@ -21,9 +21,12 @@ export interface ProjectRow {
   due_date: string | null;
   owner_id: string | null;
   created_by: string | null;
+  archived_at: string | null;
+  visibility: "workspace" | "restricted";
   created_at: string;
   updated_at: string;
 }
+
 
 export interface ProjectMemberProfile {
   user_id: string;
