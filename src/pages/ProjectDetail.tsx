@@ -42,6 +42,46 @@ export default function ProjectDetail() {
   const { data: project, isLoading, isError, refetch } = useProject(id);
   const { data: members = [] } = useProjectMembers(id);
   const { data: tasks = [] } = useProjectTasks(id);
+  const perms = useProjectPermissions(project);
+  const archiveProject = useArchiveProject();
+  const updateProject = useUpdateProject();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const handlers: ProjectMenuHandlers = {
+    onOpen: () => {},
+    onSettings: () => setSettingsOpen(true),
+    onSetStatus: async (p, status) => {
+      try {
+        await updateProject.mutateAsync({ id: p.id, status });
+        toast.success("Status updated.");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to update status.");
+      }
+    },
+    onArchive: async (p) => {
+      try {
+        await archiveProject.mutateAsync({ id: p.id, archived: true });
+        toast.success("Project archived.");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to archive.");
+      }
+    },
+    onRestore: async (p) => {
+      try {
+        await archiveProject.mutateAsync({ id: p.id, archived: false });
+        toast.success("Project restored.");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to restore.");
+      }
+    },
+    onCopyLink: (p) => {
+      navigator.clipboard.writeText(`${window.location.origin}/projects/${p.id}`);
+      toast.success("Link copied.");
+    },
+    onDelete: () => setDeleteOpen(true),
+  };
+
 
   if (isError) {
     return (
