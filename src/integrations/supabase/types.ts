@@ -779,6 +779,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          archived_at: string | null
           client_id: string | null
           created_at: string
           created_by: string | null
@@ -792,9 +793,11 @@ export type Database = {
           start_date: string | null
           status: string
           updated_at: string
+          visibility: string
           workspace_id: string
         }
         Insert: {
+          archived_at?: string | null
           client_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -808,9 +811,11 @@ export type Database = {
           start_date?: string | null
           status?: string
           updated_at?: string
+          visibility?: string
           workspace_id: string
         }
         Update: {
+          archived_at?: string | null
           client_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -824,6 +829,7 @@ export type Database = {
           start_date?: string | null
           status?: string
           updated_at?: string
+          visibility?: string
           workspace_id?: string
         }
         Relationships: [
@@ -1097,14 +1103,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_contribute_project: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_manage_project: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_manage_workspace: {
         Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      can_view_project: {
+        Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      delete_project: { Args: { _project_id: string }; Returns: Json }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -1138,6 +1157,10 @@ export type Database = {
       }
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_workspace_collaborator: {
+        Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
       is_workspace_member: {
