@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays } from "lucide-react";
+import { ArrowLeft, CalendarDays, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ErrorState } from "@/components/states/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { HealthBadge, StatusBadge } from "@/components/projects/ProjectBadges";
 import { MemberAvatars } from "@/components/projects/MemberAvatars";
 import { ProjectBoard } from "@/components/projects/ProjectBoard";
@@ -12,12 +15,23 @@ import { MilestonesTab } from "@/components/projects/MilestonesTab";
 import { DeliverablesTab } from "@/components/projects/DeliverablesTab";
 import { ActivityTab } from "@/components/projects/ActivityTab";
 import { FilesTab } from "@/components/projects/FilesTab";
+import { ProjectSettingsDrawer } from "@/components/projects/ProjectSettingsDrawer";
+import { DeleteProjectDialog } from "@/components/projects/DeleteProjectDialog";
+import {
+  ProjectOverflowMenu,
+  type ProjectMenuHandlers,
+} from "@/components/projects/ProjectActionsMenu";
+import { useProjectPermissions } from "@/hooks/useProjectPermissions";
 import {
   useProject,
   useProjectMembers,
   useProjectTasks,
-} from "@/hooks/useProjectData";
+  useArchiveProject,
+  useUpdateProject,
+  type ProjectRow,
+} from "@/hooks/useProjects";
 import { dateShort } from "@/lib/format";
+
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
