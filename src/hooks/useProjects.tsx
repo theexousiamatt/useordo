@@ -87,21 +87,24 @@ export function useWorkspaceMembers() {
 }
 
 /** All projects in the current workspace, with member profiles attached. */
-export function useProjects() {
+export function useProjects(options?: { includeArchived?: boolean }) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
+  const includeArchived = options?.includeArchived ?? false;
   return useQuery({
-    queryKey: ["projects", workspaceId],
+    queryKey: ["projects", workspaceId, includeArchived],
     enabled: !!workspaceId,
     queryFn: async (): Promise<ProjectWithMembers[]> => {
-      const { data: projects, error } = await supabase
+      let query = supabase
         .from("projects")
         .select("*")
-        .eq("workspace_id", workspaceId!)
-        .order("updated_at", { ascending: false });
+        .eq("workspace_id", workspaceId!);
+      if (!includeArchived) query = query.is("archived_at", null);
+      const { data: projects, error } = await query.order("updated_at", { ascending: false });
       if (error) throw error;
       const list = (projects ?? []) as ProjectRow[];
       if (list.length === 0) return [];
+
 
       const ids = list.map((p) => p.id);
       const { data: members } = await supabase
