@@ -239,3 +239,78 @@ export function useCreateProject() {
     },
   });
 }
+
+export interface UpdateProjectInput {
+  id: string;
+  name?: string;
+  description?: string | null;
+  due_date?: string | null;
+  client_id?: string | null;
+  status?: ProjectStatus;
+  owner_id?: string | null;
+}
+
+/** Edit core project settings (rename, description, due date, client, status, owner). */
+export function useUpdateProject() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  const workspaceId = currentWorkspace?.id;
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: UpdateProjectInput) => {
+      const { error } = await supabase.from("projects").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["project", vars.id] });
+    },
+  });
+}
+
+/** Soft-delete: archive (hide from active views) or restore a project. */
+export function useArchiveProject() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  const workspaceId = currentWorkspace?.id;
+  return useMutation({
+    mutationFn: async ({ id, archived }: { id: string; archived: boolean }) => {
+      const { error } = await supabase
+        .from("projects")
+        .update(
+          archived
+            ? { archived_at: new Date().toISOString(), status: "archived" }
+            : { archived_at: null, status: "active" },
+        )
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
+      qc.invalidateQueries({ queryKey: ["project", vars.id] });
+    },
+  });
+}
+
+export interface DeletionReport {
+  project_id: string;
+  deleted: boolean;
+  records: Record<string, number>;
+}
+
+/** Owner-only hard delete. Cascades child records and returns a report. */
+export function useDeleteProject() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  const workspaceId = currentWorkspace?.id;
+  return useMutation({
+    mutationFn: async (id: string): Promise<DeletionReport> => {
+      const { data, error } = await supabase.rpc("delete_project", { _project_id: id });
+      if (error) throw error;
+      return data as unknown as DeletionReport;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
+    },
+  });
+}
+
