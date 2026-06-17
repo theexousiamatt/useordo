@@ -130,14 +130,27 @@ export default function ProjectDetail() {
           </div>
         </div>
 
-        <div className="w-full max-w-xs space-y-1.5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">{project.progress}%</span>
+        <div className="flex items-start gap-3">
+          <div className="w-full max-w-xs space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Progress</span>
+              <span className="font-medium">{project.progress}%</span>
+            </div>
+            <Progress value={project.progress} className="h-2" />
           </div>
-          <Progress value={project.progress} className="h-2" />
+          <ProjectOverflowMenu
+            project={project as ProjectRow}
+            perms={perms}
+            handlers={handlers}
+            trigger={
+              <Button variant="outline" size="icon" aria-label="Project actions">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            }
+          />
         </div>
       </div>
+
 
       <Tabs defaultValue="board">
         <TabsList>
