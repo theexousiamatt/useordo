@@ -113,7 +113,9 @@ export default function ProjectDetail() {
             <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
             <StatusBadge status={project.status} />
             <HealthBadge health={project.health} />
+            {project.archived_at && <Badge variant="secondary">Archived</Badge>}
           </div>
+
           {project.description && (
             <p className="max-w-2xl text-sm text-muted-foreground">{project.description}</p>
           )}
