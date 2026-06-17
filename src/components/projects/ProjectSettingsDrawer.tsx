@@ -159,7 +159,7 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
           />
         </OrdoField>
         <OrdoField label="Due date">
-          <OrdoDatePicker value={dueDate} onChange={setDueDate} placeholder="No due date" disabled={!canManage} />
+          <OrdoDatePicker value={dueDate} onChange={canManage ? setDueDate : () => {}} placeholder="No due date" />
         </OrdoField>
         <OrdoField label="Client" hint={clientMembers.length ? undefined : "No clients in this workspace yet."}>
           <OrdoSelect
