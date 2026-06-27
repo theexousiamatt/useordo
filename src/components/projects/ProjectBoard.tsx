@@ -766,8 +766,9 @@ function SortableTask({
               }
             />
           </div>
-        </OrdoCardContextMenu>
-      </PopoverAnchor>
+        </PopoverAnchor>
+      </OrdoCardContextMenu>
+
 
 
         <PopoverContent
