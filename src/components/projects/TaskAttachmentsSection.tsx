@@ -11,6 +11,7 @@ import {
   File as FileIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatBytes, timeAgo } from "@/lib/format";
 import { useAuth } from "@/hooks/useAuth";
