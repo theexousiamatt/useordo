@@ -195,13 +195,32 @@ export function TaskAttachmentsSection({
             <AttachmentRow
               key={a.id}
               attachment={a}
+              thumb={thumbs[a.id]}
               canDelete={a.uploaded_by === user?.id}
               onDownload={() => download(a)}
               onRemove={() => remove(a)}
+              onPreview={
+                thumbs[a.id]
+                  ? () => setLightbox({ url: thumbs[a.id], name: a.name })
+                  : undefined
+              }
             />
           ))}
         </ul>
       )}
+
+      <Dialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
+        <DialogContent className="max-w-3xl border-border bg-card p-2">
+          <DialogTitle className="sr-only">{lightbox?.name ?? "Image preview"}</DialogTitle>
+          {lightbox && (
+            <img
+              src={lightbox.url}
+              alt={lightbox.name}
+              className="mx-auto max-h-[80vh] w-auto rounded-small object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
