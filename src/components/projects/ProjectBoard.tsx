@@ -816,11 +816,8 @@ function SortableTask({
           {popoverMode === "members" && (
             <InlineMemberPicker
               members={members}
-              value={task.assignee_id ?? null}
-              onChange={(userId) => {
-                patchTask(task.id, { assignee_id: userId });
-                closeInline();
-              }}
+              value={assignees.map((a) => a.user_id)}
+              onChange={(userIds) => setTaskAssignees(task.id, userIds)}
             />
           )}
           {popoverMode === "due" && (
