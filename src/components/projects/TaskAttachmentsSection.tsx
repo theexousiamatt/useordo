@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Paperclip,
   Upload,
@@ -42,15 +42,85 @@ export function TaskAttachmentsSection({
   const { attachments, loading, error, uploading, upload, download, remove } =
     useTaskAttachments(taskId, projectId);
   const inputRef = useRef<HTMLInputElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const dragDepth = useRef(0);
+
+  const uploadFiles = useCallback(
+    (files: File[]) => {
+      files.filter(Boolean).forEach((f) => upload(f));
+    },
+    [upload],
+  );
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    files.forEach((f) => upload(f));
+    uploadFiles(Array.from(e.target.files ?? []));
     if (inputRef.current) inputRef.current.value = "";
   };
 
+  const onDragEnter = (e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragOver(true);
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDragOver(false);
+  };
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragOver(false);
+    uploadFiles(Array.from(e.dataTransfer.files ?? []));
+  };
+
+  // Paste-to-upload: when the section (or anything inside it) is focused/active,
+  // capture pasted files & images from the clipboard.
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const target = e.target as Node | null;
+      const active = document.activeElement;
+      // Ignore pastes into text fields (e.g. description / comments).
+      if (
+        active instanceof HTMLElement &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.isContentEditable)
+      ) {
+        return;
+      }
+      if (target && !el.contains(target)) return;
+      const files = Array.from(e.clipboardData?.files ?? []);
+      if (files.length === 0) return;
+      e.preventDefault();
+      uploadFiles(files);
+    };
+    el.addEventListener("paste", onPaste);
+    return () => el.removeEventListener("paste", onPaste);
+  }, [uploadFiles]);
+
   return (
-    <section>
+    <section
+      ref={sectionRef}
+      tabIndex={0}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={cn(
+        "relative rounded-card outline-none transition-colors",
+        dragOver && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
+      )}
+    >
       <div className="mb-2 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           <Paperclip className="h-3.5 w-3.5" />
