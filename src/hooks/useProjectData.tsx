@@ -110,6 +110,7 @@ export function useProjectTasks(projectId?: string) {
         .from("tasks")
         .select("*")
         .eq("project_id", projectId!)
+        .is("archived_at", null)
         .order("position", { ascending: true });
       if (error) throw error;
       return (data ?? []) as TaskRow[];
