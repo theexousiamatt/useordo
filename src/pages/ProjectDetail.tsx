@@ -47,10 +47,12 @@ export default function ProjectDetail() {
   const updateProject = useUpdateProject();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
 
   const handlers: ProjectMenuHandlers = {
     onOpen: () => {},
     onSettings: () => setSettingsOpen(true),
+    onDuplicate: () => setDuplicateOpen(true),
     onSetStatus: async (p, status) => {
       try {
         await updateProject.mutateAsync({ id: p.id, status });
