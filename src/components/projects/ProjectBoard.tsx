@@ -662,9 +662,9 @@ function SortableTask({
   const closeInline = () => setInline(null);
 
   return (
-    <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
-      <Popover open={!!popoverMode} onOpenChange={(o) => !o && closeInline()}>
-        <PopoverAnchor asChild>
+    <Popover open={!!popoverMode} onOpenChange={(o) => !o && closeInline()}>
+      <PopoverAnchor asChild>
+        <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
           <div
             ref={setNodeRef}
             style={{ transform: CSS.Transform.toString(transform), transition }}
@@ -724,7 +724,9 @@ function SortableTask({
               }
             />
           </div>
-        </PopoverAnchor>
+        </OrdoCardContextMenu>
+      </PopoverAnchor>
+
 
         <PopoverContent
           align="start"
@@ -760,7 +762,7 @@ function SortableTask({
           )}
         </PopoverContent>
       </Popover>
-    </OrdoCardContextMenu>
+
   );
 }
 
