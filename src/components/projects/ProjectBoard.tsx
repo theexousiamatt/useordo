@@ -762,7 +762,7 @@ function SortableTask({
           )}
         </PopoverContent>
       </Popover>
-    </OrdoCardContextMenu>
+
   );
 }
 
