@@ -212,13 +212,18 @@ export function TaskAttachmentsSection({
             <AttachmentRow
               key={a.id}
               attachment={a}
-              thumb={thumbs[a.id]}
+              previewUrl={previews[a.id]}
               canDelete={a.uploaded_by === user?.id}
               onDownload={() => download(a)}
               onRemove={() => remove(a)}
               onPreview={
-                thumbs[a.id]
-                  ? () => setLightbox({ url: thumbs[a.id], name: a.name })
+                previews[a.id]
+                  ? () =>
+                      setLightbox({
+                        url: previews[a.id],
+                        name: a.name,
+                        kind: kindOf(a.mime_type, a.name),
+                      })
                   : undefined
               }
             />
@@ -227,13 +232,28 @@ export function TaskAttachmentsSection({
       )}
 
       <Dialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
-        <DialogContent className="max-w-3xl border-border bg-card p-2">
-          <DialogTitle className="sr-only">{lightbox?.name ?? "Image preview"}</DialogTitle>
-          {lightbox && (
+        <DialogContent className="max-w-4xl border-border bg-card p-2">
+          <DialogTitle className="sr-only">{lightbox?.name ?? "Attachment preview"}</DialogTitle>
+          {lightbox?.kind === "image" && (
             <img
               src={lightbox.url}
               alt={lightbox.name}
               className="mx-auto max-h-[80vh] w-auto rounded-small object-contain"
+            />
+          )}
+          {lightbox?.kind === "video" && (
+            <video
+              src={lightbox.url}
+              controls
+              autoPlay
+              className="mx-auto max-h-[80vh] w-full rounded-small bg-black"
+            />
+          )}
+          {lightbox?.kind === "pdf" && (
+            <iframe
+              src={lightbox.url}
+              title={lightbox.name}
+              className="h-[80vh] w-full rounded-small border-0 bg-white"
             />
           )}
         </DialogContent>
