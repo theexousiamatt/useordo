@@ -314,3 +314,50 @@ export function useDeleteProject() {
   });
 }
 
+export interface DuplicateProjectInput {
+  projectId: string;
+  name: string;
+  copySettings: boolean;
+  copyClient: boolean;
+  copyTeam: boolean;
+  copyMilestones: boolean;
+  copyTasks: boolean;
+  copyDueDates: boolean;
+  copyComments: boolean;
+  copyDeliverables: boolean;
+  copyFiles: boolean;
+}
+
+export interface DuplicateProjectResult {
+  projectId: string;
+  name: string;
+  records: Record<string, number>;
+}
+
+/** Duplicate a project via the dedicated duplication service (owner/manager only). */
+export function useDuplicateProject() {
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  const workspaceId = currentWorkspace?.id;
+  return useMutation({
+    mutationFn: async (input: DuplicateProjectInput): Promise<DuplicateProjectResult> => {
+      const { data, error } = await supabase.functions.invoke("duplicate-project", {
+        body: input,
+      });
+      if (error) {
+        // Surface the function's structured error message when present.
+        const msg = (data as { error?: string })?.error ?? error.message;
+        throw new Error(typeof msg === "string" ? msg : "Failed to duplicate project.");
+      }
+      if ((data as { error?: string })?.error) {
+        throw new Error((data as { error: string }).error);
+      }
+      return data as DuplicateProjectResult;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
+    },
+  });
+}
+
+
