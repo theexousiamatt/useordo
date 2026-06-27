@@ -17,6 +17,7 @@ import { ActivityTab } from "@/components/projects/ActivityTab";
 import { FilesTab } from "@/components/projects/FilesTab";
 import { ProjectSettingsDrawer } from "@/components/projects/ProjectSettingsDrawer";
 import { DeleteProjectDialog } from "@/components/projects/DeleteProjectDialog";
+import { DuplicateProjectDialog } from "@/components/projects/DuplicateProjectDialog";
 import {
   ProjectOverflowMenu,
   type ProjectMenuHandlers,
@@ -47,10 +48,12 @@ export default function ProjectDetail() {
   const updateProject = useUpdateProject();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
 
   const handlers: ProjectMenuHandlers = {
     onOpen: () => {},
     onSettings: () => setSettingsOpen(true),
+    onDuplicate: () => setDuplicateOpen(true),
     onSetStatus: async (p, status) => {
       try {
         await updateProject.mutateAsync({ id: p.id, status });
@@ -194,6 +197,12 @@ export default function ProjectDetail() {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         onDeleted={() => navigate("/projects")}
+      />
+      <DuplicateProjectDialog
+        project={project as ProjectRow}
+        open={duplicateOpen}
+        onOpenChange={setDuplicateOpen}
+        onDuplicated={(id) => navigate(`/projects/${id}`)}
       />
     </div>
   );

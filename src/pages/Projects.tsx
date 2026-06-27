@@ -11,6 +11,7 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingCards } from "@/components/states/LoadingState";
 import { CreateProjectDrawer } from "@/components/projects/CreateProjectDrawer";
 import { ProjectSettingsDrawer } from "@/components/projects/ProjectSettingsDrawer";
+import { DuplicateProjectDialog } from "@/components/projects/DuplicateProjectDialog";
 import { DeleteProjectDialog } from "@/components/projects/DeleteProjectDialog";
 import {
   ProjectContextMenu,
@@ -37,6 +38,7 @@ export default function Projects() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsProject, setSettingsProject] = useState<ProjectRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectRow | null>(null);
+  const [duplicateTarget, setDuplicateTarget] = useState<ProjectRow | null>(null);
 
   const archiveProject = useArchiveProject();
   const updateProject = useUpdateProject();
@@ -44,6 +46,7 @@ export default function Projects() {
   const handlers: ProjectMenuHandlers = {
     onOpen: (p) => navigate(`/projects/${p.id}`),
     onSettings: (p) => setSettingsProject(p),
+    onDuplicate: (p) => setDuplicateTarget(p),
     onSetStatus: async (p, status) => {
       try {
         await updateProject.mutateAsync({ id: p.id, status });
@@ -149,6 +152,15 @@ export default function Projects() {
           project={deleteTarget}
           open={!!deleteTarget}
           onOpenChange={(o) => !o && setDeleteTarget(null)}
+        />
+      )}
+
+      {duplicateTarget && (
+        <DuplicateProjectDialog
+          project={duplicateTarget}
+          open={!!duplicateTarget}
+          onOpenChange={(o) => !o && setDuplicateTarget(null)}
+          onDuplicated={(id) => navigate(`/projects/${id}`)}
         />
       )}
     </div>

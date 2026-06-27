@@ -1,7 +1,8 @@
 import { type ReactNode } from "react";
 import {
   PanelRightOpen,
-  Settings2,
+  Pencil,
+  Copy,
   CircleDot,
   Archive,
   ArchiveRestore,
@@ -15,6 +16,7 @@ import type { ProjectRow } from "@/hooks/useProjects";
 export interface ProjectMenuHandlers {
   onOpen: (project: ProjectRow) => void;
   onSettings: (project: ProjectRow) => void;
+  onDuplicate: (project: ProjectRow) => void;
   onSetStatus: (project: ProjectRow, status: ProjectStatus) => void;
   onArchive: (project: ProjectRow) => void;
   onRestore: (project: ProjectRow) => void;
@@ -27,6 +29,8 @@ export interface ProjectPermissions {
   canManage: boolean;
   /** Owner-only — may permanently delete. */
   canDelete: boolean;
+  /** Owner or manager — may duplicate the project. */
+  canDuplicate: boolean;
 }
 
 /** Canonical project action menu, shared by right-click and overflow. */
@@ -38,11 +42,12 @@ export function buildProjectMenuConfig(
   const isArchived = !!project.archived_at;
   return [
     {
-      id: "open",
+      id: "primary",
       items: [
         { id: "open", label: "Open project", icon: PanelRightOpen, shortcut: "↵", onSelect: () => h.onOpen(project) },
-        { id: "settings", label: "Project settings", icon: Settings2, onSelect: () => h.onSettings(project) },
-        { id: "copy-link", label: "Copy link", icon: Link2, onSelect: () => h.onCopyLink(project) },
+        { id: "edit", label: "Edit project", icon: Pencil, disabled: !perms.canManage, onSelect: () => h.onSettings(project) },
+        { id: "duplicate", label: "Duplicate project", icon: Copy, disabled: !perms.canDuplicate, onSelect: () => h.onDuplicate(project) },
+        { id: "copy-link", label: "Copy project link", icon: Link2, onSelect: () => h.onCopyLink(project) },
       ],
     },
     {
@@ -51,10 +56,10 @@ export function buildProjectMenuConfig(
       items: [
         {
           id: "set-status",
-          label: "Set status",
+          label: "Change status",
           icon: CircleDot,
           disabled: !perms.canManage,
-          submenu: PROJECT_STATUSES.filter((s) => s.value !== "archived" && s.value !== project.status).map((s) => ({
+          submenu: PROJECT_STATUSES.filter((s) => s.value !== project.status).map((s) => ({
             id: `status-${s.value}`,
             label: s.label,
             onSelect: () => h.onSetStatus(project, s.value),
