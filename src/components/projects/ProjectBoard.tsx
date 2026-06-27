@@ -778,7 +778,7 @@ function SortableTask({
               description={task.description}
               dueDate={task.due_date}
               labels={task.labels ?? undefined}
-              assignees={member ? [member] : []}
+              assignees={assignees}
               interactive={false}
               dragHandleProps={renaming ? undefined : { ...attributes, ...listeners }}
               titleEditor={
