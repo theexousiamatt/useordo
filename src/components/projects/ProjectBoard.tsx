@@ -291,10 +291,21 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
       if (!task) return;
 
       switch (e.key.toLowerCase()) {
-        case "e":
         case "enter":
           e.preventDefault();
           openQuickEdit(task);
+          break;
+        case "e":
+          e.preventDefault();
+          startInline(task, "rename");
+          break;
+        case "l":
+          e.preventDefault();
+          startInline(task, "labels");
+          break;
+        case "a":
+          e.preventDefault();
+          startInline(task, "members");
           break;
         case "d":
           e.preventDefault();
