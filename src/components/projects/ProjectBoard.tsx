@@ -155,7 +155,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const activeTask = items.find((t) => t.id === activeId) ?? null;
 
-  const openQuickEdit = useCallback((t: TaskRow) => {
+  const openTask = useCallback((t: TaskRow) => {
     setEditTask(t);
     setEditOpen(true);
   }, []);
