@@ -396,6 +396,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
               collapsed={collapsed.has(col.id)}
               selected={selected}
               cardHandlers={cardHandlers}
+              inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
               onSelectCard={handleSelect}
               onOpenCard={openQuickEdit}
