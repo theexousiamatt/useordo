@@ -104,7 +104,11 @@ function DrawerBody({
           </span>
           <span className="inline-flex items-center gap-1.5">
             <UserIcon className="h-3.5 w-3.5" />
-            {assignee?.full_name ?? "Unassigned"}
+            {assignees.length === 0
+              ? "Unassigned"
+              : assignees.length <= 2
+                ? assignees.map((a) => a.full_name ?? "Member").join(", ")
+                : `${assignees[0].full_name ?? "Member"} +${assignees.length - 1}`}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <CalendarClock className="h-3.5 w-3.5" />
