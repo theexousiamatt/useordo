@@ -65,6 +65,8 @@ import {
   type TaskRow,
 } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
+import { useProjects } from "@/hooks/useProjects";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
