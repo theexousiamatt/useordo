@@ -282,7 +282,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
   const selectedIds = useMemo(() => [...selected], [selected]);
   const bulkHandlers: BulkActionHandlers = {
     onAssign: (userId) => {
-      bulkUpdate.mutate({ ids: selectedIds, patch: { assignee_id: userId } });
+      selectedIds.forEach((id) => setAssignees.mutate({ taskId: id, userIds: userId ? [userId] : [] }));
       clearSelection();
     },
     onMove: (status) => {
