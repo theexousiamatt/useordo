@@ -61,6 +61,8 @@ import {
   useArchiveTask,
   useBulkUpdateTasks,
   useBulkDeleteTasks,
+  useTaskAssignees,
+  useSetTaskAssignees,
   type TaskRow,
 } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
