@@ -143,6 +143,25 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     localStorage.setItem(`ordo:collapsed:${projectId}`, JSON.stringify([...collapsed]));
   }, [collapsed, projectId]);
 
+  // Realtime: keep the board in sync with other connected sessions.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`tasks:${projectId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `project_id=eq.${projectId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
+          qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, qc]);
+
+
   const memberMap = useMemo(() => new Map(members.map((m) => [m.user_id, m])), [members]);
 
   const sensors = useSensors(
