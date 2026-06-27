@@ -160,6 +160,13 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
           qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_assignees", filter: `project_id=eq.${projectId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["task-assignees", projectId] });
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
