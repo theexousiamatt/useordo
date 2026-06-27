@@ -106,6 +106,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
   const archive = useArchiveTask(projectId);
   const bulkUpdate = useBulkUpdateTasks(projectId);
   const bulkDelete = useBulkDeleteTasks(projectId);
+  const { data: assigneesMap } = useTaskAssignees(projectId);
+  const setAssignees = useSetTaskAssignees(projectId);
 
   // Move-to-project targets — only for owners/managers, excluding this project.
   const canMoveProject = role === "owner" || role === "manager";
