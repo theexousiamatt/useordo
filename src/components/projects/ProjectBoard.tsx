@@ -309,7 +309,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
           break;
         case "d":
           e.preventDefault();
-          dup.mutate(task);
+          startInline(task, "due");
           break;
         case "m": {
           e.preventDefault();
