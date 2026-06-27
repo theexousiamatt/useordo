@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -67,6 +67,7 @@ import type { ProjectMemberProfile } from "@/hooks/useProjects";
 import { useProjects } from "@/hooks/useProjects";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   projectId: string;
@@ -142,6 +143,25 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
   useEffect(() => {
     localStorage.setItem(`ordo:collapsed:${projectId}`, JSON.stringify([...collapsed]));
   }, [collapsed, projectId]);
+
+  // Realtime: keep the board in sync with other connected sessions.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`tasks:${projectId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `project_id=eq.${projectId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
+          qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, qc]);
+
 
   const memberMap = useMemo(() => new Map(members.map((m) => [m.user_id, m])), [members]);
 
@@ -661,10 +681,25 @@ function SortableTask({
   const popoverMode = mode && mode !== "rename" ? mode : null;
   const closeInline = () => setInline(null);
 
+  // When opened from the context menu, the menu's closing focus/pointer events
+  // would otherwise immediately dismiss this popover. Ignore close requests in
+  // a short grace window right after opening.
+  const openedAtRef = useRef(0);
+  useEffect(() => {
+    if (popoverMode) openedAtRef.current = Date.now();
+  }, [popoverMode]);
+
   return (
-    <Popover open={!!popoverMode} onOpenChange={(o) => !o && closeInline()}>
-      <PopoverAnchor asChild>
-        <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
+    <Popover
+      open={!!popoverMode}
+      onOpenChange={(o) => {
+        if (o) return;
+        if (Date.now() - openedAtRef.current < 350) return;
+        closeInline();
+      }}
+    >
+      <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
+        <PopoverAnchor asChild>
           <div
             ref={setNodeRef}
             style={{ transform: CSS.Transform.toString(transform), transition }}
@@ -731,8 +766,9 @@ function SortableTask({
               }
             />
           </div>
-        </OrdoCardContextMenu>
-      </PopoverAnchor>
+        </PopoverAnchor>
+      </OrdoCardContextMenu>
+
 
 
         <PopoverContent
