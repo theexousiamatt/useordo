@@ -41,7 +41,6 @@ import {
   OrdoColumnContextMenu,
   OrdoColumnOverflowMenu,
   OrdoBulkActionMenu,
-  OrdoQuickEditPanel,
   InlineTaskTitle,
   InlineLabelEditor,
   InlineMemberPicker,
@@ -50,8 +49,8 @@ import {
   type TaskMoveTarget,
   type ColumnMenuHandlers,
   type BulkActionHandlers,
-  type QuickEditPatch,
 } from "@/components/ordo";
+import { TaskDetailDrawer } from "@/components/projects/TaskDetailDrawer";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import {
   useCreateTask,
