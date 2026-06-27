@@ -127,9 +127,12 @@ function renderItem(item: OrdoMenuItem, P: Primitives): ReactNode {
     <P.Item
       key={item.id}
       disabled={item.disabled}
-      onSelect={(e: Event) => {
-        e.preventDefault();
-        item.onSelect?.();
+      onSelect={() => {
+        // Let the menu close itself, then run the action on the next tick so
+        // any anchored popover the action opens isn't dismissed by the menu's
+        // closing focus/pointer events (Radix layer race).
+        const run = item.onSelect;
+        if (run) setTimeout(run, 0);
       }}
       className={cn(
         "cursor-pointer rounded-small",
