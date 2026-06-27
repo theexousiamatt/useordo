@@ -681,8 +681,23 @@ function SortableTask({
   const popoverMode = mode && mode !== "rename" ? mode : null;
   const closeInline = () => setInline(null);
 
+  // When opened from the context menu, the menu's closing focus/pointer events
+  // would otherwise immediately dismiss this popover. Ignore close requests in
+  // a short grace window right after opening.
+  const openedAtRef = useRef(0);
+  useEffect(() => {
+    if (popoverMode) openedAtRef.current = Date.now();
+  }, [popoverMode]);
+
   return (
-    <Popover open={!!popoverMode} onOpenChange={(o) => !o && closeInline()}>
+    <Popover
+      open={!!popoverMode}
+      onOpenChange={(o) => {
+        if (o) return;
+        if (Date.now() - openedAtRef.current < 350) return;
+        closeInline();
+      }}
+    >
       <PopoverAnchor asChild>
         <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
           <div
