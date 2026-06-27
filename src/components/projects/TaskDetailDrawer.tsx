@@ -4,7 +4,6 @@ import {
   MessageSquare,
   History,
   CheckSquare,
-  Paperclip,
   Send,
   Trash2,
   Loader2,
