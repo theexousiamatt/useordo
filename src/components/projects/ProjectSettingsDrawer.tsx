@@ -35,7 +35,7 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
   const [dueDate, setDueDate] = useState<Date | undefined>(
     project.due_date ? new Date(project.due_date) : undefined,
   );
-  const [clientId, setClientId] = useState(project.client_id ?? "");
+  const [clientId, setClientId] = useState(project.client_id ?? "none");
   const [status, setStatus] = useState(project.status);
   const [ownerId, setOwnerId] = useState(project.owner_id ?? "");
 
@@ -45,7 +45,7 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
       setName(project.name);
       setDescription(project.description ?? "");
       setDueDate(project.due_date ? new Date(project.due_date) : undefined);
-      setClientId(project.client_id ?? "");
+      setClientId(project.client_id ?? "none");
       setStatus(project.status);
       setOwnerId(project.owner_id ?? "");
     }
@@ -66,7 +66,7 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
 
   const clientOptions = useMemo(
     () => [
-      { value: "", label: "No client" },
+      { value: "none", label: "No client" },
       ...clientMembers.map((m) => ({
         value: m.user_id,
         label: m.full_name ?? m.email ?? "Unknown",
@@ -92,7 +92,7 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
         name: name.trim(),
         description: description.trim() || null,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
-        client_id: clientId || null,
+        client_id: clientId && clientId !== "none" ? clientId : null,
         status,
         owner_id: ownerId || null,
       });
