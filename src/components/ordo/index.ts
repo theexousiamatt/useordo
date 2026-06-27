@@ -30,6 +30,7 @@ export {
   OrdoCardOverflowMenu,
   buildTaskMenuConfig,
   type TaskMenuHandlers,
+  type TaskMoveTarget,
 } from "./OrdoCardContextMenu";
 export {
   OrdoColumnContextMenu,
@@ -39,6 +40,12 @@ export {
 } from "./OrdoColumnContextMenu";
 export { OrdoBulkActionMenu, type BulkActionHandlers } from "./OrdoBulkActionMenu";
 export { OrdoQuickEditPanel, type QuickEditPatch } from "./OrdoQuickEditPanel";
+
+// Inline editing primitives — reusable across Board, List, Calendar, Timeline.
+export { InlineTaskTitle } from "./inline/InlineTaskTitle";
+export { InlineLabelEditor } from "./inline/InlineLabelEditor";
+export { InlineMemberPicker } from "./inline/InlineMemberPicker";
+export { InlineDatePicker } from "./inline/InlineDatePicker";
 
 // Re-exports of existing canonical primitives for a single import surface.
 export { PageHeader } from "@/components/PageHeader";

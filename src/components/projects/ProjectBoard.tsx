@@ -42,22 +42,31 @@ import {
   OrdoColumnOverflowMenu,
   OrdoBulkActionMenu,
   OrdoQuickEditPanel,
+  InlineTaskTitle,
+  InlineLabelEditor,
+  InlineMemberPicker,
+  InlineDatePicker,
   type TaskMenuHandlers,
+  type TaskMoveTarget,
   type ColumnMenuHandlers,
   type BulkActionHandlers,
   type QuickEditPatch,
 } from "@/components/ordo";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import {
   useCreateTask,
   useReorderTasks,
   useUpdateTask,
   useDeleteTask,
   useDuplicateTask,
+  useArchiveTask,
   useBulkUpdateTasks,
   useBulkDeleteTasks,
   type TaskRow,
 } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
+import { useProjects } from "@/hooks/useProjects";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
@@ -69,18 +78,46 @@ interface Props {
 
 type PendingDelete = { type: "single"; task: TaskRow } | { type: "bulk"; ids: string[] } | null;
 
+type InlineMode = "rename" | "labels" | "members" | "due";
+
+/** Shared inline-editing context threaded down to each card. */
+interface BoardInlineCtx {
+  members: ProjectMemberProfile[];
+  allLabels: string[];
+  moveTargets: TaskMoveTarget[];
+  inline: { id: string; mode: InlineMode } | null;
+  setInline: (v: { id: string; mode: InlineMode } | null) => void;
+  patchTask: (id: string, patch: Partial<TaskRow>) => void;
+}
+
 const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
 const PRIORITY_ORDER = PRIORITIES.map((p) => p.value);
 
 export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) {
   const qc = useQueryClient();
+  const { role } = useWorkspace();
   const createTask = useCreateTask(projectId, workspaceId);
   const reorder = useReorderTasks(projectId);
   const update = useUpdateTask(projectId);
   const del = useDeleteTask(projectId);
   const dup = useDuplicateTask(projectId, workspaceId);
+  const archive = useArchiveTask(projectId);
   const bulkUpdate = useBulkUpdateTasks(projectId);
   const bulkDelete = useBulkDeleteTasks(projectId);
+
+  // Move-to-project targets — only for owners/managers, excluding this project.
+  const canMoveProject = role === "owner" || role === "manager";
+  const { data: allProjects } = useProjects();
+  const moveTargets: TaskMoveTarget[] = useMemo(
+    () =>
+      canMoveProject
+        ? (allProjects ?? [])
+            .filter((p) => p.id !== projectId && !p.archived_at)
+            .map((p) => ({ id: p.id, name: p.name }))
+        : [],
+    [allProjects, canMoveProject, projectId],
+  );
+
 
   const [items, setItems] = useState<TaskRow[]>(tasks);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -91,6 +128,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
   const [editTask, setEditTask] = useState<TaskRow | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
+  // Inline quick-edit state — which card is being edited inline, and how.
+  const [inline, setInline] = useState<{ id: string; mode: InlineMode } | null>(null);
   const [collapsed, setCollapsed] = useState<Set<TaskStatus>>(() => {
     try {
       const raw = localStorage.getItem(`ordo:collapsed:${projectId}`);
@@ -124,28 +163,57 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
-  const stub = useCallback((label: string) => toast(`${label} — coming soon`), []);
+  // All labels seen across the board — powers the InlineLabelEditor suggestions.
+  const allLabels = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of items) (t.labels ?? []).forEach((l) => set.add(l));
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
+  const patchTask = useCallback(
+    (id: string, patch: Partial<TaskRow>) => update.mutate({ id, ...patch }),
+    [update],
+  );
+
+  const startInline = useCallback((t: TaskRow, mode: InlineMode) => setInline({ id: t.id, mode }), []);
+  const closeInline = useCallback(() => setInline(null), []);
+
+  const copyLink = useCallback(
+    (t: TaskRow) => {
+      navigator.clipboard?.writeText(`${window.location.origin}/projects/${projectId}?task=${t.id}`);
+      toast.success("Task link copied");
+    },
+    [projectId],
+  );
 
   // ---------------- Card actions ----------------
   const cardHandlers: TaskMenuHandlers = {
     onOpen: openQuickEdit,
-    onQuickEdit: openQuickEdit,
-    onRename: openQuickEdit,
+    onRename: (t) => startInline(t, "rename"),
+    onEditLabels: (t) => startInline(t, "labels"),
+    onEditMembers: (t) => startInline(t, "members"),
+    onEditDueDate: (t) => startInline(t, "due"),
     onMoveStatus: (t, status) => update.mutate({ id: t.id, status }),
+    onMoveProject: (t, targetProjectId) =>
+      update.mutate({ id: t.id, project_id: targetProjectId }),
     onDuplicate: (t) => dup.mutate(t),
-    onMarkComplete: (t) => update.mutate({ id: t.id, status: "done" }),
-    onReopen: (t) => update.mutate({ id: t.id, status: "todo" }),
-    onAssign: (t, userId) => update.mutate({ id: t.id, assignee_id: userId }),
-    onSetPriority: (t, priority) => update.mutate({ id: t.id, priority }),
-    onCopyLink: (t) => {
-      navigator.clipboard?.writeText(`${window.location.origin}/projects/${projectId}?task=${t.id}`);
-      toast.success("Task link copied");
-    },
+    onCopyLink: copyLink,
+    onArchive: (t) => archive.mutate(t.id),
     onDelete: (t) => setPendingDelete({ type: "single", task: t }),
-    onAction: (_t, action) => stub(action),
   };
 
   const quickSave = (id: string, patch: QuickEditPatch) => update.mutate({ id, ...patch });
+
+  const inlineCtx: BoardInlineCtx = {
+    members,
+    allLabels,
+    moveTargets,
+    inline,
+    setInline,
+    patchTask,
+  };
+
+  const stub = useCallback((label: string) => toast(`${label} — coming soon`), []);
 
   // ---------------- Column actions ----------------
   const columnHandlers: ColumnMenuHandlers = {
@@ -223,10 +291,21 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
       if (!task) return;
 
       switch (e.key.toLowerCase()) {
-        case "e":
         case "enter":
           e.preventDefault();
           openQuickEdit(task);
+          break;
+        case "e":
+          e.preventDefault();
+          startInline(task, "rename");
+          break;
+        case "l":
+          e.preventDefault();
+          startInline(task, "labels");
+          break;
+        case "a":
+          e.preventDefault();
+          startInline(task, "members");
           break;
         case "d":
           e.preventDefault();
@@ -253,7 +332,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [items, focusedId, selected, editOpen, openQuickEdit, dup, update, clearSelection]);
+  }, [items, focusedId, selected, editOpen, openQuickEdit, startInline, dup, update, clearSelection]);
 
   // ---------------- Drag & drop ----------------
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
@@ -328,6 +407,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
               collapsed={collapsed.has(col.id)}
               selected={selected}
               cardHandlers={cardHandlers}
+              inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
               onSelectCard={handleSelect}
               onOpenCard={openQuickEdit}
@@ -407,6 +487,7 @@ function Column({
   collapsed,
   selected,
   cardHandlers,
+  inlineCtx,
   columnHandlers,
   onSelectCard,
   onOpenCard,
@@ -421,6 +502,7 @@ function Column({
   collapsed: boolean;
   selected: Set<string>;
   cardHandlers: TaskMenuHandlers;
+  inlineCtx: BoardInlineCtx;
   columnHandlers: ColumnMenuHandlers;
   onSelectCard: (e: React.MouseEvent, id: string) => void;
   onOpenCard: (t: TaskRow) => void;
@@ -510,12 +592,13 @@ function Column({
               key={t.id}
               task={t}
               member={memberMap.get(t.assignee_id ?? "")}
-              members={members}
               selected={selected.has(t.id)}
               handlers={cardHandlers}
+              inlineCtx={inlineCtx}
               onSelect={onSelectCard}
               onOpen={onOpenCard}
             />
+
           ))}
         </SortableContext>
 
@@ -556,70 +639,128 @@ function Column({
 function SortableTask({
   task,
   member,
-  members,
   selected,
   handlers,
+  inlineCtx,
   onSelect,
   onOpen,
 }: {
   task: TaskRow;
   member?: ProjectMemberProfile;
-  members: ProjectMemberProfile[];
   selected: boolean;
   handlers: TaskMenuHandlers;
+  inlineCtx: BoardInlineCtx;
   onSelect: (e: React.MouseEvent, id: string) => void;
   onOpen: (t: TaskRow) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+  const { members, allLabels, moveTargets, inline, setInline, patchTask } = inlineCtx;
+
+  const mode = inline?.id === task.id ? inline.mode : null;
+  const renaming = mode === "rename";
+  const popoverMode = mode && mode !== "rename" ? mode : null;
+  const closeInline = () => setInline(null);
 
   return (
-    <OrdoCardContextMenu task={task} members={members} handlers={handlers}>
-      <div
-        ref={setNodeRef}
-        style={{ transform: CSS.Transform.toString(transform), transition }}
-        role="button"
-        tabIndex={0}
-        aria-pressed={selected}
-        aria-label={`Task: ${task.title}`}
-        onClick={(e) => onSelect(e, task.id)}
-        onDoubleClick={() => onOpen(task)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            onOpen(task);
-          }
-        }}
-        className={cn(
-          "group/card relative rounded-card outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
-          isDragging && "opacity-40",
-          selected && "ring-2 ring-[hsl(178,100%,8%)] ring-offset-2",
-        )}
-      >
-        <OrdoCardOverflowMenu
-          task={task}
-          members={members}
-          handlers={handlers}
-          trigger={
-            <button
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Task actions: ${task.title}`}
-              className="absolute right-2 top-2 z-10 rounded-md bg-card/80 p-1 text-muted-foreground opacity-0 shadow-subtle backdrop-blur transition-opacity hover:text-foreground group-hover/card:opacity-100 focus:opacity-100"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-          }
-        />
-        <OrdoTaskCard
-          title={task.title}
-          status={task.status}
-          priority={task.priority}
-          description={task.description}
-          dueDate={task.due_date}
-          assignees={member ? [member] : []}
-          interactive={false}
-          dragHandleProps={{ ...attributes, ...listeners }}
-        />
-      </div>
+    <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
+      <Popover open={!!popoverMode} onOpenChange={(o) => !o && closeInline()}>
+        <PopoverAnchor asChild>
+          <div
+            ref={setNodeRef}
+            style={{ transform: CSS.Transform.toString(transform), transition }}
+            role="button"
+            tabIndex={0}
+            aria-pressed={selected}
+            aria-label={`Task: ${task.title}`}
+            onClick={(e) => onSelect(e, task.id)}
+            onDoubleClick={() => onOpen(task)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onOpen(task);
+              }
+            }}
+            className={cn(
+              "group/card relative rounded-card outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
+              isDragging && "opacity-40",
+              selected && "ring-2 ring-[hsl(178,100%,8%)] ring-offset-2",
+            )}
+          >
+            <OrdoCardOverflowMenu
+              task={task}
+              handlers={handlers}
+              moveTargets={moveTargets}
+              trigger={
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Task actions: ${task.title}`}
+                  className="absolute right-2 top-2 z-10 rounded-md bg-card/80 p-1 text-muted-foreground opacity-0 shadow-subtle backdrop-blur transition-opacity hover:text-foreground group-hover/card:opacity-100 focus:opacity-100"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
+              }
+            />
+            <OrdoTaskCard
+              title={task.title}
+              status={task.status}
+              priority={task.priority}
+              description={task.description}
+              dueDate={task.due_date}
+              labels={task.labels ?? undefined}
+              assignees={member ? [member] : []}
+              interactive={false}
+              dragHandleProps={renaming ? undefined : { ...attributes, ...listeners }}
+              titleEditor={
+                renaming ? (
+                  <InlineTaskTitle
+                    value={task.title}
+                    onSave={(next) => {
+                      patchTask(task.id, { title: next });
+                      closeInline();
+                    }}
+                    onCancel={closeInline}
+                  />
+                ) : undefined
+              }
+            />
+          </div>
+        </PopoverAnchor>
+
+        <PopoverContent
+          align="start"
+          className="w-72 p-0"
+          onClick={(e) => e.stopPropagation()}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          {popoverMode === "labels" && (
+            <InlineLabelEditor
+              value={task.labels ?? []}
+              suggestions={allLabels}
+              onChange={(next) => patchTask(task.id, { labels: next })}
+            />
+          )}
+          {popoverMode === "members" && (
+            <InlineMemberPicker
+              members={members}
+              value={task.assignee_id ?? null}
+              onChange={(userId) => {
+                patchTask(task.id, { assignee_id: userId });
+                closeInline();
+              }}
+            />
+          )}
+          {popoverMode === "due" && (
+            <InlineDatePicker
+              value={task.due_date ?? null}
+              onChange={(next) => {
+                patchTask(task.id, { due_date: next });
+                closeInline();
+              }}
+            />
+          )}
+        </PopoverContent>
+      </Popover>
     </OrdoCardContextMenu>
   );
 }
+

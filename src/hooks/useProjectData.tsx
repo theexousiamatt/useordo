@@ -23,6 +23,8 @@ export interface TaskRow {
   assignee_id: string | null;
   created_by: string | null;
   due_date: string | null;
+  labels: string[];
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -108,6 +110,7 @@ export function useProjectTasks(projectId?: string) {
         .from("tasks")
         .select("*")
         .eq("project_id", projectId!)
+        .is("archived_at", null)
         .order("position", { ascending: true });
       if (error) throw error;
       return (data ?? []) as TaskRow[];
@@ -292,24 +295,43 @@ export function useDuplicateTask(projectId: string, workspaceId: string) {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (task: TaskRow) => {
+    mutationFn: async (task: TaskRow & { copyAssignee?: boolean }) => {
       const existing = qc.getQueryData<TaskRow[]>(["project-tasks", projectId]) ?? [];
       const position = existing.filter((t) => t.status === task.status).length;
       const { error } = await supabase.from("tasks").insert({
         workspace_id: workspaceId,
         project_id: projectId,
-        title: `${task.title} (copy)`,
+        title: `${task.title} (Copy)`,
         description: task.description,
         status: task.status,
         priority: task.priority,
         position,
-        assignee_id: task.assignee_id,
+        labels: task.labels ?? [],
+        assignee_id: task.copyAssignee === false ? null : task.assignee_id,
         due_date: task.due_date,
         created_by: user?.id ?? null,
       });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+  });
+}
+
+/** Soft-archive a task — hidden from the active board, data preserved. */
+export function useArchiveTask(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ archived_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
+      qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
+    },
   });
 }
 

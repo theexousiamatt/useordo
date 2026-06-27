@@ -1,4 +1,4 @@
-import { forwardRef, type KeyboardEvent } from "react";
+import { forwardRef, type KeyboardEvent, type ReactNode } from "react";
 import {
   Calendar,
   MessageSquare,
@@ -107,6 +107,7 @@ export interface OrdoTaskCardProps {
   priority: TaskPriority;
   description?: string | null;
   dueDate?: string | null;
+  labels?: string[];
   /** 0–100. Falls back to a status-derived default. */
   progress?: number;
   assignees?: ProjectMemberProfile[];
@@ -116,6 +117,8 @@ export interface OrdoTaskCardProps {
   blocked?: boolean;
   interactive?: boolean;
   onOpen?: () => void;
+  /** When provided, replaces the title with an inline editor. */
+  titleEditor?: ReactNode;
   dragHandleProps?: Record<string, unknown>;
   /** Render in the drag overlay (slight tilt + stronger shadow). */
   overlay?: boolean;
@@ -130,6 +133,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
       priority,
       description,
       dueDate,
+      labels = [],
       progress,
       assignees = [],
       commentCount = 0,
@@ -137,6 +141,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
       blocked,
       interactive = true,
       onOpen,
+      titleEditor,
       dragHandleProps,
       overlay,
       className,
@@ -210,13 +215,29 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
 
           {/* Body: title + description */}
           <div className="mt-3">
-            <h4 className="text-sm font-semibold leading-snug text-foreground line-clamp-2">
-              {title}
-            </h4>
+            {titleEditor ? (
+              titleEditor
+            ) : (
+              <h4 className="text-sm font-semibold leading-snug text-foreground line-clamp-2">
+                {title}
+              </h4>
+            )}
             {description && (
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground line-clamp-2">
                 {description}
               </p>
+            )}
+            {labels.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {labels.map((label) => (
+                  <span
+                    key={label}
+                    className="inline-flex items-center rounded-pill bg-black/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
 
