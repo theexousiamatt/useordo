@@ -7,6 +7,7 @@ import {
   Loader2,
   FileText,
   FileImage,
+  FileVideo,
   FileArchive,
   File as FileIcon,
 } from "lucide-react";
