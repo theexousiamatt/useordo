@@ -83,13 +83,29 @@ const PRIORITY_ORDER = PRIORITIES.map((p) => p.value);
 
 export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) {
   const qc = useQueryClient();
+  const { role } = useWorkspace();
   const createTask = useCreateTask(projectId, workspaceId);
   const reorder = useReorderTasks(projectId);
   const update = useUpdateTask(projectId);
   const del = useDeleteTask(projectId);
   const dup = useDuplicateTask(projectId, workspaceId);
+  const archive = useArchiveTask(projectId);
   const bulkUpdate = useBulkUpdateTasks(projectId);
   const bulkDelete = useBulkDeleteTasks(projectId);
+
+  // Move-to-project targets — only for owners/managers, excluding this project.
+  const canMoveProject = role === "owner" || role === "manager";
+  const { data: allProjects } = useProjects();
+  const moveTargets: TaskMoveTarget[] = useMemo(
+    () =>
+      canMoveProject
+        ? (allProjects ?? [])
+            .filter((p) => p.id !== projectId && !p.archived_at)
+            .map((p) => ({ id: p.id, name: p.name }))
+        : [],
+    [allProjects, canMoveProject, projectId],
+  );
+
 
   const [items, setItems] = useState<TaskRow[]>(tasks);
   const [activeId, setActiveId] = useState<string | null>(null);
