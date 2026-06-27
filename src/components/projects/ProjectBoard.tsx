@@ -153,28 +153,47 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
-  const stub = useCallback((label: string) => toast(`${label} — coming soon`), []);
+  // All labels seen across the board — powers the InlineLabelEditor suggestions.
+  const allLabels = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of items) (t.labels ?? []).forEach((l) => set.add(l));
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
+  const patchTask = useCallback(
+    (id: string, patch: Partial<TaskRow>) => update.mutate({ id, ...patch }),
+    [update],
+  );
+
+  const startInline = useCallback((t: TaskRow, mode: InlineMode) => setInline({ id: t.id, mode }), []);
+  const closeInline = useCallback(() => setInline(null), []);
+
+  const copyLink = useCallback(
+    (t: TaskRow) => {
+      navigator.clipboard?.writeText(`${window.location.origin}/projects/${projectId}?task=${t.id}`);
+      toast.success("Task link copied");
+    },
+    [projectId],
+  );
 
   // ---------------- Card actions ----------------
   const cardHandlers: TaskMenuHandlers = {
     onOpen: openQuickEdit,
-    onQuickEdit: openQuickEdit,
-    onRename: openQuickEdit,
+    onRename: (t) => startInline(t, "rename"),
+    onEditLabels: (t) => startInline(t, "labels"),
+    onEditMembers: (t) => startInline(t, "members"),
+    onEditDueDate: (t) => startInline(t, "due"),
     onMoveStatus: (t, status) => update.mutate({ id: t.id, status }),
+    onMoveProject: (t, targetProjectId) =>
+      update.mutate({ id: t.id, project_id: targetProjectId }),
     onDuplicate: (t) => dup.mutate(t),
-    onMarkComplete: (t) => update.mutate({ id: t.id, status: "done" }),
-    onReopen: (t) => update.mutate({ id: t.id, status: "todo" }),
-    onAssign: (t, userId) => update.mutate({ id: t.id, assignee_id: userId }),
-    onSetPriority: (t, priority) => update.mutate({ id: t.id, priority }),
-    onCopyLink: (t) => {
-      navigator.clipboard?.writeText(`${window.location.origin}/projects/${projectId}?task=${t.id}`);
-      toast.success("Task link copied");
-    },
+    onCopyLink: copyLink,
+    onArchive: (t) => archive.mutate(t.id),
     onDelete: (t) => setPendingDelete({ type: "single", task: t }),
-    onAction: (_t, action) => stub(action),
   };
 
   const quickSave = (id: string, patch: QuickEditPatch) => update.mutate({ id, ...patch });
+
 
   // ---------------- Column actions ----------------
   const columnHandlers: ColumnMenuHandlers = {
