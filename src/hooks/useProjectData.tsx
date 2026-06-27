@@ -249,12 +249,27 @@ export function useUpdateTask(projectId: string) {
       const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    // Optimistic UI: apply the patch to the cached board immediately.
+    onMutate: async ({ id, ...patch }) => {
+      const key = ["project-tasks", projectId];
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<TaskRow[]>(key);
+      qc.setQueryData<TaskRow[]>(key, (old) =>
+        (old ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(["project-tasks", projectId], context.previous);
+      toast.error("Couldn't save your change. Please try again.");
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
       qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
     },
   });
 }
+
 
 /** Persist a reordered/moved set of tasks. Caller applies optimistic state first. */
 export function useReorderTasks(projectId: string) {
