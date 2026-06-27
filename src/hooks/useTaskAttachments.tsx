@@ -132,5 +132,5 @@ export function useTaskAttachments(taskId: string | undefined, projectId: string
     setAttachments((prev) => prev.filter((x) => x.id !== f.id));
   }, []);
 
-  return { attachments, loading, error, uploading, upload, download, remove, reload: load };
+  return { attachments, loading, error, uploading, upload, download, remove, getSignedUrl, reload: load };
 }
