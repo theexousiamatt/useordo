@@ -882,6 +882,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          archived_at: string | null
           assignee_id: string | null
           created_at: string
           created_by: string | null
@@ -898,6 +899,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          archived_at?: string | null
           assignee_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -914,6 +916,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          archived_at?: string | null
           assignee_id?: string | null
           created_at?: string
           created_by?: string | null
