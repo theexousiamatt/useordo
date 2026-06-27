@@ -75,7 +75,11 @@ function DrawerBody({
   members: ProjectMemberProfile[];
   onSaveDescription: (id: string, description: string | null) => void;
 }) {
-  const assignee = members.find((m) => m.user_id === task.assignee_id) ?? null;
+  const { data: assigneesMap } = useTaskAssignees(task.project_id);
+  const assigneeIds = assigneesMap?.get(task.id) ?? (task.assignee_id ? [task.assignee_id] : []);
+  const assignees = assigneeIds
+    .map((id) => members.find((m) => m.user_id === id))
+    .filter(Boolean) as ProjectMemberProfile[];
 
   return (
     <Tabs defaultValue="overview" className="flex h-full flex-col">
