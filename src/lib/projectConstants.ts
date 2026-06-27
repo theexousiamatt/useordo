@@ -7,7 +7,7 @@ export type DeliverableStatus = "draft" | "submitted" | "approved" | "rejected";
 export type MilestoneStatus = "pending" | "completed";
 
 export const PROJECT_STATUSES: { value: ProjectStatus; label: string }[] = [
-  { value: "draft", label: "Draft" },
+  { value: "draft", label: "Planning" },
   { value: "active", label: "Active" },
   { value: "on_hold", label: "On hold" },
   { value: "completed", label: "Completed" },

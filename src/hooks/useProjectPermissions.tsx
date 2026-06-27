@@ -23,6 +23,8 @@ export function useProjectPermissions(project?: Pick<ProjectRow, "owner_id"> | n
 
   const canManage = isWorkspaceOwner || isWorkspaceManager || isProjectOwner;
   const canDelete = isWorkspaceOwner || isProjectOwner;
+  // Only workspace owners and managers may duplicate projects.
+  const canDuplicate = isWorkspaceOwner || isWorkspaceManager;
 
-  return { canManage, canDelete };
+  return { canManage, canDelete, canDuplicate };
 }
