@@ -332,7 +332,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [items, focusedId, selected, editOpen, openQuickEdit, dup, update, clearSelection]);
+  }, [items, focusedId, selected, editOpen, openQuickEdit, startInline, dup, update, clearSelection]);
 
   // ---------------- Drag & drop ----------------
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
