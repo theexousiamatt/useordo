@@ -260,6 +260,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     inline,
     setInline,
     patchTask,
+    assigneesFor,
+    setTaskAssignees,
   };
 
   const stub = useCallback((label: string) => toast(`${label} — coming soon`), []);
