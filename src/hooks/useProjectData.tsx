@@ -145,8 +145,14 @@ export function useSetTaskAssignees(projectId: string) {
       taskId: string;
       userIds: string[];
     }) => {
-      const key = ["task-assignees", projectId];
-      const current = (qc.getQueryData<Map<string, string[]>>(key)?.get(taskId)) ?? [];
+      // Diff against the server (source of truth) — NOT the query cache, which
+      // onMutate has already optimistically overwritten by the time this runs.
+      const { data: existing, error: readErr } = await supabase
+        .from("task_assignees")
+        .select("user_id")
+        .eq("task_id", taskId);
+      if (readErr) throw readErr;
+      const current = (existing ?? []).map((r) => r.user_id);
       const toAdd = userIds.filter((id) => !current.includes(id));
       const toRemove = current.filter((id) => !userIds.includes(id));
 
