@@ -99,6 +99,17 @@ export function useTaskAttachments(taskId: string | undefined, projectId: string
     [taskId, projectId, currentWorkspace, user, load],
   );
 
+  const getSignedUrl = useCallback(
+    async (f: TaskAttachment, expiresIn = 3600): Promise<string | null> => {
+      const { data, error } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrl(f.storage_path, expiresIn);
+      if (error || !data?.signedUrl) return null;
+      return data.signedUrl;
+    },
+    [],
+  );
+
   const download = useCallback(async (f: TaskAttachment) => {
     const { data, error } = await supabase.storage
       .from(BUCKET)
@@ -121,5 +132,5 @@ export function useTaskAttachments(taskId: string | undefined, projectId: string
     setAttachments((prev) => prev.filter((x) => x.id !== f.id));
   }, []);
 
-  return { attachments, loading, error, uploading, upload, download, remove, reload: load };
+  return { attachments, loading, error, uploading, upload, download, remove, getSignedUrl, reload: load };
 }

@@ -11,6 +11,7 @@ import {
   File as FileIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatBytes, timeAgo } from "@/lib/format";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,8 +40,25 @@ export function TaskAttachmentsSection({
   projectId: string;
 }) {
   const { user } = useAuth();
-  const { attachments, loading, error, uploading, upload, download, remove } =
+  const { attachments, loading, error, uploading, upload, download, remove, getSignedUrl } =
     useTaskAttachments(taskId, projectId);
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
+
+  // Resolve signed thumbnail URLs for image attachments.
+  useEffect(() => {
+    let cancelled = false;
+    const imgs = attachments.filter((a) => a.mime_type?.startsWith("image/"));
+    imgs.forEach(async (a) => {
+      if (thumbs[a.id]) return;
+      const url = await getSignedUrl(a);
+      if (!cancelled && url) setThumbs((prev) => ({ ...prev, [a.id]: url }));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachments, getSignedUrl]);
   const inputRef = useRef<HTMLInputElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -178,34 +196,69 @@ export function TaskAttachmentsSection({
             <AttachmentRow
               key={a.id}
               attachment={a}
+              thumb={thumbs[a.id]}
               canDelete={a.uploaded_by === user?.id}
               onDownload={() => download(a)}
               onRemove={() => remove(a)}
+              onPreview={
+                thumbs[a.id]
+                  ? () => setLightbox({ url: thumbs[a.id], name: a.name })
+                  : undefined
+              }
             />
           ))}
         </ul>
       )}
+
+      <Dialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
+        <DialogContent className="max-w-3xl border-border bg-card p-2">
+          <DialogTitle className="sr-only">{lightbox?.name ?? "Image preview"}</DialogTitle>
+          {lightbox && (
+            <img
+              src={lightbox.url}
+              alt={lightbox.name}
+              className="mx-auto max-h-[80vh] w-auto rounded-small object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
 
 function AttachmentRow({
   attachment,
+  thumb,
   canDelete,
   onDownload,
   onRemove,
+  onPreview,
 }: {
   attachment: TaskAttachment;
+  thumb?: string;
   canDelete: boolean;
   onDownload: () => void;
   onRemove: () => void;
+  onPreview?: () => void;
 }) {
   const Icon = iconFor(attachment.mime_type);
+  const isImage = attachment.mime_type?.startsWith("image/");
   return (
     <li className="group flex items-center gap-3 rounded-card border border-border bg-card px-3 py-2.5 transition-shadow hover:shadow-subtle">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-small bg-black/5 text-muted-foreground">
-        <Icon className="h-4 w-4" />
-      </span>
+      {isImage && thumb ? (
+        <button
+          type="button"
+          onClick={onPreview}
+          className="h-10 w-10 shrink-0 overflow-hidden rounded-small bg-black/5 ring-1 ring-border transition-opacity hover:opacity-80"
+          aria-label="Preview image"
+        >
+          <img src={thumb} alt={attachment.name} className="h-full w-full object-cover" />
+        </button>
+      ) : (
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-small bg-black/5 text-muted-foreground">
+          <Icon className="h-4 w-4" />
+        </span>
+      )}
       <button
         type="button"
         onClick={onDownload}
