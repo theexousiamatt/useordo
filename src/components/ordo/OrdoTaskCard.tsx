@@ -1,4 +1,4 @@
-import { forwardRef, type KeyboardEvent } from "react";
+import { forwardRef, type KeyboardEvent, type ReactNode } from "react";
 import {
   Calendar,
   MessageSquare,
