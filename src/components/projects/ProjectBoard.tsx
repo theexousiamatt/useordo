@@ -477,7 +477,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
                 priority={activeTask.priority}
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
-                assignees={memberMap.get(activeTask.assignee_id ?? "") ? [memberMap.get(activeTask.assignee_id ?? "")!] : []}
+                assignees={assigneesFor(activeTask)}
                 interactive={false}
                 overlay
               />
