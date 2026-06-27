@@ -121,6 +121,13 @@ export function TaskAttachmentsSection({
         dragOver && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
       )}
     >
+      {dragOver && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 rounded-card border-2 border-dashed border-primary/50 bg-card/90 backdrop-blur-sm">
+          <Upload className="h-5 w-5 text-primary" />
+          <span className="text-sm font-medium text-foreground">Drop files to upload</span>
+          <span className="text-xs text-muted-foreground/70">Max 50 MB each</span>
+        </div>
+      )}
       <div className="mb-2 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           <Paperclip className="h-3.5 w-3.5" />
