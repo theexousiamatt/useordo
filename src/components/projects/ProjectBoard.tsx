@@ -476,6 +476,7 @@ function Column({
   collapsed,
   selected,
   cardHandlers,
+  inlineCtx,
   columnHandlers,
   onSelectCard,
   onOpenCard,
