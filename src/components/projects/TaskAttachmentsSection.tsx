@@ -169,7 +169,7 @@ export function TaskAttachmentsSection({
           <Paperclip className="h-5 w-5 text-muted-foreground/60" />
           <span className="text-sm font-medium text-foreground">Add attachments</span>
           <span className="text-xs text-muted-foreground/70">
-            Drag files here or click to upload (max 50 MB each)
+            Drag, paste, or click to upload (max 50 MB each)
           </span>
         </button>
       ) : (
