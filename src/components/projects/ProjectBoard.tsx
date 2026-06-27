@@ -78,6 +78,8 @@ interface Props {
 
 type PendingDelete = { type: "single"; task: TaskRow } | { type: "bulk"; ids: string[] } | null;
 
+type InlineMode = "rename" | "labels" | "members" | "due";
+
 const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
 const PRIORITY_ORDER = PRIORITIES.map((p) => p.value);
 
