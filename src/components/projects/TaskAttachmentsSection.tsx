@@ -264,31 +264,47 @@ export function TaskAttachmentsSection({
 
 function AttachmentRow({
   attachment,
-  thumb,
+  previewUrl,
   canDelete,
   onDownload,
   onRemove,
   onPreview,
 }: {
   attachment: TaskAttachment;
-  thumb?: string;
+  previewUrl?: string;
   canDelete: boolean;
   onDownload: () => void;
   onRemove: () => void;
   onPreview?: () => void;
 }) {
   const Icon = iconFor(attachment.mime_type);
-  const isImage = attachment.mime_type?.startsWith("image/");
+  const kind = kindOf(attachment.mime_type, attachment.name);
+  const canPreview = !!previewUrl && kind !== "other";
   return (
     <li className="group flex items-center gap-3 rounded-card border border-border bg-card px-3 py-2.5 transition-shadow hover:shadow-subtle">
-      {isImage && thumb ? (
+      {canPreview ? (
         <button
           type="button"
           onClick={onPreview}
-          className="h-10 w-10 shrink-0 overflow-hidden rounded-small bg-black/5 ring-1 ring-border transition-opacity hover:opacity-80"
-          aria-label="Preview image"
+          className="relative h-10 w-10 shrink-0 overflow-hidden rounded-small bg-black/5 ring-1 ring-border transition-opacity hover:opacity-80"
+          aria-label={`Preview ${kind}`}
         >
-          <img src={thumb} alt={attachment.name} className="h-full w-full object-cover" />
+          {kind === "image" && (
+            <img src={previewUrl} alt={attachment.name} className="h-full w-full object-cover" />
+          )}
+          {kind === "video" && (
+            <>
+              <video src={previewUrl} muted preload="metadata" className="h-full w-full object-cover" />
+              <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white">
+                <Play className="h-4 w-4" />
+              </span>
+            </>
+          )}
+          {kind === "pdf" && (
+            <span className="flex h-full w-full items-center justify-center bg-destructive/10 text-destructive">
+              <FileText className="h-4 w-4" />
+            </span>
+          )}
         </button>
       ) : (
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-small bg-black/5 text-muted-foreground">
