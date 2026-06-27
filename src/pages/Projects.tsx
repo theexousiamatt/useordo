@@ -154,6 +154,15 @@ export default function Projects() {
           onOpenChange={(o) => !o && setDeleteTarget(null)}
         />
       )}
+
+      {duplicateTarget && (
+        <DuplicateProjectDialog
+          project={duplicateTarget}
+          open={!!duplicateTarget}
+          onOpenChange={(o) => !o && setDuplicateTarget(null)}
+          onDuplicated={(id) => navigate(`/projects/${id}`)}
+        />
+      )}
     </div>
   );
 }
