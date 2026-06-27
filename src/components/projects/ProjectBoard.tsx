@@ -628,70 +628,128 @@ function Column({
 function SortableTask({
   task,
   member,
-  members,
   selected,
   handlers,
+  inlineCtx,
   onSelect,
   onOpen,
 }: {
   task: TaskRow;
   member?: ProjectMemberProfile;
-  members: ProjectMemberProfile[];
   selected: boolean;
   handlers: TaskMenuHandlers;
+  inlineCtx: BoardInlineCtx;
   onSelect: (e: React.MouseEvent, id: string) => void;
   onOpen: (t: TaskRow) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+  const { members, allLabels, moveTargets, inline, setInline, patchTask } = inlineCtx;
+
+  const mode = inline?.id === task.id ? inline.mode : null;
+  const renaming = mode === "rename";
+  const popoverMode = mode && mode !== "rename" ? mode : null;
+  const closeInline = () => setInline(null);
 
   return (
-    <OrdoCardContextMenu task={task} members={members} handlers={handlers}>
-      <div
-        ref={setNodeRef}
-        style={{ transform: CSS.Transform.toString(transform), transition }}
-        role="button"
-        tabIndex={0}
-        aria-pressed={selected}
-        aria-label={`Task: ${task.title}`}
-        onClick={(e) => onSelect(e, task.id)}
-        onDoubleClick={() => onOpen(task)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            onOpen(task);
-          }
-        }}
-        className={cn(
-          "group/card relative rounded-card outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
-          isDragging && "opacity-40",
-          selected && "ring-2 ring-[hsl(178,100%,8%)] ring-offset-2",
-        )}
-      >
-        <OrdoCardOverflowMenu
-          task={task}
-          members={members}
-          handlers={handlers}
-          trigger={
-            <button
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Task actions: ${task.title}`}
-              className="absolute right-2 top-2 z-10 rounded-md bg-card/80 p-1 text-muted-foreground opacity-0 shadow-subtle backdrop-blur transition-opacity hover:text-foreground group-hover/card:opacity-100 focus:opacity-100"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-          }
-        />
-        <OrdoTaskCard
-          title={task.title}
-          status={task.status}
-          priority={task.priority}
-          description={task.description}
-          dueDate={task.due_date}
-          assignees={member ? [member] : []}
-          interactive={false}
-          dragHandleProps={{ ...attributes, ...listeners }}
-        />
-      </div>
+    <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
+      <Popover open={!!popoverMode} onOpenChange={(o) => !o && closeInline()}>
+        <PopoverAnchor asChild>
+          <div
+            ref={setNodeRef}
+            style={{ transform: CSS.Transform.toString(transform), transition }}
+            role="button"
+            tabIndex={0}
+            aria-pressed={selected}
+            aria-label={`Task: ${task.title}`}
+            onClick={(e) => onSelect(e, task.id)}
+            onDoubleClick={() => onOpen(task)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onOpen(task);
+              }
+            }}
+            className={cn(
+              "group/card relative rounded-card outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
+              isDragging && "opacity-40",
+              selected && "ring-2 ring-[hsl(178,100%,8%)] ring-offset-2",
+            )}
+          >
+            <OrdoCardOverflowMenu
+              task={task}
+              handlers={handlers}
+              moveTargets={moveTargets}
+              trigger={
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Task actions: ${task.title}`}
+                  className="absolute right-2 top-2 z-10 rounded-md bg-card/80 p-1 text-muted-foreground opacity-0 shadow-subtle backdrop-blur transition-opacity hover:text-foreground group-hover/card:opacity-100 focus:opacity-100"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
+              }
+            />
+            <OrdoTaskCard
+              title={task.title}
+              status={task.status}
+              priority={task.priority}
+              description={task.description}
+              dueDate={task.due_date}
+              labels={task.labels ?? undefined}
+              assignees={member ? [member] : []}
+              interactive={false}
+              dragHandleProps={renaming ? undefined : { ...attributes, ...listeners }}
+              titleEditor={
+                renaming ? (
+                  <InlineTaskTitle
+                    value={task.title}
+                    onSave={(next) => {
+                      patchTask(task.id, { title: next });
+                      closeInline();
+                    }}
+                    onCancel={closeInline}
+                  />
+                ) : undefined
+              }
+            />
+          </div>
+        </PopoverAnchor>
+
+        <PopoverContent
+          align="start"
+          className="w-72 p-0"
+          onClick={(e) => e.stopPropagation()}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          {popoverMode === "labels" && (
+            <InlineLabelEditor
+              value={task.labels ?? []}
+              suggestions={allLabels}
+              onChange={(next) => patchTask(task.id, { labels: next })}
+            />
+          )}
+          {popoverMode === "members" && (
+            <InlineMemberPicker
+              members={members}
+              value={task.assignee_id ?? null}
+              onChange={(userId) => {
+                patchTask(task.id, { assignee_id: userId });
+                closeInline();
+              }}
+            />
+          )}
+          {popoverMode === "due" && (
+            <InlineDatePicker
+              value={task.due_date ?? null}
+              onChange={(next) => {
+                patchTask(task.id, { due_date: next });
+                closeInline();
+              }}
+            />
+          )}
+        </PopoverContent>
+      </Popover>
     </OrdoCardContextMenu>
   );
 }
+
