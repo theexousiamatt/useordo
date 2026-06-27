@@ -888,6 +888,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          labels: string[]
           position: number
           priority: string
           project_id: string
@@ -903,6 +904,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          labels?: string[]
           position?: number
           priority?: string
           project_id: string
@@ -918,6 +920,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          labels?: string[]
           position?: number
           priority?: string
           project_id?: string
