@@ -200,11 +200,7 @@ function OverviewTab({
         title="Checklist & subtasks"
         note="Break this task into steps. Coming soon."
       />
-      <ReservedSection
-        icon={Paperclip}
-        title="Attachments"
-        note="Files, images and documents for this task. Coming soon."
-      />
+      <TaskAttachmentsSection taskId={task.id} projectId={task.project_id} />
     </div>
   );
 }
