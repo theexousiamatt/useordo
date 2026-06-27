@@ -34,6 +34,7 @@ import {
   useAddTaskComment,
   useDeleteTaskComment,
 } from "@/hooks/useTaskComments";
+import { TaskAttachmentsSection } from "@/components/projects/TaskAttachmentsSection";
 
 const STATUS_LABEL = Object.fromEntries(TASK_COLUMNS.map((c) => [c.id, c.title]));
 
