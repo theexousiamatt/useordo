@@ -7,8 +7,10 @@ import {
   Loader2,
   FileText,
   FileImage,
+  FileVideo,
   FileArchive,
   File as FileIcon,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -20,9 +22,20 @@ import {
   type TaskAttachment,
 } from "@/hooks/useTaskAttachments";
 
+type MediaKind = "image" | "pdf" | "video" | "other";
+
+function kindOf(mime: string | null, name?: string): MediaKind {
+  const m = mime ?? "";
+  if (m.startsWith("image/")) return "image";
+  if (m.startsWith("video/")) return "video";
+  if (m.includes("pdf") || name?.toLowerCase().endsWith(".pdf")) return "pdf";
+  return "other";
+}
+
 function iconFor(mime: string | null) {
   if (!mime) return FileIcon;
   if (mime.startsWith("image/")) return FileImage;
+  if (mime.startsWith("video/")) return FileVideo;
   if (mime.includes("zip") || mime.includes("compressed") || mime.includes("tar")) return FileArchive;
   if (mime.includes("pdf") || mime.startsWith("text/") || mime.includes("document")) return FileText;
   return FileIcon;
@@ -42,17 +55,21 @@ export function TaskAttachmentsSection({
   const { user } = useAuth();
   const { attachments, loading, error, uploading, upload, download, remove, getSignedUrl } =
     useTaskAttachments(taskId, projectId);
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
-  const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [lightbox, setLightbox] = useState<{ url: string; name: string; kind: MediaKind } | null>(
+    null,
+  );
 
-  // Resolve signed thumbnail URLs for image attachments.
+  // Resolve signed URLs for previewable attachments (image, pdf, video).
   useEffect(() => {
     let cancelled = false;
-    const imgs = attachments.filter((a) => a.mime_type?.startsWith("image/"));
-    imgs.forEach(async (a) => {
-      if (thumbs[a.id]) return;
+    const previewable = attachments.filter(
+      (a) => kindOf(a.mime_type, a.name) !== "other",
+    );
+    previewable.forEach(async (a) => {
+      if (previews[a.id]) return;
       const url = await getSignedUrl(a);
-      if (!cancelled && url) setThumbs((prev) => ({ ...prev, [a.id]: url }));
+      if (!cancelled && url) setPreviews((prev) => ({ ...prev, [a.id]: url }));
     });
     return () => {
       cancelled = true;
@@ -196,13 +213,18 @@ export function TaskAttachmentsSection({
             <AttachmentRow
               key={a.id}
               attachment={a}
-              thumb={thumbs[a.id]}
+              previewUrl={previews[a.id]}
               canDelete={a.uploaded_by === user?.id}
               onDownload={() => download(a)}
               onRemove={() => remove(a)}
               onPreview={
-                thumbs[a.id]
-                  ? () => setLightbox({ url: thumbs[a.id], name: a.name })
+                previews[a.id]
+                  ? () =>
+                      setLightbox({
+                        url: previews[a.id],
+                        name: a.name,
+                        kind: kindOf(a.mime_type, a.name),
+                      })
                   : undefined
               }
             />
@@ -211,13 +233,28 @@ export function TaskAttachmentsSection({
       )}
 
       <Dialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
-        <DialogContent className="max-w-3xl border-border bg-card p-2">
-          <DialogTitle className="sr-only">{lightbox?.name ?? "Image preview"}</DialogTitle>
-          {lightbox && (
+        <DialogContent className="max-w-4xl border-border bg-card p-2">
+          <DialogTitle className="sr-only">{lightbox?.name ?? "Attachment preview"}</DialogTitle>
+          {lightbox?.kind === "image" && (
             <img
               src={lightbox.url}
               alt={lightbox.name}
               className="mx-auto max-h-[80vh] w-auto rounded-small object-contain"
+            />
+          )}
+          {lightbox?.kind === "video" && (
+            <video
+              src={lightbox.url}
+              controls
+              autoPlay
+              className="mx-auto max-h-[80vh] w-full rounded-small bg-black"
+            />
+          )}
+          {lightbox?.kind === "pdf" && (
+            <iframe
+              src={lightbox.url}
+              title={lightbox.name}
+              className="h-[80vh] w-full rounded-small border-0 bg-white"
             />
           )}
         </DialogContent>
@@ -228,31 +265,47 @@ export function TaskAttachmentsSection({
 
 function AttachmentRow({
   attachment,
-  thumb,
+  previewUrl,
   canDelete,
   onDownload,
   onRemove,
   onPreview,
 }: {
   attachment: TaskAttachment;
-  thumb?: string;
+  previewUrl?: string;
   canDelete: boolean;
   onDownload: () => void;
   onRemove: () => void;
   onPreview?: () => void;
 }) {
   const Icon = iconFor(attachment.mime_type);
-  const isImage = attachment.mime_type?.startsWith("image/");
+  const kind = kindOf(attachment.mime_type, attachment.name);
+  const canPreview = !!previewUrl && kind !== "other";
   return (
     <li className="group flex items-center gap-3 rounded-card border border-border bg-card px-3 py-2.5 transition-shadow hover:shadow-subtle">
-      {isImage && thumb ? (
+      {canPreview ? (
         <button
           type="button"
           onClick={onPreview}
-          className="h-10 w-10 shrink-0 overflow-hidden rounded-small bg-black/5 ring-1 ring-border transition-opacity hover:opacity-80"
-          aria-label="Preview image"
+          className="relative h-10 w-10 shrink-0 overflow-hidden rounded-small bg-black/5 ring-1 ring-border transition-opacity hover:opacity-80"
+          aria-label={`Preview ${kind}`}
         >
-          <img src={thumb} alt={attachment.name} className="h-full w-full object-cover" />
+          {kind === "image" && (
+            <img src={previewUrl} alt={attachment.name} className="h-full w-full object-cover" />
+          )}
+          {kind === "video" && (
+            <>
+              <video src={previewUrl} muted preload="metadata" className="h-full w-full object-cover" />
+              <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white">
+                <Play className="h-4 w-4" />
+              </span>
+            </>
+          )}
+          {kind === "pdf" && (
+            <span className="flex h-full w-full items-center justify-center bg-destructive/10 text-destructive">
+              <FileText className="h-4 w-4" />
+            </span>
+          )}
         </button>
       ) : (
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-small bg-black/5 text-muted-foreground">
