@@ -10,23 +10,11 @@ import {
   ExternalLink,
   RotateCcw,
   UserPlus,
-  Crown,
-  Eye,
   CalendarClock,
   Flag,
   Tag,
-  GitBranch,
-  Scissors,
-  ListChecks,
-  Gauge,
-  FileText,
-  ShieldAlert,
   MessageSquarePlus,
-  AtSign,
   Link2,
-  FolderInput,
-  Columns3,
-  Milestone,
 } from "lucide-react";
 import { OrdoContextMenu, OrdoOverflowMenu, type OrdoMenuConfig } from "./OrdoMenu";
 import { TASK_COLUMNS, PRIORITIES, type TaskStatus, type TaskPriority } from "@/lib/projectConstants";
