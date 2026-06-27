@@ -642,7 +642,6 @@ function Column({
             <SortableTask
               key={t.id}
               task={t}
-              member={memberMap.get(t.assignee_id ?? "")}
               selected={selected.has(t.id)}
               handlers={cardHandlers}
               inlineCtx={inlineCtx}
