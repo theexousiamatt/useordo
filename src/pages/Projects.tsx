@@ -11,6 +11,7 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingCards } from "@/components/states/LoadingState";
 import { CreateProjectDrawer } from "@/components/projects/CreateProjectDrawer";
 import { ProjectSettingsDrawer } from "@/components/projects/ProjectSettingsDrawer";
+import { DuplicateProjectDialog } from "@/components/projects/DuplicateProjectDialog";
 import { DeleteProjectDialog } from "@/components/projects/DeleteProjectDialog";
 import {
   ProjectContextMenu,
