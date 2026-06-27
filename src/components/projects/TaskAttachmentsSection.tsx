@@ -10,6 +10,7 @@ import {
   FileVideo,
   FileArchive,
   File as FileIcon,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
