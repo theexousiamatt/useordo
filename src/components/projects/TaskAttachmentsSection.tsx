@@ -228,21 +228,37 @@ export function TaskAttachmentsSection({
 
 function AttachmentRow({
   attachment,
+  thumb,
   canDelete,
   onDownload,
   onRemove,
+  onPreview,
 }: {
   attachment: TaskAttachment;
+  thumb?: string;
   canDelete: boolean;
   onDownload: () => void;
   onRemove: () => void;
+  onPreview?: () => void;
 }) {
   const Icon = iconFor(attachment.mime_type);
+  const isImage = attachment.mime_type?.startsWith("image/");
   return (
     <li className="group flex items-center gap-3 rounded-card border border-border bg-card px-3 py-2.5 transition-shadow hover:shadow-subtle">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-small bg-black/5 text-muted-foreground">
-        <Icon className="h-4 w-4" />
-      </span>
+      {isImage && thumb ? (
+        <button
+          type="button"
+          onClick={onPreview}
+          className="h-10 w-10 shrink-0 overflow-hidden rounded-small bg-black/5 ring-1 ring-border transition-opacity hover:opacity-80"
+          aria-label="Preview image"
+        >
+          <img src={thumb} alt={attachment.name} className="h-full w-full object-cover" />
+        </button>
+      ) : (
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-small bg-black/5 text-muted-foreground">
+          <Icon className="h-4 w-4" />
+        </span>
+      )}
       <button
         type="button"
         onClick={onDownload}
