@@ -107,6 +107,7 @@ export interface OrdoTaskCardProps {
   priority: TaskPriority;
   description?: string | null;
   dueDate?: string | null;
+  labels?: string[];
   /** 0–100. Falls back to a status-derived default. */
   progress?: number;
   assignees?: ProjectMemberProfile[];
@@ -116,6 +117,8 @@ export interface OrdoTaskCardProps {
   blocked?: boolean;
   interactive?: boolean;
   onOpen?: () => void;
+  /** When provided, replaces the title with an inline editor. */
+  titleEditor?: ReactNode;
   dragHandleProps?: Record<string, unknown>;
   /** Render in the drag overlay (slight tilt + stronger shadow). */
   overlay?: boolean;
