@@ -27,7 +27,7 @@ import {
 } from "@/lib/projectConstants";
 import { useAuth } from "@/hooks/useAuth";
 import type { TaskRow } from "@/hooks/useProjectData";
-import { useProjectActivity } from "@/hooks/useProjectData";
+import { useProjectActivity, useTaskAssignees } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 import {
   useTaskComments,
