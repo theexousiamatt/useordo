@@ -67,6 +67,7 @@ import type { ProjectMemberProfile } from "@/hooks/useProjects";
 import { useProjects } from "@/hooks/useProjects";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   projectId: string;
