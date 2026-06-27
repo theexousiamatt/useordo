@@ -698,8 +698,8 @@ function SortableTask({
         closeInline();
       }}
     >
-      <PopoverAnchor asChild>
-        <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
+      <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
+        <PopoverAnchor asChild>
           <div
             ref={setNodeRef}
             style={{ transform: CSS.Transform.toString(transform), transition }}
