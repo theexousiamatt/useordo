@@ -442,14 +442,14 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
         onClear={clearSelection}
       />
 
-      <OrdoQuickEditPanel
-        task={editTask}
+      <TaskDetailDrawer
+        task={liveEditTask}
         members={members}
         open={editOpen}
         onOpenChange={setEditOpen}
-        onSave={quickSave}
-        saving={update.isPending}
+        onSaveDescription={(id, description) => update.mutate({ id, description })}
       />
+
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent className="client-os rounded-panel">
