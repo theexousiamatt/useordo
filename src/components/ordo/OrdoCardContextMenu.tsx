@@ -10,23 +10,11 @@ import {
   ExternalLink,
   RotateCcw,
   UserPlus,
-  Crown,
-  Eye,
   CalendarClock,
   Flag,
   Tag,
-  GitBranch,
-  Scissors,
-  ListChecks,
-  Gauge,
-  FileText,
-  ShieldAlert,
   MessageSquarePlus,
-  AtSign,
   Link2,
-  FolderInput,
-  Columns3,
-  Milestone,
 } from "lucide-react";
 import { OrdoContextMenu, OrdoOverflowMenu, type OrdoMenuConfig } from "./OrdoMenu";
 import { TASK_COLUMNS, PRIORITIES, type TaskStatus, type TaskPriority } from "@/lib/projectConstants";
@@ -87,8 +75,8 @@ export function buildTaskMenuConfig(
       ],
     },
     {
-      id: "assignment",
-      label: "Assignment",
+      id: "planning",
+      label: "Planning",
       items: [
         {
           id: "assign",
@@ -104,14 +92,6 @@ export function buildTaskMenuConfig(
             })),
           ],
         },
-        { id: "change-owner", label: "Change owner", icon: Crown, onSelect: () => h.onAction(task, "Change owner") },
-        { id: "add-watcher", label: "Add watcher", icon: Eye, onSelect: () => h.onAction(task, "Add watcher") },
-      ],
-    },
-    {
-      id: "planning",
-      label: "Planning",
-      items: [
         { id: "due-date", label: "Set due date", icon: CalendarClock, onSelect: () => h.onQuickEdit(task) },
         {
           id: "priority",
@@ -125,47 +105,17 @@ export function buildTaskMenuConfig(
           })),
         },
         { id: "label", label: "Add label", icon: Tag, shortcut: "L", onSelect: () => h.onAction(task, "Add label") },
-        { id: "dependency", label: "Add dependency", icon: GitBranch, onSelect: () => h.onAction(task, "Add dependency") },
-      ],
-    },
-    {
-      id: "ai",
-      label: "AI actions",
-      items: [
-        { id: "ai-subtasks", label: "Break into subtasks", icon: Scissors, ai: true, onSelect: () => h.onAction(task, "Break into subtasks") },
-        { id: "ai-next", label: "Generate next steps", icon: ListChecks, ai: true, onSelect: () => h.onAction(task, "Generate next steps") },
-        { id: "ai-effort", label: "Estimate effort", icon: Gauge, ai: true, onSelect: () => h.onAction(task, "Estimate effort") },
-        { id: "ai-summary", label: "Summarize task", icon: FileText, ai: true, onSelect: () => h.onAction(task, "Summarize task") },
-        { id: "ai-risks", label: "Identify risks", icon: ShieldAlert, ai: true, onSelect: () => h.onAction(task, "Identify risks") },
       ],
     },
     {
       id: "comms",
-      label: "Communication",
+      label: "Collaboration",
       items: [
         { id: "comment", label: "Add comment", icon: MessageSquarePlus, onSelect: () => h.onAction(task, "Add comment") },
-        { id: "mention", label: "Mention team member", icon: AtSign, onSelect: () => h.onAction(task, "Mention team member") },
         { id: "copy-link", label: "Copy task link", icon: Link2, onSelect: () => h.onCopyLink(task) },
       ],
     },
-    {
-      id: "organization",
-      label: "Organization",
-      items: [
-        { id: "move-project", label: "Move to project", icon: FolderInput, onSelect: () => h.onAction(task, "Move to project") },
-        {
-          id: "move-column",
-          label: "Move to column",
-          icon: Columns3,
-          submenu: TASK_COLUMNS.filter((c) => c.id !== task.status).map((c) => ({
-            id: `mc-${c.id}`,
-            label: c.title,
-            onSelect: () => h.onMoveStatus(task, c.id),
-          })),
-        },
-        { id: "convert-milestone", label: "Convert to milestone", icon: Milestone, onSelect: () => h.onAction(task, "Convert to milestone") },
-      ],
-    },
+
     {
       id: "danger",
       items: [
