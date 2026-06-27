@@ -201,7 +201,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     onDelete: (t) => setPendingDelete({ type: "single", task: t }),
   };
 
-  const quickSave = (id: string, patch: QuickEditPatch) => update.mutate({ id, ...patch });
+  // Keep the open drawer in sync with the live task list (optimistic updates).
+  const liveEditTask = editTask ? items.find((t) => t.id === editTask.id) ?? editTask : null;
 
   const inlineCtx: BoardInlineCtx = {
     members,
