@@ -688,7 +688,6 @@ function Column({
 
 function SortableTask({
   task,
-  member,
   selected,
   handlers,
   inlineCtx,
@@ -696,7 +695,6 @@ function SortableTask({
   onOpen,
 }: {
   task: TaskRow;
-  member?: ProjectMemberProfile;
   selected: boolean;
   handlers: TaskMenuHandlers;
   inlineCtx: BoardInlineCtx;
@@ -704,7 +702,8 @@ function SortableTask({
   onOpen: (t: TaskRow) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
-  const { members, allLabels, moveTargets, inline, setInline, patchTask } = inlineCtx;
+  const { members, allLabels, moveTargets, inline, setInline, patchTask, assigneesFor, setTaskAssignees } = inlineCtx;
+  const assignees = assigneesFor(task);
 
   const mode = inline?.id === task.id ? inline.mode : null;
   const renaming = mode === "rename";
