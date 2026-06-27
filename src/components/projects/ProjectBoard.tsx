@@ -491,6 +491,7 @@ function Column({
   collapsed: boolean;
   selected: Set<string>;
   cardHandlers: TaskMenuHandlers;
+  inlineCtx: BoardInlineCtx;
   columnHandlers: ColumnMenuHandlers;
   onSelectCard: (e: React.MouseEvent, id: string) => void;
   onOpenCard: (t: TaskRow) => void;
