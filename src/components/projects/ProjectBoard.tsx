@@ -204,6 +204,15 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const quickSave = (id: string, patch: QuickEditPatch) => update.mutate({ id, ...patch });
 
+  const inlineCtx: BoardInlineCtx = {
+    members,
+    allLabels,
+    moveTargets,
+    inline,
+    setInline,
+    patchTask,
+  };
+
   const stub = useCallback((label: string) => toast(`${label} — coming soon`), []);
 
   // ---------------- Column actions ----------------
