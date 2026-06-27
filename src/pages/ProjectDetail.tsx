@@ -17,6 +17,7 @@ import { ActivityTab } from "@/components/projects/ActivityTab";
 import { FilesTab } from "@/components/projects/FilesTab";
 import { ProjectSettingsDrawer } from "@/components/projects/ProjectSettingsDrawer";
 import { DeleteProjectDialog } from "@/components/projects/DeleteProjectDialog";
+import { DuplicateProjectDialog } from "@/components/projects/DuplicateProjectDialog";
 import {
   ProjectOverflowMenu,
   type ProjectMenuHandlers,
