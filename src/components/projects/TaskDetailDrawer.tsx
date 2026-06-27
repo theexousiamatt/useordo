@@ -4,7 +4,6 @@ import {
   MessageSquare,
   History,
   CheckSquare,
-  Paperclip,
   Send,
   Trash2,
   Loader2,
@@ -35,6 +34,7 @@ import {
   useAddTaskComment,
   useDeleteTaskComment,
 } from "@/hooks/useTaskComments";
+import { TaskAttachmentsSection } from "@/components/projects/TaskAttachmentsSection";
 
 const STATUS_LABEL = Object.fromEntries(TASK_COLUMNS.map((c) => [c.id, c.title]));
 
@@ -200,11 +200,7 @@ function OverviewTab({
         title="Checklist & subtasks"
         note="Break this task into steps. Coming soon."
       />
-      <ReservedSection
-        icon={Paperclip}
-        title="Attachments"
-        note="Files, images and documents for this task. Coming soon."
-      />
+      <TaskAttachmentsSection taskId={task.id} projectId={task.project_id} />
     </div>
   );
 }
