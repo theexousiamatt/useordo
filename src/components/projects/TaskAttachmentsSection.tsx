@@ -54,17 +54,21 @@ export function TaskAttachmentsSection({
   const { user } = useAuth();
   const { attachments, loading, error, uploading, upload, download, remove, getSignedUrl } =
     useTaskAttachments(taskId, projectId);
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
-  const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [lightbox, setLightbox] = useState<{ url: string; name: string; kind: MediaKind } | null>(
+    null,
+  );
 
-  // Resolve signed thumbnail URLs for image attachments.
+  // Resolve signed URLs for previewable attachments (image, pdf, video).
   useEffect(() => {
     let cancelled = false;
-    const imgs = attachments.filter((a) => a.mime_type?.startsWith("image/"));
-    imgs.forEach(async (a) => {
-      if (thumbs[a.id]) return;
+    const previewable = attachments.filter(
+      (a) => kindOf(a.mime_type, a.name) !== "other",
+    );
+    previewable.forEach(async (a) => {
+      if (previews[a.id]) return;
       const url = await getSignedUrl(a);
-      if (!cancelled && url) setThumbs((prev) => ({ ...prev, [a.id]: url }));
+      if (!cancelled && url) setPreviews((prev) => ({ ...prev, [a.id]: url }));
     });
     return () => {
       cancelled = true;
