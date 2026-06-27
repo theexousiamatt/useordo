@@ -41,7 +41,6 @@ import {
   OrdoColumnContextMenu,
   OrdoColumnOverflowMenu,
   OrdoBulkActionMenu,
-  OrdoQuickEditPanel,
   InlineTaskTitle,
   InlineLabelEditor,
   InlineMemberPicker,
@@ -50,8 +49,8 @@ import {
   type TaskMoveTarget,
   type ColumnMenuHandlers,
   type BulkActionHandlers,
-  type QuickEditPatch,
 } from "@/components/ordo";
+import { TaskDetailDrawer } from "@/components/projects/TaskDetailDrawer";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import {
   useCreateTask,
@@ -156,7 +155,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const activeTask = items.find((t) => t.id === activeId) ?? null;
 
-  const openQuickEdit = useCallback((t: TaskRow) => {
+  const openTask = useCallback((t: TaskRow) => {
     setEditTask(t);
     setEditOpen(true);
   }, []);
@@ -188,7 +187,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   // ---------------- Card actions ----------------
   const cardHandlers: TaskMenuHandlers = {
-    onOpen: openQuickEdit,
+    onOpen: openTask,
     onRename: (t) => startInline(t, "rename"),
     onEditLabels: (t) => startInline(t, "labels"),
     onEditMembers: (t) => startInline(t, "members"),
@@ -202,7 +201,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     onDelete: (t) => setPendingDelete({ type: "single", task: t }),
   };
 
-  const quickSave = (id: string, patch: QuickEditPatch) => update.mutate({ id, ...patch });
+  // Keep the open drawer in sync with the live task list (optimistic updates).
+  const liveEditTask = editTask ? items.find((t) => t.id === editTask.id) ?? editTask : null;
 
   const inlineCtx: BoardInlineCtx = {
     members,
@@ -293,7 +293,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
       switch (e.key.toLowerCase()) {
         case "enter":
           e.preventDefault();
-          openQuickEdit(task);
+          openTask(task);
           break;
         case "e":
           e.preventDefault();
@@ -309,7 +309,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
           break;
         case "d":
           e.preventDefault();
-          dup.mutate(task);
+          startInline(task, "due");
           break;
         case "m": {
           e.preventDefault();
@@ -332,7 +332,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [items, focusedId, selected, editOpen, openQuickEdit, startInline, dup, update, clearSelection]);
+  }, [items, focusedId, selected, editOpen, openTask, startInline, dup, update, clearSelection]);
 
   // ---------------- Drag & drop ----------------
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
@@ -410,7 +410,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
               inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
               onSelectCard={handleSelect}
-              onOpenCard={openQuickEdit}
+              onOpenCard={openTask}
               onAdd={(title) => createTask.mutate({ title, status: col.id })}
               adding={createTask.isPending}
             />
@@ -442,14 +442,14 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
         onClear={clearSelection}
       />
 
-      <OrdoQuickEditPanel
-        task={editTask}
+      <TaskDetailDrawer
+        task={liveEditTask}
         members={members}
         open={editOpen}
         onOpenChange={setEditOpen}
-        onSave={quickSave}
-        saving={update.isPending}
+        onSaveDescription={(id, description) => update.mutate({ id, description })}
       />
+
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent className="client-os rounded-panel">
@@ -672,8 +672,15 @@ function SortableTask({
             tabIndex={0}
             aria-pressed={selected}
             aria-label={`Task: ${task.title}`}
-            onClick={(e) => onSelect(e, task.id)}
-            onDoubleClick={() => onOpen(task)}
+            onClick={(e) => {
+              // Modifier-click manages multi-select; a plain click opens deep work.
+              if (e.metaKey || e.ctrlKey || e.shiftKey) {
+                onSelect(e, task.id);
+              } else {
+                onSelect(e, task.id);
+                onOpen(task);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
