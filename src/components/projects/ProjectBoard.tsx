@@ -116,6 +116,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
   const [editTask, setEditTask] = useState<TaskRow | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
+  // Inline quick-edit state — which card is being edited inline, and how.
+  const [inline, setInline] = useState<{ id: string; mode: InlineMode } | null>(null);
   const [collapsed, setCollapsed] = useState<Set<TaskStatus>>(() => {
     try {
       const raw = localStorage.getItem(`ordo:collapsed:${projectId}`);
