@@ -169,6 +169,22 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const memberMap = useMemo(() => new Map(members.map((m) => [m.user_id, m])), [members]);
 
+  // Resolve a task's assignees to member profiles. Falls back to the legacy
+  // single assignee_id while the join-table cache is still loading.
+  const assigneesFor = useCallback(
+    (task: TaskRow): ProjectMemberProfile[] => {
+      const ids = assigneesMap?.get(task.id);
+      const list = ids ?? (task.assignee_id ? [task.assignee_id] : []);
+      return list.map((id) => memberMap.get(id)).filter(Boolean) as ProjectMemberProfile[];
+    },
+    [assigneesMap, memberMap],
+  );
+
+  const setTaskAssignees = useCallback(
+    (taskId: string, userIds: string[]) => setAssignees.mutate({ taskId, userIds }),
+    [setAssignees],
+  );
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
