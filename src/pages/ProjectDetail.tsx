@@ -198,6 +198,12 @@ export default function ProjectDetail() {
         onOpenChange={setDeleteOpen}
         onDeleted={() => navigate("/projects")}
       />
+      <DuplicateProjectDialog
+        project={project as ProjectRow}
+        open={duplicateOpen}
+        onOpenChange={setDuplicateOpen}
+        onDuplicated={(id) => navigate(`/projects/${id}`)}
+      />
     </div>
   );
 }
