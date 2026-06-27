@@ -90,6 +90,8 @@ interface BoardInlineCtx {
   inline: { id: string; mode: InlineMode } | null;
   setInline: (v: { id: string; mode: InlineMode } | null) => void;
   patchTask: (id: string, patch: Partial<TaskRow>) => void;
+  assigneesFor: (task: TaskRow) => ProjectMemberProfile[];
+  setTaskAssignees: (taskId: string, userIds: string[]) => void;
 }
 
 const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
