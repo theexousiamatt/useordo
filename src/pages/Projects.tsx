@@ -38,6 +38,7 @@ export default function Projects() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsProject, setSettingsProject] = useState<ProjectRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectRow | null>(null);
+  const [duplicateTarget, setDuplicateTarget] = useState<ProjectRow | null>(null);
 
   const archiveProject = useArchiveProject();
   const updateProject = useUpdateProject();
@@ -45,6 +46,7 @@ export default function Projects() {
   const handlers: ProjectMenuHandlers = {
     onOpen: (p) => navigate(`/projects/${p.id}`),
     onSettings: (p) => setSettingsProject(p),
+    onDuplicate: (p) => setDuplicateTarget(p),
     onSetStatus: async (p, status) => {
       try {
         await updateProject.mutateAsync({ id: p.id, status });
