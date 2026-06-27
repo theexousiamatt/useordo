@@ -6,17 +6,17 @@ import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
 interface InlineMemberPickerProps {
   members: ProjectMemberProfile[];
-  /** Current assignee id, or null. */
-  value: string | null;
-  onChange: (userId: string | null) => void;
+  /** Current assignee ids. */
+  value: string[];
+  /** Called with the next full set of assignee ids whenever the selection changes. */
+  onChange: (userIds: string[]) => void;
 }
 
 /**
- * InlineMemberPicker — anchored popover body to (re)assign a task.
- * Search + select. Persists instantly. Reusable across task surfaces.
- *
- * The data model carries a single assignee per task; multi-assignee support
- * would require a task_assignees join table.
+ * InlineMemberPicker — anchored popover body to assign one or many members.
+ * Search + multi-select. Persists instantly via the task_assignees relationship.
+ * Reusable across task surfaces. The popover stays open so several members can be
+ * toggled in a single pass.
  */
 export function InlineMemberPicker({ members, value, onChange }: InlineMemberPickerProps) {
   const [query, setQuery] = useState("");
@@ -28,6 +28,14 @@ export function InlineMemberPicker({ members, value, onChange }: InlineMemberPic
       ),
     [members, query],
   );
+
+  const toggle = (userId: string) => {
+    if (value.includes(userId)) {
+      onChange(value.filter((id) => id !== userId));
+    } else {
+      onChange([...value, userId]);
+    }
+  };
 
   return (
     <div className="flex flex-col">
@@ -45,25 +53,25 @@ export function InlineMemberPicker({ members, value, onChange }: InlineMemberPic
       <div className="max-h-60 overflow-y-auto p-1.5">
         <button
           type="button"
-          onClick={() => onChange(null)}
+          onClick={() => onChange([])}
           className="flex w-full items-center justify-between gap-2 rounded-small px-2.5 py-1.5 text-left text-sm hover:bg-secondary"
         >
           <span className="inline-flex items-center gap-2 text-muted-foreground">
             <span className="flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-border">
               <UserX className="h-3.5 w-3.5" />
             </span>
-            Unassigned
+            Clear all
           </span>
-          {value === null && <Check className="h-4 w-4 shrink-0 text-primary" />}
+          {value.length === 0 && <Check className="h-4 w-4 shrink-0 text-primary" />}
         </button>
 
         {filtered.map((m) => {
-          const active = value === m.user_id;
+          const active = value.includes(m.user_id);
           return (
             <button
               key={m.user_id}
               type="button"
-              onClick={() => onChange(m.user_id)}
+              onClick={() => toggle(m.user_id)}
               className="flex w-full items-center justify-between gap-2 rounded-small px-2.5 py-1.5 text-left text-sm hover:bg-secondary"
             >
               <span className="inline-flex min-w-0 items-center gap-2">
