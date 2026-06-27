@@ -187,7 +187,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   // ---------------- Card actions ----------------
   const cardHandlers: TaskMenuHandlers = {
-    onOpen: openQuickEdit,
+    onOpen: openTask,
     onRename: (t) => startInline(t, "rename"),
     onEditLabels: (t) => startInline(t, "labels"),
     onEditMembers: (t) => startInline(t, "members"),
@@ -292,7 +292,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
       switch (e.key.toLowerCase()) {
         case "enter":
           e.preventDefault();
-          openQuickEdit(task);
+          openTask(task);
           break;
         case "e":
           e.preventDefault();
@@ -331,7 +331,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [items, focusedId, selected, editOpen, openQuickEdit, startInline, dup, update, clearSelection]);
+  }, [items, focusedId, selected, editOpen, openTask, startInline, dup, update, clearSelection]);
 
   // ---------------- Drag & drop ----------------
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
@@ -409,7 +409,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
               inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
               onSelectCard={handleSelect}
-              onOpenCard={openQuickEdit}
+              onOpenCard={openTask}
               onAdd={(title) => createTask.mutate({ title, status: col.id })}
               adding={createTask.isPending}
             />
