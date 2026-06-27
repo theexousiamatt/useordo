@@ -581,12 +581,13 @@ function Column({
               key={t.id}
               task={t}
               member={memberMap.get(t.assignee_id ?? "")}
-              members={members}
               selected={selected.has(t.id)}
               handlers={cardHandlers}
+              inlineCtx={inlineCtx}
               onSelect={onSelectCard}
               onOpen={onOpenCard}
             />
+
           ))}
         </SortableContext>
 
