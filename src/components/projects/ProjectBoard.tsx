@@ -80,6 +80,16 @@ type PendingDelete = { type: "single"; task: TaskRow } | { type: "bulk"; ids: st
 
 type InlineMode = "rename" | "labels" | "members" | "due";
 
+/** Shared inline-editing context threaded down to each card. */
+interface BoardInlineCtx {
+  members: ProjectMemberProfile[];
+  allLabels: string[];
+  moveTargets: TaskMoveTarget[];
+  inline: { id: string; mode: InlineMode } | null;
+  setInline: (v: { id: string; mode: InlineMode } | null) => void;
+  patchTask: (id: string, patch: Partial<TaskRow>) => void;
+}
+
 const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
 const PRIORITY_ORDER = PRIORITIES.map((p) => p.value);
 
