@@ -672,8 +672,15 @@ function SortableTask({
             tabIndex={0}
             aria-pressed={selected}
             aria-label={`Task: ${task.title}`}
-            onClick={(e) => onSelect(e, task.id)}
-            onDoubleClick={() => onOpen(task)}
+            onClick={(e) => {
+              // Modifier-click manages multi-select; a plain click opens deep work.
+              if (e.metaKey || e.ctrlKey || e.shiftKey) {
+                onSelect(e, task.id);
+              } else {
+                onSelect(e, task.id);
+                onOpen(task);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
