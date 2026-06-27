@@ -20,9 +20,20 @@ import {
   type TaskAttachment,
 } from "@/hooks/useTaskAttachments";
 
+type MediaKind = "image" | "pdf" | "video" | "other";
+
+function kindOf(mime: string | null, name?: string): MediaKind {
+  const m = mime ?? "";
+  if (m.startsWith("image/")) return "image";
+  if (m.startsWith("video/")) return "video";
+  if (m.includes("pdf") || name?.toLowerCase().endsWith(".pdf")) return "pdf";
+  return "other";
+}
+
 function iconFor(mime: string | null) {
   if (!mime) return FileIcon;
   if (mime.startsWith("image/")) return FileImage;
+  if (mime.startsWith("video/")) return FileVideo;
   if (mime.includes("zip") || mime.includes("compressed") || mime.includes("tar")) return FileArchive;
   if (mime.includes("pdf") || mime.startsWith("text/") || mime.includes("document")) return FileText;
   return FileIcon;
