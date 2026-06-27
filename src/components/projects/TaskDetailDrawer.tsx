@@ -27,7 +27,7 @@ import {
 } from "@/lib/projectConstants";
 import { useAuth } from "@/hooks/useAuth";
 import type { TaskRow } from "@/hooks/useProjectData";
-import { useProjectActivity } from "@/hooks/useProjectData";
+import { useProjectActivity, useTaskAssignees } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 import {
   useTaskComments,
@@ -75,7 +75,11 @@ function DrawerBody({
   members: ProjectMemberProfile[];
   onSaveDescription: (id: string, description: string | null) => void;
 }) {
-  const assignee = members.find((m) => m.user_id === task.assignee_id) ?? null;
+  const { data: assigneesMap } = useTaskAssignees(task.project_id);
+  const assigneeIds = assigneesMap?.get(task.id) ?? (task.assignee_id ? [task.assignee_id] : []);
+  const assignees = assigneeIds
+    .map((id) => members.find((m) => m.user_id === id))
+    .filter(Boolean) as ProjectMemberProfile[];
 
   return (
     <Tabs defaultValue="overview" className="flex h-full flex-col">
@@ -100,7 +104,11 @@ function DrawerBody({
           </span>
           <span className="inline-flex items-center gap-1.5">
             <UserIcon className="h-3.5 w-3.5" />
-            {assignee?.full_name ?? "Unassigned"}
+            {assignees.length === 0
+              ? "Unassigned"
+              : assignees.length <= 2
+                ? assignees.map((a) => a.full_name ?? "Member").join(", ")
+                : `${assignees[0].full_name ?? "Member"} +${assignees.length - 1}`}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <CalendarClock className="h-3.5 w-3.5" />

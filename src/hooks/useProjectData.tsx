@@ -102,6 +102,108 @@ export function useProjectMembers(projectId?: string) {
   });
 }
 
+/**
+ * Fetch the multi-assignee map for every task in a project.
+ * Returns a Map of task_id -> array of assigned user ids.
+ */
+export function useTaskAssignees(projectId?: string) {
+  return useQuery({
+    queryKey: ["task-assignees", projectId],
+    enabled: !!projectId,
+    queryFn: async (): Promise<Map<string, string[]>> => {
+      const { data, error } = await supabase
+        .from("task_assignees")
+        .select("task_id, user_id")
+        .eq("project_id", projectId!);
+      if (error) throw error;
+      const map = new Map<string, string[]>();
+      for (const row of data ?? []) {
+        const list = map.get(row.task_id) ?? [];
+        list.push(row.user_id);
+        map.set(row.task_id, list);
+      }
+      return map;
+    },
+  });
+}
+
+/**
+ * Replace the full set of assignees for a task. Diffs against the current set,
+ * inserting added members and removing dropped ones. Optimistic + realtime-safe.
+ * Also keeps the legacy `tasks.assignee_id` in sync (first assignee) so the
+ * personal Tasks view and existing notifications keep working.
+ */
+export function useSetTaskAssignees(projectId: string) {
+  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      userIds,
+    }: {
+      taskId: string;
+      userIds: string[];
+    }) => {
+      // Diff against the server (source of truth) — NOT the query cache, which
+      // onMutate has already optimistically overwritten by the time this runs.
+      const { data: existing, error: readErr } = await supabase
+        .from("task_assignees")
+        .select("user_id")
+        .eq("task_id", taskId);
+      if (readErr) throw readErr;
+      const current = (existing ?? []).map((r) => r.user_id);
+      const toAdd = userIds.filter((id) => !current.includes(id));
+      const toRemove = current.filter((id) => !userIds.includes(id));
+
+      if (toRemove.length > 0) {
+        const { error } = await supabase
+          .from("task_assignees")
+          .delete()
+          .eq("task_id", taskId)
+          .in("user_id", toRemove);
+        if (error) throw error;
+      }
+      if (toAdd.length > 0) {
+        if (!currentWorkspace) throw new Error("No active workspace.");
+        const { error } = await supabase.from("task_assignees").insert(
+          toAdd.map((uid) => ({
+            task_id: taskId,
+            user_id: uid,
+            project_id: projectId,
+            workspace_id: currentWorkspace.id,
+            created_by: user?.id ?? null,
+          })),
+        );
+        if (error) throw error;
+      }
+      // Keep the legacy single-assignee column pointed at the first assignee.
+      const { error: taskErr } = await supabase
+        .from("tasks")
+        .update({ assignee_id: userIds[0] ?? null })
+        .eq("id", taskId);
+      if (taskErr) throw taskErr;
+    },
+    onMutate: async ({ taskId, userIds }) => {
+      const key = ["task-assignees", projectId];
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<Map<string, string[]>>(key);
+      const next = new Map(previous ?? []);
+      next.set(taskId, userIds);
+      qc.setQueryData(key, next);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(["task-assignees", projectId], context.previous);
+      toast.error("Couldn't update assignees. Please try again.");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["task-assignees", projectId] });
+      qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
+    },
+  });
+}
+
 export function useProjectTasks(projectId?: string) {
   return useQuery({
     queryKey: ["project-tasks", projectId],

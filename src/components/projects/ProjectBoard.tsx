@@ -61,6 +61,8 @@ import {
   useArchiveTask,
   useBulkUpdateTasks,
   useBulkDeleteTasks,
+  useTaskAssignees,
+  useSetTaskAssignees,
   type TaskRow,
 } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
@@ -88,6 +90,8 @@ interface BoardInlineCtx {
   inline: { id: string; mode: InlineMode } | null;
   setInline: (v: { id: string; mode: InlineMode } | null) => void;
   patchTask: (id: string, patch: Partial<TaskRow>) => void;
+  assigneesFor: (task: TaskRow) => ProjectMemberProfile[];
+  setTaskAssignees: (taskId: string, userIds: string[]) => void;
 }
 
 const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
@@ -104,6 +108,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
   const archive = useArchiveTask(projectId);
   const bulkUpdate = useBulkUpdateTasks(projectId);
   const bulkDelete = useBulkDeleteTasks(projectId);
+  const { data: assigneesMap } = useTaskAssignees(projectId);
+  const setAssignees = useSetTaskAssignees(projectId);
 
   // Move-to-project targets — only for owners/managers, excluding this project.
   const canMoveProject = role === "owner" || role === "manager";
@@ -156,6 +162,13 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
           qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_assignees", filter: `project_id=eq.${projectId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["task-assignees", projectId] });
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -164,6 +177,22 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
 
   const memberMap = useMemo(() => new Map(members.map((m) => [m.user_id, m])), [members]);
+
+  // Resolve a task's assignees to member profiles. Falls back to the legacy
+  // single assignee_id while the join-table cache is still loading.
+  const assigneesFor = useCallback(
+    (task: TaskRow): ProjectMemberProfile[] => {
+      const ids = assigneesMap?.get(task.id);
+      const list = ids ?? (task.assignee_id ? [task.assignee_id] : []);
+      return list.map((id) => memberMap.get(id)).filter(Boolean) as ProjectMemberProfile[];
+    },
+    [assigneesMap, memberMap],
+  );
+
+  const setTaskAssignees = useCallback(
+    (taskId: string, userIds: string[]) => setAssignees.mutate({ taskId, userIds }),
+    [setAssignees],
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -231,6 +260,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     inline,
     setInline,
     patchTask,
+    assigneesFor,
+    setTaskAssignees,
   };
 
   const stub = useCallback((label: string) => toast(`${label} — coming soon`), []);
@@ -251,7 +282,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
   const selectedIds = useMemo(() => [...selected], [selected]);
   const bulkHandlers: BulkActionHandlers = {
     onAssign: (userId) => {
-      bulkUpdate.mutate({ ids: selectedIds, patch: { assignee_id: userId } });
+      selectedIds.forEach((id) => setAssignees.mutate({ taskId: id, userIds: userId ? [userId] : [] }));
       clearSelection();
     },
     onMove: (status) => {
@@ -446,7 +477,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
                 priority={activeTask.priority}
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
-                assignees={memberMap.get(activeTask.assignee_id ?? "") ? [memberMap.get(activeTask.assignee_id ?? "")!] : []}
+                assignees={assigneesFor(activeTask)}
                 interactive={false}
                 overlay
               />
@@ -611,7 +642,6 @@ function Column({
             <SortableTask
               key={t.id}
               task={t}
-              member={memberMap.get(t.assignee_id ?? "")}
               selected={selected.has(t.id)}
               handlers={cardHandlers}
               inlineCtx={inlineCtx}
@@ -658,7 +688,6 @@ function Column({
 
 function SortableTask({
   task,
-  member,
   selected,
   handlers,
   inlineCtx,
@@ -666,7 +695,6 @@ function SortableTask({
   onOpen,
 }: {
   task: TaskRow;
-  member?: ProjectMemberProfile;
   selected: boolean;
   handlers: TaskMenuHandlers;
   inlineCtx: BoardInlineCtx;
@@ -674,7 +702,8 @@ function SortableTask({
   onOpen: (t: TaskRow) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
-  const { members, allLabels, moveTargets, inline, setInline, patchTask } = inlineCtx;
+  const { members, allLabels, moveTargets, inline, setInline, patchTask, assigneesFor, setTaskAssignees } = inlineCtx;
+  const assignees = assigneesFor(task);
 
   const mode = inline?.id === task.id ? inline.mode : null;
   const renaming = mode === "rename";
@@ -749,7 +778,7 @@ function SortableTask({
               description={task.description}
               dueDate={task.due_date}
               labels={task.labels ?? undefined}
-              assignees={member ? [member] : []}
+              assignees={assignees}
               interactive={false}
               dragHandleProps={renaming ? undefined : { ...attributes, ...listeners }}
               titleEditor={
@@ -787,11 +816,8 @@ function SortableTask({
           {popoverMode === "members" && (
             <InlineMemberPicker
               members={members}
-              value={task.assignee_id ?? null}
-              onChange={(userId) => {
-                patchTask(task.id, { assignee_id: userId });
-                closeInline();
-              }}
+              value={assignees.map((a) => a.user_id)}
+              onChange={(userIds) => setTaskAssignees(task.id, userIds)}
             />
           )}
           {popoverMode === "due" && (
