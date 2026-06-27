@@ -215,13 +215,29 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
 
           {/* Body: title + description */}
           <div className="mt-3">
-            <h4 className="text-sm font-semibold leading-snug text-foreground line-clamp-2">
-              {title}
-            </h4>
+            {titleEditor ? (
+              titleEditor
+            ) : (
+              <h4 className="text-sm font-semibold leading-snug text-foreground line-clamp-2">
+                {title}
+              </h4>
+            )}
             {description && (
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground line-clamp-2">
                 {description}
               </p>
+            )}
+            {labels.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {labels.map((label) => (
+                  <span
+                    key={label}
+                    className="inline-flex items-center rounded-pill bg-black/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
 
