@@ -539,9 +539,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
               <OrdoTaskCard
                 title={activeTask.title}
                 status={activeTask.status}
-                priority={activeTask.priority}
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
+                labels={labelChipsFor(activeTask.id)}
                 assignees={assigneesFor(activeTask)}
                 interactive={false}
                 overlay
