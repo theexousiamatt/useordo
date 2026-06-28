@@ -18,12 +18,10 @@ export interface TaskRow {
   title: string;
   description: string | null;
   status: TaskStatus;
-  priority: TaskPriority;
   position: number;
   assignee_id: string | null;
   created_by: string | null;
   due_date: string | null;
-  labels: string[];
   archived_at: string | null;
   created_at: string;
   updated_at: string;
