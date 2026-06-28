@@ -6,19 +6,13 @@ import { OrdoInput } from "./OrdoInput";
 import { OrdoTextarea } from "./OrdoTextarea";
 import { OrdoSelect } from "./OrdoSelect";
 import { OrdoDatePicker } from "./OrdoDatePicker";
-import {
-  TASK_COLUMNS,
-  PRIORITIES,
-  type TaskStatus,
-  type TaskPriority,
-} from "@/lib/projectConstants";
+import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
 import type { TaskRow } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
 export interface QuickEditPatch {
   title?: string;
   description?: string | null;
-  priority?: TaskPriority;
   status?: TaskStatus;
   assignee_id?: string | null;
   due_date?: string | null;
