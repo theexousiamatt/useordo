@@ -79,19 +79,16 @@ function DrawerBody({
     .map((id) => members.find((m) => m.user_id === id))
     .filter(Boolean) as ProjectMemberProfile[];
 
+  const { data: projectLabels = [] } = useProjectLabels(task.project_id);
+  const { data: labelMap } = useTaskLabelMap(task.project_id);
+  const taskLabels = (labelMap?.get(task.id) ?? [])
+    .map((id) => projectLabels.find((l) => l.id === id))
+    .filter((l): l is (typeof projectLabels)[number] => !!l);
+
   return (
     <Tabs defaultValue="overview" className="flex h-full flex-col">
       {/* Header */}
       <div className="space-y-3 border-b border-border px-6 pb-0 pt-5">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold capitalize",
-            PRIORITY_STYLES[task.priority],
-          )}
-        >
-          <Flag className="h-3 w-3" />
-          {task.priority} priority
-        </span>
         <h2 className="text-xl font-semibold leading-tight tracking-tight text-foreground">
           {task.title}
         </h2>
