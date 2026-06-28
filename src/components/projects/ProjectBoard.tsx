@@ -127,6 +127,59 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
   const { data: assigneesMap } = useTaskAssignees(projectId);
   const setAssignees = useSetTaskAssignees(projectId);
 
+  // ---------------- Labels ----------------
+  const { data: projectLabels = [] } = useProjectLabels(projectId);
+  const { data: labelMap } = useTaskLabelMap(projectId);
+  const setTaskLabels = useSetTaskLabels(projectId, workspaceId);
+  const createLabelMut = useCreateLabel(projectId, workspaceId);
+  const updateLabelMut = useUpdateLabel(projectId);
+  const deleteLabelMut = useDeleteLabel(projectId);
+
+  const labelById = useMemo(() => {
+    const m = new Map<string, ProjectLabel>();
+    for (const l of projectLabels) m.set(l.id, l);
+    return m;
+  }, [projectLabels]);
+
+  const labelIdsFor = useCallback(
+    (taskId: string) => labelMap?.get(taskId) ?? [],
+    [labelMap],
+  );
+  const labelChipsFor = useCallback(
+    (taskId: string): TaskLabelChip[] =>
+      (labelMap?.get(taskId) ?? [])
+        .map((id) => labelById.get(id))
+        .filter((l): l is ProjectLabel => !!l)
+        .map((l) => ({ id: l.id, name: l.name, color: l.color })),
+    [labelMap, labelById],
+  );
+  const toggleLabel = useCallback(
+    (taskId: string, labelId: string) => {
+      const current = labelMap?.get(taskId) ?? [];
+      const next = current.includes(labelId)
+        ? current.filter((id) => id !== labelId)
+        : [...current, labelId];
+      setTaskLabels.mutate({ taskId, labelIds: next });
+    },
+    [labelMap, setTaskLabels],
+  );
+  const createLabel = useCallback(
+    (name: string, color: LabelColor) => createLabelMut.mutate({ name, color }),
+    [createLabelMut],
+  );
+  const renameLabel = useCallback(
+    (labelId: string, name: string) => updateLabelMut.mutate({ id: labelId, name }),
+    [updateLabelMut],
+  );
+  const recolorLabel = useCallback(
+    (labelId: string, color: LabelColor) => updateLabelMut.mutate({ id: labelId, color }),
+    [updateLabelMut],
+  );
+  const deleteLabel = useCallback(
+    (labelId: string) => deleteLabelMut.mutate(labelId),
+    [deleteLabelMut],
+  );
+
   // Move-to-project targets — only for owners/managers, excluding this project.
   const canMoveProject = role === "owner" || role === "manager";
   const { data: allProjects } = useProjects();
