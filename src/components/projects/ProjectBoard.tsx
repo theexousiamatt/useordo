@@ -95,7 +95,14 @@ type InlineMode = "rename" | "labels" | "members" | "due";
 /** Shared inline-editing context threaded down to each card. */
 interface BoardInlineCtx {
   members: ProjectMemberProfile[];
-  allLabels: string[];
+  projectLabels: ProjectLabel[];
+  labelChipsFor: (taskId: string) => TaskLabelChip[];
+  labelIdsFor: (taskId: string) => string[];
+  toggleLabel: (taskId: string, labelId: string) => void;
+  createLabel: (name: string, color: LabelColor) => void;
+  renameLabel: (labelId: string, name: string) => void;
+  recolorLabel: (labelId: string, color: LabelColor) => void;
+  deleteLabel: (labelId: string) => void;
   moveTargets: TaskMoveTarget[];
   inline: { id: string; mode: InlineMode } | null;
   setInline: (v: { id: string; mode: InlineMode } | null) => void;
@@ -105,7 +112,6 @@ interface BoardInlineCtx {
 }
 
 const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
-const PRIORITY_ORDER = PRIORITIES.map((p) => p.value);
 
 export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) {
   const qc = useQueryClient();
