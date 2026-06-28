@@ -813,7 +813,11 @@ function SortableTask({
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
             "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
-            "duration-150",
+            // Keep repositioning subtle: neutralize the base slide so a right→left
+            // flip doesn't visibly jump — only a small fade + scale from the anchor.
+            "data-[side=top]:slide-in-from-bottom-0 data-[side=bottom]:slide-in-from-top-0",
+            "data-[side=left]:slide-in-from-right-0 data-[side=right]:slide-in-from-left-0",
+            "duration-[165ms] ease-out",
             popoverMode === "due" ? "w-60" : "w-72",
           )}
           onClick={(e) => e.stopPropagation()}
