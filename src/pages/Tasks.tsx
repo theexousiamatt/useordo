@@ -46,7 +46,7 @@ export default function Tasks() {
     setError(false);
     const { data, error } = await supabase
       .from("tasks")
-      .select("id, title, status, priority, due_date, project_id, assignee_id")
+      .select("id, title, status, due_date, project_id, assignee_id")
       .eq("workspace_id", currentWorkspace.id)
       .order("position", { ascending: true });
     if (error) {
