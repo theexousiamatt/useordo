@@ -280,13 +280,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
-  // All labels seen across the board — powers the InlineLabelEditor suggestions.
-  const allLabels = useMemo(() => {
-    const set = new Set<string>();
-    for (const t of items) (t.labels ?? []).forEach((l) => set.add(l));
-    return [...set].sort((a, b) => a.localeCompare(b));
-  }, [items]);
-
   const patchTask = useCallback(
     (id: string, patch: Partial<TaskRow>) => update.mutate({ id, ...patch }),
     [update],
