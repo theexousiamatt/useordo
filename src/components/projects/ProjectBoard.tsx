@@ -802,7 +802,14 @@ function SortableTask({
 
         <PopoverContent
           align="start"
-          className="w-72 p-0"
+          side="bottom"
+          sideOffset={8}
+          collisionPadding={12}
+          avoidCollisions
+          className={cn(
+            "client-os overflow-hidden rounded-panel border border-border bg-card p-0 text-foreground shadow-panel",
+            popoverMode === "due" ? "w-60" : "w-72",
+          )}
           onClick={(e) => e.stopPropagation()}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
@@ -830,6 +837,7 @@ function SortableTask({
             />
           )}
         </PopoverContent>
+
       </Popover>
 
   );
