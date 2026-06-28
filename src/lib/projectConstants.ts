@@ -1,7 +1,6 @@
 export type ProjectStatus = "draft" | "active" | "on_hold" | "completed" | "archived";
 export type ProjectHealth = "on_track" | "at_risk" | "blocked";
 export type TaskStatus = "backlog" | "todo" | "in_progress" | "review" | "done";
-export type TaskPriority = "low" | "medium" | "high" | "critical";
 export type ProjectMemberRole = "owner" | "manager" | "member" | "client";
 export type DeliverableStatus = "draft" | "submitted" | "approved" | "rejected";
 export type MilestoneStatus = "pending" | "completed";
