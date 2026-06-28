@@ -814,7 +814,7 @@ function SortableTask({
             "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
             "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
             "duration-[165ms] ease-out",
-            popoverMode === "due" ? "w-[20.5rem]" : "w-72",
+            popoverMode === "due" ? "w-fit" : "w-72",
           )}
           onClick={(e) => e.stopPropagation()}
           onOpenAutoFocus={(e) => e.preventDefault()}
