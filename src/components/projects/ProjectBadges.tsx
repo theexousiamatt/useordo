@@ -30,13 +30,6 @@ export function HealthBadge({ health }: { health: ProjectHealth }) {
   );
 }
 
-export function PriorityBadge({ priority }: { priority: TaskPriority }) {
-  return (
-    <Badge variant="outline" className={cn("border-transparent text-xs capitalize", PRIORITY_STYLES[priority])}>
-      {priority}
-    </Badge>
-  );
-}
 
 export function DeliverableBadge({ status }: { status: DeliverableStatus }) {
   return (
