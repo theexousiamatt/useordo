@@ -20,14 +20,12 @@ import { OrdoTextarea } from "@/components/ordo/OrdoTextarea";
 import { EmptyState } from "@/components/states/EmptyState";
 import { cn } from "@/lib/utils";
 import { dateShort, initials, timeAgo } from "@/lib/format";
-import {
-  PRIORITY_STYLES,
-  TASK_COLUMNS,
-  type TaskPriority,
-} from "@/lib/projectConstants";
+import { TASK_COLUMNS } from "@/lib/projectConstants";
 import { useAuth } from "@/hooks/useAuth";
 import type { TaskRow } from "@/hooks/useProjectData";
 import { useProjectActivity, useTaskAssignees } from "@/hooks/useProjectData";
+import { useProjectLabels, useTaskLabelMap } from "@/hooks/useLabels";
+import { LabelBadge } from "@/components/ordo/LabelBadge";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 import {
   useTaskComments,
