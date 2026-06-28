@@ -85,7 +85,7 @@ export function OrdoBulkActionMenu({
       <OrdoOverflowMenu config={assignMenu} trigger={trigger(btnCls, <UserPlus className="h-4 w-4" />, "Assign")} />
       <OrdoOverflowMenu config={moveMenu} trigger={trigger(btnCls, <ArrowRightLeft className="h-4 w-4" />, "Move")} />
       <OrdoOverflowMenu config={moveMenu} trigger={trigger(btnCls, <CircleDot className="h-4 w-4" />, "Status")} />
-      <OrdoOverflowMenu config={priorityMenu} trigger={trigger(btnCls, <Flag className="h-4 w-4" />, "Priority")} />
+      
 
       <Button variant="ghost" size="sm" className={btnCls} onClick={() => handlers.onAction("Add label")}>
         <Tag className="h-4 w-4" />
