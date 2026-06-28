@@ -7,7 +7,6 @@ import type {
   DeliverableStatus,
   MilestoneStatus,
   ProjectMemberRole,
-  TaskPriority,
   TaskStatus,
 } from "@/lib/projectConstants";
 import type { ProjectMemberProfile, ProjectRow } from "@/hooks/useProjects";
