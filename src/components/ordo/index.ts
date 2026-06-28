@@ -15,7 +15,8 @@ export { OrdoSelect, type OrdoSelectOption } from "./OrdoSelect";
 export { OrdoMultiSelect, type OrdoMultiSelectOption } from "./OrdoMultiSelect";
 export { OrdoDatePicker } from "./OrdoDatePicker";
 export { OrdoForm, OrdoFormSection, OrdoFormRow } from "./OrdoForm";
-export { OrdoTaskCard, COLUMN_THEME, type OrdoTaskCardProps } from "./OrdoTaskCard";
+export { OrdoTaskCard, COLUMN_THEME, type OrdoTaskCardProps, type TaskLabelChip } from "./OrdoTaskCard";
+export { LabelBadge, type LabelBadgeProps } from "./LabelBadge";
 
 // Universal interaction framework — reuse across every Ordo module.
 export {
@@ -43,7 +44,7 @@ export { OrdoQuickEditPanel, type QuickEditPatch } from "./OrdoQuickEditPanel";
 
 // Inline editing primitives — reusable across Board, List, Calendar, Timeline.
 export { InlineTaskTitle } from "./inline/InlineTaskTitle";
-export { InlineLabelEditor } from "./inline/InlineLabelEditor";
+export { InlineLabelPicker } from "./inline/InlineLabelPicker";
 export { InlineMemberPicker } from "./inline/InlineMemberPicker";
 export { InlineDatePicker } from "./inline/InlineDatePicker";
 
@@ -55,7 +56,6 @@ export { LoadingCards, LoadingList } from "@/components/states/LoadingState";
 export {
   StatusBadge,
   HealthBadge,
-  PriorityBadge,
   DeliverableBadge,
 } from "@/components/projects/ProjectBadges";
 export { MemberAvatars } from "@/components/projects/MemberAvatars";
