@@ -4,13 +4,11 @@ import {
   DELIVERABLE_STATUS_STYLES,
   HEALTH_LABELS,
   HEALTH_STYLES,
-  PRIORITY_STYLES,
   PROJECT_STATUS_STYLES,
   PROJECT_STATUSES,
   type DeliverableStatus,
   type ProjectHealth,
   type ProjectStatus,
-  type TaskPriority,
 } from "@/lib/projectConstants";
 
 const statusLabel = (s: ProjectStatus) =>
