@@ -79,19 +79,18 @@ const STATUS_THEME: Record<TaskStatus, StatusTheme> = {
   },
 };
 
-/** Orange "blocked" treatment applied when a task is critical priority. */
+/** Orange "blocked" treatment applied when a task is explicitly blocked. */
 const BLOCKED_THEME: Pick<StatusTheme, "surface" | "bar" | "icon"> = {
   surface: "bg-orange-50",
   bar: "bg-orange-500",
   icon: "text-orange-500",
 };
 
-const PRIORITY_PILL: Record<TaskPriority, string> = {
-  low: "bg-slate-100 text-slate-500",
-  medium: "bg-sky-100 text-sky-600",
-  high: "bg-amber-100 text-amber-700",
-  critical: "bg-orange-100 text-orange-700",
-};
+export interface TaskLabelChip {
+  id: string;
+  name: string;
+  color: string;
+}
 
 /** Sensible default fill when a task carries no explicit progress. */
 const DEFAULT_PROGRESS: Record<TaskStatus, number> = {
