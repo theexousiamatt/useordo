@@ -220,12 +220,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
             {labels.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {labels.map((label) => (
-                  <span
-                    key={label}
-                    className="inline-flex items-center rounded-pill bg-black/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-                  >
-                    {label}
-                  </span>
+                  <LabelBadge key={label.id} name={label.name} color={label.color} size="sm" />
                 ))}
               </div>
             )}
