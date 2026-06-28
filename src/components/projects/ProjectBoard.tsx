@@ -855,10 +855,9 @@ function SortableTask({
             <OrdoTaskCard
               title={task.title}
               status={task.status}
-              priority={task.priority}
               description={task.description}
               dueDate={task.due_date}
-              labels={task.labels ?? undefined}
+              labels={labelChipsFor(task.id)}
               assignees={assignees}
               interactive={false}
               dragHandleProps={renaming ? undefined : { ...attributes, ...listeners }}
@@ -901,10 +900,14 @@ function SortableTask({
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {popoverMode === "labels" && (
-            <InlineLabelEditor
-              value={task.labels ?? []}
-              suggestions={allLabels}
-              onChange={(next) => patchTask(task.id, { labels: next })}
+            <InlineLabelPicker
+              labels={projectLabels}
+              value={labelIdsFor(task.id)}
+              onToggle={(labelId) => toggleLabel(task.id, labelId)}
+              onCreate={createLabel}
+              onRename={renameLabel}
+              onRecolor={recolorLabel}
+              onDelete={deleteLabel}
             />
           )}
           {popoverMode === "members" && (
