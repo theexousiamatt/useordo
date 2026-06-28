@@ -767,7 +767,23 @@ function SortableTask({
   onOpen: (t: TaskRow) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
-  const { members, allLabels, moveTargets, inline, setInline, patchTask, assigneesFor, setTaskAssignees } = inlineCtx;
+  const {
+    members,
+    projectLabels,
+    labelChipsFor,
+    labelIdsFor,
+    toggleLabel,
+    createLabel,
+    renameLabel,
+    recolorLabel,
+    deleteLabel,
+    moveTargets,
+    inline,
+    setInline,
+    patchTask,
+    assigneesFor,
+    setTaskAssignees,
+  } = inlineCtx;
   const assignees = assigneesFor(task);
 
   const mode = inline?.id === task.id ? inline.mode : null;
