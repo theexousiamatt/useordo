@@ -62,16 +62,6 @@ export function OrdoBulkActionMenu({
     },
   ];
 
-  const priorityMenu: OrdoMenuConfig = [
-    {
-      id: "priority",
-      items: PRIORITIES.map((p) => ({
-        id: p.value,
-        label: p.label,
-        onSelect: () => handlers.onSetPriority(p.value),
-      })),
-    },
-  ];
 
   const trigger = (cls: string, icon: React.ReactNode, label: string) => (
     <Button variant="ghost" size="sm" className={cls}>
