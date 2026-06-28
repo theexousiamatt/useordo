@@ -142,9 +142,10 @@ export default function Tasks() {
                         {t.due_date ? ` · Due ${dateShort(t.due_date)}` : ""}
                       </p>
                     </div>
-                    <Badge className={cn("capitalize", PRIORITY_STYLES[t.priority])}>
-                      {t.priority}
+                    <Badge variant="secondary" className="capitalize">
+                      {STATUS_LABEL[t.status]}
                     </Badge>
+
                     <span className="hidden text-xs text-muted-foreground sm:inline">
                       {STATUS_LABEL[t.status]}
                     </span>
