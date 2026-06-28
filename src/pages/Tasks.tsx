@@ -13,9 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { dateShort } from "@/lib/format";
 import {
   TASK_COLUMNS,
-  PRIORITY_STYLES,
   type TaskStatus,
-  type TaskPriority,
 } from "@/lib/projectConstants";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +21,6 @@ interface TaskRow {
   id: string;
   title: string;
   status: TaskStatus;
-  priority: TaskPriority;
   due_date: string | null;
   project_id: string;
   assignee_id: string | null;
