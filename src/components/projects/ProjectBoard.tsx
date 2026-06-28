@@ -808,13 +808,13 @@ function SortableTask({
           avoidCollisions
           sticky="always"
           className={cn(
-            "client-os z-50 overflow-hidden rounded-panel border border-border bg-card p-0 text-foreground shadow-panel",
+            "client-os z-50 overflow-hidden rounded-panel border border-border bg-card p-0 text-foreground shadow-hover",
             "origin-[var(--radix-popover-content-transform-origin)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
             "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
             "duration-[165ms] ease-out",
-            popoverMode === "due" ? "w-60" : "w-72",
+            popoverMode === "due" ? "w-[20.5rem]" : "w-72",
           )}
           onClick={(e) => e.stopPropagation()}
           onOpenAutoFocus={(e) => e.preventDefault()}
