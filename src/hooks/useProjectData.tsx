@@ -7,7 +7,6 @@ import type {
   DeliverableStatus,
   MilestoneStatus,
   ProjectMemberRole,
-  TaskPriority,
   TaskStatus,
 } from "@/lib/projectConstants";
 import type { ProjectMemberProfile, ProjectRow } from "@/hooks/useProjects";
@@ -19,12 +18,10 @@ export interface TaskRow {
   title: string;
   description: string | null;
   status: TaskStatus;
-  priority: TaskPriority;
   position: number;
   assignee_id: string | null;
   created_by: string | null;
   due_date: string | null;
-  labels: string[];
   archived_at: string | null;
   created_at: string;
   updated_at: string;
@@ -324,7 +321,7 @@ export function useCreateTask(projectId: string, workspaceId: string) {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { title: string; status: TaskStatus; priority?: TaskPriority }) => {
+    mutationFn: async (input: { title: string; status: TaskStatus }) => {
       const existing = qc.getQueryData<TaskRow[]>(["project-tasks", projectId]) ?? [];
       const position = existing.filter((t) => t.status === input.status).length;
       const { error } = await supabase.from("tasks").insert({
@@ -332,7 +329,6 @@ export function useCreateTask(projectId: string, workspaceId: string) {
         project_id: projectId,
         title: input.title,
         status: input.status,
-        priority: input.priority ?? "medium",
         position,
         created_by: user?.id ?? null,
       });
@@ -422,9 +418,7 @@ export function useDuplicateTask(projectId: string, workspaceId: string) {
         title: `${task.title} (Copy)`,
         description: task.description,
         status: task.status,
-        priority: task.priority,
         position,
-        labels: task.labels ?? [],
         assignee_id: task.copyAssignee === false ? null : task.assignee_id,
         due_date: task.due_date,
         created_by: user?.id ?? null,

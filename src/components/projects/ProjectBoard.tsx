@@ -33,8 +33,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { TASK_COLUMNS, type TaskStatus, type TaskPriority, PRIORITIES } from "@/lib/projectConstants";
-import { OrdoTaskCard, COLUMN_THEME } from "@/components/ordo/OrdoTaskCard";
+import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
+import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
   OrdoCardOverflowMenu,
@@ -42,7 +42,7 @@ import {
   OrdoColumnOverflowMenu,
   OrdoBulkActionMenu,
   InlineTaskTitle,
-  InlineLabelEditor,
+  InlineLabelPicker,
   InlineMemberPicker,
   InlineDatePicker,
   type TaskMenuHandlers,
@@ -50,6 +50,16 @@ import {
   type ColumnMenuHandlers,
   type BulkActionHandlers,
 } from "@/components/ordo";
+import type { LabelColor } from "@/lib/labelColors";
+import {
+  useProjectLabels,
+  useTaskLabelMap,
+  useSetTaskLabels,
+  useCreateLabel,
+  useUpdateLabel,
+  useDeleteLabel,
+  type ProjectLabel,
+} from "@/hooks/useLabels";
 import { TaskDetailDrawer } from "@/components/projects/TaskDetailDrawer";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import {
@@ -85,7 +95,14 @@ type InlineMode = "rename" | "labels" | "members" | "due";
 /** Shared inline-editing context threaded down to each card. */
 interface BoardInlineCtx {
   members: ProjectMemberProfile[];
-  allLabels: string[];
+  projectLabels: ProjectLabel[];
+  labelChipsFor: (taskId: string) => TaskLabelChip[];
+  labelIdsFor: (taskId: string) => string[];
+  toggleLabel: (taskId: string, labelId: string) => void;
+  createLabel: (name: string, color: LabelColor) => void;
+  renameLabel: (labelId: string, name: string) => void;
+  recolorLabel: (labelId: string, color: LabelColor) => void;
+  deleteLabel: (labelId: string) => void;
   moveTargets: TaskMoveTarget[];
   inline: { id: string; mode: InlineMode } | null;
   setInline: (v: { id: string; mode: InlineMode } | null) => void;
@@ -95,7 +112,6 @@ interface BoardInlineCtx {
 }
 
 const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
-const PRIORITY_ORDER = PRIORITIES.map((p) => p.value);
 
 export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) {
   const qc = useQueryClient();
@@ -110,6 +126,59 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
   const bulkDelete = useBulkDeleteTasks(projectId);
   const { data: assigneesMap } = useTaskAssignees(projectId);
   const setAssignees = useSetTaskAssignees(projectId);
+
+  // ---------------- Labels ----------------
+  const { data: projectLabels = [] } = useProjectLabels(projectId);
+  const { data: labelMap } = useTaskLabelMap(projectId);
+  const setTaskLabels = useSetTaskLabels(projectId, workspaceId);
+  const createLabelMut = useCreateLabel(projectId, workspaceId);
+  const updateLabelMut = useUpdateLabel(projectId);
+  const deleteLabelMut = useDeleteLabel(projectId);
+
+  const labelById = useMemo(() => {
+    const m = new Map<string, ProjectLabel>();
+    for (const l of projectLabels) m.set(l.id, l);
+    return m;
+  }, [projectLabels]);
+
+  const labelIdsFor = useCallback(
+    (taskId: string) => labelMap?.get(taskId) ?? [],
+    [labelMap],
+  );
+  const labelChipsFor = useCallback(
+    (taskId: string): TaskLabelChip[] =>
+      (labelMap?.get(taskId) ?? [])
+        .map((id) => labelById.get(id))
+        .filter((l): l is ProjectLabel => !!l)
+        .map((l) => ({ id: l.id, name: l.name, color: l.color })),
+    [labelMap, labelById],
+  );
+  const toggleLabel = useCallback(
+    (taskId: string, labelId: string) => {
+      const current = labelMap?.get(taskId) ?? [];
+      const next = current.includes(labelId)
+        ? current.filter((id) => id !== labelId)
+        : [...current, labelId];
+      setTaskLabels.mutate({ taskId, labelIds: next });
+    },
+    [labelMap, setTaskLabels],
+  );
+  const createLabel = useCallback(
+    (name: string, color: LabelColor) => createLabelMut.mutate({ name, color }),
+    [createLabelMut],
+  );
+  const renameLabel = useCallback(
+    (labelId: string, name: string) => updateLabelMut.mutate({ id: labelId, name }),
+    [updateLabelMut],
+  );
+  const recolorLabel = useCallback(
+    (labelId: string, color: LabelColor) => updateLabelMut.mutate({ id: labelId, color }),
+    [updateLabelMut],
+  );
+  const deleteLabel = useCallback(
+    (labelId: string) => deleteLabelMut.mutate(labelId),
+    [deleteLabelMut],
+  );
 
   // Move-to-project targets — only for owners/managers, excluding this project.
   const canMoveProject = role === "owner" || role === "manager";
@@ -211,13 +280,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
-  // All labels seen across the board — powers the InlineLabelEditor suggestions.
-  const allLabels = useMemo(() => {
-    const set = new Set<string>();
-    for (const t of items) (t.labels ?? []).forEach((l) => set.add(l));
-    return [...set].sort((a, b) => a.localeCompare(b));
-  }, [items]);
-
   const patchTask = useCallback(
     (id: string, patch: Partial<TaskRow>) => update.mutate({ id, ...patch }),
     [update],
@@ -255,7 +317,14 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const inlineCtx: BoardInlineCtx = {
     members,
-    allLabels,
+    projectLabels,
+    labelChipsFor,
+    labelIdsFor,
+    toggleLabel,
+    createLabel,
+    renameLabel,
+    recolorLabel,
+    deleteLabel,
     moveTargets,
     inline,
     setInline,
@@ -263,6 +332,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     assigneesFor,
     setTaskAssignees,
   };
+
 
   const stub = useCallback((label: string) => toast(`${label} — coming soon`), []);
 
@@ -291,10 +361,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     },
     onSetStatus: (status) => {
       bulkUpdate.mutate({ ids: selectedIds, patch: { status } });
-      clearSelection();
-    },
-    onSetPriority: (priority) => {
-      bulkUpdate.mutate({ ids: selectedIds, patch: { priority } });
       clearSelection();
     },
     onDelete: () => setPendingDelete({ type: "bulk", ids: selectedIds }),
@@ -368,10 +434,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
           update.mutate({ id: task.id, status: STATUS_ORDER[(idx + 1) % STATUS_ORDER.length] });
           break;
         }
-        case "p": {
+        case "l": {
           e.preventDefault();
-          const pi = PRIORITY_ORDER.indexOf(task.priority);
-          update.mutate({ id: task.id, priority: PRIORITY_ORDER[(pi + 1) % PRIORITY_ORDER.length] as TaskPriority });
+          startInline(task, "labels");
           break;
         }
         default:
@@ -474,9 +539,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
               <OrdoTaskCard
                 title={activeTask.title}
                 status={activeTask.status}
-                priority={activeTask.priority}
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
+                labels={labelChipsFor(activeTask.id)}
                 assignees={assigneesFor(activeTask)}
                 interactive={false}
                 overlay
@@ -702,7 +767,23 @@ function SortableTask({
   onOpen: (t: TaskRow) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
-  const { members, allLabels, moveTargets, inline, setInline, patchTask, assigneesFor, setTaskAssignees } = inlineCtx;
+  const {
+    members,
+    projectLabels,
+    labelChipsFor,
+    labelIdsFor,
+    toggleLabel,
+    createLabel,
+    renameLabel,
+    recolorLabel,
+    deleteLabel,
+    moveTargets,
+    inline,
+    setInline,
+    patchTask,
+    assigneesFor,
+    setTaskAssignees,
+  } = inlineCtx;
   const assignees = assigneesFor(task);
 
   const mode = inline?.id === task.id ? inline.mode : null;
@@ -774,10 +855,9 @@ function SortableTask({
             <OrdoTaskCard
               title={task.title}
               status={task.status}
-              priority={task.priority}
               description={task.description}
               dueDate={task.due_date}
-              labels={task.labels ?? undefined}
+              labels={labelChipsFor(task.id)}
               assignees={assignees}
               interactive={false}
               dragHandleProps={renaming ? undefined : { ...attributes, ...listeners }}
@@ -820,10 +900,14 @@ function SortableTask({
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {popoverMode === "labels" && (
-            <InlineLabelEditor
-              value={task.labels ?? []}
-              suggestions={allLabels}
-              onChange={(next) => patchTask(task.id, { labels: next })}
+            <InlineLabelPicker
+              labels={projectLabels}
+              value={labelIdsFor(task.id)}
+              onToggle={(labelId) => toggleLabel(task.id, labelId)}
+              onCreate={createLabel}
+              onRename={renameLabel}
+              onRecolor={recolorLabel}
+              onDelete={deleteLabel}
             />
           )}
           {popoverMode === "members" && (

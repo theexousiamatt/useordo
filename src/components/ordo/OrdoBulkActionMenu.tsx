@@ -2,7 +2,6 @@ import {
   UserPlus,
   ArrowRightLeft,
   CircleDot,
-  Flag,
   Tag,
   Archive,
   Trash2,
@@ -10,14 +9,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrdoOverflowMenu, type OrdoMenuConfig } from "./OrdoMenu";
-import { TASK_COLUMNS, PRIORITIES, type TaskStatus, type TaskPriority } from "@/lib/projectConstants";
+import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
 export interface BulkActionHandlers {
   onAssign: (userId: string | null) => void;
   onMove: (status: TaskStatus) => void;
   onSetStatus: (status: TaskStatus) => void;
-  onSetPriority: (priority: TaskPriority) => void;
   onDelete: () => void;
   onAction: (action: string) => void;
 }
@@ -64,16 +62,6 @@ export function OrdoBulkActionMenu({
     },
   ];
 
-  const priorityMenu: OrdoMenuConfig = [
-    {
-      id: "priority",
-      items: PRIORITIES.map((p) => ({
-        id: p.value,
-        label: p.label,
-        onSelect: () => handlers.onSetPriority(p.value),
-      })),
-    },
-  ];
 
   const trigger = (cls: string, icon: React.ReactNode, label: string) => (
     <Button variant="ghost" size="sm" className={cls}>
@@ -97,7 +85,7 @@ export function OrdoBulkActionMenu({
       <OrdoOverflowMenu config={assignMenu} trigger={trigger(btnCls, <UserPlus className="h-4 w-4" />, "Assign")} />
       <OrdoOverflowMenu config={moveMenu} trigger={trigger(btnCls, <ArrowRightLeft className="h-4 w-4" />, "Move")} />
       <OrdoOverflowMenu config={moveMenu} trigger={trigger(btnCls, <CircleDot className="h-4 w-4" />, "Status")} />
-      <OrdoOverflowMenu config={priorityMenu} trigger={trigger(btnCls, <Flag className="h-4 w-4" />, "Priority")} />
+      
 
       <Button variant="ghost" size="sm" className={btnCls} onClick={() => handlers.onAction("Add label")}>
         <Tag className="h-4 w-4" />

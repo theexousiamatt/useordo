@@ -226,7 +226,6 @@ export function useCreateProject() {
             title: t.title,
             description: t.description ?? null,
             status: "backlog",
-            priority: (t.priority as string) ?? "medium",
             position: idx,
             created_by: user.id,
           })),

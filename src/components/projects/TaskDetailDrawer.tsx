@@ -8,7 +8,7 @@ import {
   Trash2,
   Loader2,
   CalendarClock,
-  Flag,
+  
   CircleDot,
   User as UserIcon,
 } from "lucide-react";
@@ -20,14 +20,12 @@ import { OrdoTextarea } from "@/components/ordo/OrdoTextarea";
 import { EmptyState } from "@/components/states/EmptyState";
 import { cn } from "@/lib/utils";
 import { dateShort, initials, timeAgo } from "@/lib/format";
-import {
-  PRIORITY_STYLES,
-  TASK_COLUMNS,
-  type TaskPriority,
-} from "@/lib/projectConstants";
+import { TASK_COLUMNS } from "@/lib/projectConstants";
 import { useAuth } from "@/hooks/useAuth";
 import type { TaskRow } from "@/hooks/useProjectData";
 import { useProjectActivity, useTaskAssignees } from "@/hooks/useProjectData";
+import { useProjectLabels, useTaskLabelMap } from "@/hooks/useLabels";
+import { LabelBadge } from "@/components/ordo/LabelBadge";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 import {
   useTaskComments,
@@ -81,19 +79,16 @@ function DrawerBody({
     .map((id) => members.find((m) => m.user_id === id))
     .filter(Boolean) as ProjectMemberProfile[];
 
+  const { data: projectLabels = [] } = useProjectLabels(task.project_id);
+  const { data: labelMap } = useTaskLabelMap(task.project_id);
+  const taskLabels = (labelMap?.get(task.id) ?? [])
+    .map((id) => projectLabels.find((l) => l.id === id))
+    .filter((l): l is (typeof projectLabels)[number] => !!l);
+
   return (
     <Tabs defaultValue="overview" className="flex h-full flex-col">
       {/* Header */}
       <div className="space-y-3 border-b border-border px-6 pb-0 pt-5">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold capitalize",
-            PRIORITY_STYLES[task.priority],
-          )}
-        >
-          <Flag className="h-3 w-3" />
-          {task.priority} priority
-        </span>
         <h2 className="text-xl font-semibold leading-tight tracking-tight text-foreground">
           {task.title}
         </h2>
@@ -115,15 +110,10 @@ function DrawerBody({
             {task.due_date ? dateShort(task.due_date) : "No due date"}
           </span>
         </div>
-        {task.labels?.length > 0 && (
+        {taskLabels.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pb-1">
-            {task.labels.map((l) => (
-              <span
-                key={l}
-                className="inline-flex items-center rounded-pill bg-black/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-              >
-                {l}
-              </span>
+            {taskLabels.map((l) => (
+              <LabelBadge key={l.id} name={l.name} color={l.color} />
             ))}
           </div>
         )}

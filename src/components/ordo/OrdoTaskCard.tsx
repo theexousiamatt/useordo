@@ -14,7 +14,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { dateShort, initials } from "@/lib/format";
-import type { TaskStatus, TaskPriority } from "@/lib/projectConstants";
+import { LabelBadge } from "@/components/ordo/LabelBadge";
+import type { TaskStatus } from "@/lib/projectConstants";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
 /**
@@ -78,19 +79,18 @@ const STATUS_THEME: Record<TaskStatus, StatusTheme> = {
   },
 };
 
-/** Orange "blocked" treatment applied when a task is critical priority. */
+/** Orange "blocked" treatment applied when a task is explicitly blocked. */
 const BLOCKED_THEME: Pick<StatusTheme, "surface" | "bar" | "icon"> = {
   surface: "bg-orange-50",
   bar: "bg-orange-500",
   icon: "text-orange-500",
 };
 
-const PRIORITY_PILL: Record<TaskPriority, string> = {
-  low: "bg-slate-100 text-slate-500",
-  medium: "bg-sky-100 text-sky-600",
-  high: "bg-amber-100 text-amber-700",
-  critical: "bg-orange-100 text-orange-700",
-};
+export interface TaskLabelChip {
+  id: string;
+  name: string;
+  color: string;
+}
 
 /** Sensible default fill when a task carries no explicit progress. */
 const DEFAULT_PROGRESS: Record<TaskStatus, number> = {
@@ -104,10 +104,9 @@ const DEFAULT_PROGRESS: Record<TaskStatus, number> = {
 export interface OrdoTaskCardProps {
   title: string;
   status: TaskStatus;
-  priority: TaskPriority;
   description?: string | null;
   dueDate?: string | null;
-  labels?: string[];
+  labels?: TaskLabelChip[];
   /** 0–100. Falls back to a status-derived default. */
   progress?: number;
   assignees?: ProjectMemberProfile[];
@@ -130,7 +129,6 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
     {
       title,
       status,
-      priority,
       description,
       dueDate,
       labels = [],
@@ -149,12 +147,13 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
     ref,
   ) => {
     const theme = STATUS_THEME[status];
-    const isBlocked = blocked ?? priority === "critical";
+    const isBlocked = blocked ?? false;
     const surface = isBlocked ? BLOCKED_THEME.surface : theme.surface;
     const bar = isBlocked ? BLOCKED_THEME.bar : theme.bar;
     const iconColor = isBlocked ? BLOCKED_THEME.icon : theme.icon;
     const StatusIcon = isBlocked ? AlertTriangle : theme.Icon;
     const pct = Math.max(0, Math.min(100, progress ?? DEFAULT_PROGRESS[status]));
+
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
       if (onOpen && (e.key === "Enter" || e.key === " ")) {
@@ -180,7 +179,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
         )}
       >
         <div className={cn("rounded-[16px] p-4", surface)}>
-          {/* Header: status pill + priority */}
+          {/* Header: status pill */}
           <div className="flex items-center justify-between gap-2">
             <span
               className={cn(
@@ -191,27 +190,18 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
               <StatusIcon className={cn("h-3 w-3", theme.pill.includes("text-white") ? "" : iconColor)} />
               {isBlocked ? "Blocked" : theme.label}
             </span>
-            <div className="flex items-center gap-1">
-              <span
-                className={cn(
-                  "rounded-pill px-2 py-0.5 text-[10px] font-semibold capitalize",
-                  PRIORITY_PILL[priority],
-                )}
+            {dragHandleProps && (
+              <button
+                {...dragHandleProps}
+                className="cursor-grab touch-none rounded-md p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:text-muted-foreground group-hover:opacity-100"
+                aria-label="Drag task"
+                onClick={(e) => e.stopPropagation()}
               >
-                {priority}
-              </span>
-              {dragHandleProps && (
-                <button
-                  {...dragHandleProps}
-                  className="cursor-grab touch-none rounded-md p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:text-muted-foreground group-hover:opacity-100"
-                  aria-label="Drag task"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <GripVertical className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+                <GripVertical className="h-4 w-4" />
+              </button>
+            )}
           </div>
+
 
           {/* Body: title + description */}
           <div className="mt-3">
@@ -230,12 +220,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
             {labels.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {labels.map((label) => (
-                  <span
-                    key={label}
-                    className="inline-flex items-center rounded-pill bg-black/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-                  >
-                    {label}
-                  </span>
+                  <LabelBadge key={label.id} name={label.name} color={label.color} size="sm" />
                 ))}
               </div>
             )}

@@ -745,6 +745,54 @@ export type Database = {
           },
         ]
       }
+      project_labels: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          project_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          project_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          project_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_labels_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_labels_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_members: {
         Row: {
           created_at: string
@@ -935,6 +983,48 @@ export type Database = {
           },
         ]
       }
+      task_labels: {
+        Row: {
+          created_at: string
+          id: string
+          label_id: string
+          project_id: string
+          task_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label_id: string
+          project_id: string
+          task_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label_id?: string
+          project_id?: string
+          task_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "project_labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_labels_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           archived_at: string | null
@@ -944,9 +1034,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
-          labels: string[]
           position: number
-          priority: string
           project_id: string
           status: string
           title: string
@@ -961,9 +1049,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
-          labels?: string[]
           position?: number
-          priority?: string
           project_id: string
           status?: string
           title: string
@@ -978,9 +1064,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
-          labels?: string[]
           position?: number
-          priority?: string
           project_id?: string
           status?: string
           title?: string

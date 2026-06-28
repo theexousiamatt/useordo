@@ -4,13 +4,11 @@ import {
   DELIVERABLE_STATUS_STYLES,
   HEALTH_LABELS,
   HEALTH_STYLES,
-  PRIORITY_STYLES,
   PROJECT_STATUS_STYLES,
   PROJECT_STATUSES,
   type DeliverableStatus,
   type ProjectHealth,
   type ProjectStatus,
-  type TaskPriority,
 } from "@/lib/projectConstants";
 
 const statusLabel = (s: ProjectStatus) =>
@@ -32,13 +30,6 @@ export function HealthBadge({ health }: { health: ProjectHealth }) {
   );
 }
 
-export function PriorityBadge({ priority }: { priority: TaskPriority }) {
-  return (
-    <Badge variant="outline" className={cn("border-transparent text-xs capitalize", PRIORITY_STYLES[priority])}>
-      {priority}
-    </Badge>
-  );
-}
 
 export function DeliverableBadge({ status }: { status: DeliverableStatus }) {
   return (

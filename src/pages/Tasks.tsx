@@ -13,9 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { dateShort } from "@/lib/format";
 import {
   TASK_COLUMNS,
-  PRIORITY_STYLES,
   type TaskStatus,
-  type TaskPriority,
 } from "@/lib/projectConstants";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +21,6 @@ interface TaskRow {
   id: string;
   title: string;
   status: TaskStatus;
-  priority: TaskPriority;
   due_date: string | null;
   project_id: string;
   assignee_id: string | null;
@@ -49,7 +46,7 @@ export default function Tasks() {
     setError(false);
     const { data, error } = await supabase
       .from("tasks")
-      .select("id, title, status, priority, due_date, project_id, assignee_id")
+      .select("id, title, status, due_date, project_id, assignee_id")
       .eq("workspace_id", currentWorkspace.id)
       .order("position", { ascending: true });
     if (error) {
@@ -145,9 +142,10 @@ export default function Tasks() {
                         {t.due_date ? ` · Due ${dateShort(t.due_date)}` : ""}
                       </p>
                     </div>
-                    <Badge className={cn("capitalize", PRIORITY_STYLES[t.priority])}>
-                      {t.priority}
+                    <Badge variant="secondary" className="capitalize">
+                      {STATUS_LABEL[t.status]}
                     </Badge>
+
                     <span className="hidden text-xs text-muted-foreground sm:inline">
                       {STATUS_LABEL[t.status]}
                     </span>

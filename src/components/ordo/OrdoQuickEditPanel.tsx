@@ -6,19 +6,13 @@ import { OrdoInput } from "./OrdoInput";
 import { OrdoTextarea } from "./OrdoTextarea";
 import { OrdoSelect } from "./OrdoSelect";
 import { OrdoDatePicker } from "./OrdoDatePicker";
-import {
-  TASK_COLUMNS,
-  PRIORITIES,
-  type TaskStatus,
-  type TaskPriority,
-} from "@/lib/projectConstants";
+import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
 import type { TaskRow } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
 export interface QuickEditPatch {
   title?: string;
   description?: string | null;
-  priority?: TaskPriority;
   status?: TaskStatus;
   assignee_id?: string | null;
   due_date?: string | null;
@@ -45,7 +39,7 @@ export function OrdoQuickEditPanel({
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<TaskPriority>("medium");
+  
   const [status, setStatus] = useState<TaskStatus>("todo");
   const [assignee, setAssignee] = useState<string>("none");
   const [due, setDue] = useState<Date | undefined>(undefined);
@@ -54,7 +48,7 @@ export function OrdoQuickEditPanel({
     if (!task) return;
     setTitle(task.title);
     setDescription(task.description ?? "");
-    setPriority(task.priority);
+    
     setStatus(task.status);
     setAssignee(task.assignee_id ?? "none");
     setDue(task.due_date ? new Date(task.due_date) : undefined);
@@ -65,7 +59,7 @@ export function OrdoQuickEditPanel({
     onSave(task.id, {
       title: title.trim() || task.title,
       description: description.trim() || null,
-      priority,
+      
       status,
       assignee_id: assignee === "none" ? null : assignee,
       due_date: due ? due.toISOString().slice(0, 10) : null,
@@ -105,22 +99,14 @@ export function OrdoQuickEditPanel({
           />
         </OrdoField>
 
-        <div className="grid grid-cols-2 gap-3">
-          <OrdoField label="Status">
-            <OrdoSelect
-              value={status}
-              onValueChange={(v) => setStatus(v as TaskStatus)}
-              options={TASK_COLUMNS.map((c) => ({ value: c.id, label: c.title }))}
-            />
-          </OrdoField>
-          <OrdoField label="Priority">
-            <OrdoSelect
-              value={priority}
-              onValueChange={(v) => setPriority(v as TaskPriority)}
-              options={PRIORITIES.map((p) => ({ value: p.value, label: p.label }))}
-            />
-          </OrdoField>
-        </div>
+        <OrdoField label="Status">
+          <OrdoSelect
+            value={status}
+            onValueChange={(v) => setStatus(v as TaskStatus)}
+            options={TASK_COLUMNS.map((c) => ({ value: c.id, label: c.title }))}
+          />
+        </OrdoField>
+
 
         <OrdoField label="Assignee">
           <OrdoSelect
