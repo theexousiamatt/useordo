@@ -808,7 +808,7 @@ function SortableTask({
           avoidCollisions
           sticky="always"
           className={cn(
-            "client-os z-50 overflow-hidden rounded-panel border border-border bg-card p-0 text-foreground shadow-panel",
+            "client-os z-50 overflow-hidden rounded-panel border border-border bg-card p-0 text-foreground shadow-hover",
             "origin-[var(--radix-popover-content-transform-origin)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
