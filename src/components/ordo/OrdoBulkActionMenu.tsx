@@ -2,7 +2,6 @@ import {
   UserPlus,
   ArrowRightLeft,
   CircleDot,
-  Flag,
   Tag,
   Archive,
   Trash2,
@@ -10,14 +9,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrdoOverflowMenu, type OrdoMenuConfig } from "./OrdoMenu";
-import { TASK_COLUMNS, PRIORITIES, type TaskStatus, type TaskPriority } from "@/lib/projectConstants";
+import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
 export interface BulkActionHandlers {
   onAssign: (userId: string | null) => void;
   onMove: (status: TaskStatus) => void;
   onSetStatus: (status: TaskStatus) => void;
-  onSetPriority: (priority: TaskPriority) => void;
   onDelete: () => void;
   onAction: (action: string) => void;
 }
