@@ -363,10 +363,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
       bulkUpdate.mutate({ ids: selectedIds, patch: { status } });
       clearSelection();
     },
-    onSetPriority: (priority) => {
-      bulkUpdate.mutate({ ids: selectedIds, patch: { priority } });
-      clearSelection();
-    },
     onDelete: () => setPendingDelete({ type: "bulk", ids: selectedIds }),
     onAction: (action) => stub(action),
   };
