@@ -104,10 +104,9 @@ const DEFAULT_PROGRESS: Record<TaskStatus, number> = {
 export interface OrdoTaskCardProps {
   title: string;
   status: TaskStatus;
-  priority: TaskPriority;
   description?: string | null;
   dueDate?: string | null;
-  labels?: string[];
+  labels?: TaskLabelChip[];
   /** 0–100. Falls back to a status-derived default. */
   progress?: number;
   assignees?: ProjectMemberProfile[];
@@ -130,7 +129,6 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
     {
       title,
       status,
-      priority,
       description,
       dueDate,
       labels = [],
@@ -149,12 +147,13 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
     ref,
   ) => {
     const theme = STATUS_THEME[status];
-    const isBlocked = blocked ?? priority === "critical";
+    const isBlocked = blocked ?? false;
     const surface = isBlocked ? BLOCKED_THEME.surface : theme.surface;
     const bar = isBlocked ? BLOCKED_THEME.bar : theme.bar;
     const iconColor = isBlocked ? BLOCKED_THEME.icon : theme.icon;
     const StatusIcon = isBlocked ? AlertTriangle : theme.Icon;
     const pct = Math.max(0, Math.min(100, progress ?? DEFAULT_PROGRESS[status]));
+
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
       if (onOpen && (e.key === "Enter" || e.key === " ")) {
