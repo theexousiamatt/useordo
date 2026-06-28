@@ -801,13 +801,19 @@ function SortableTask({
 
 
         <PopoverContent
-          align="start"
-          side="bottom"
-          sideOffset={8}
-          collisionPadding={12}
+          align="center"
+          side="right"
+          sideOffset={10}
+          collisionPadding={16}
           avoidCollisions
+          sticky="always"
           className={cn(
-            "client-os overflow-hidden rounded-panel border border-border bg-card p-0 text-foreground shadow-panel",
+            "client-os z-50 overflow-hidden rounded-panel border border-border bg-card p-0 text-foreground shadow-panel",
+            "origin-[var(--radix-popover-content-transform-origin)]",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
+            "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
+            "duration-150",
             popoverMode === "due" ? "w-60" : "w-72",
           )}
           onClick={(e) => e.stopPropagation()}
