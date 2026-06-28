@@ -33,8 +33,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { TASK_COLUMNS, type TaskStatus, type TaskPriority, PRIORITIES } from "@/lib/projectConstants";
-import { OrdoTaskCard, COLUMN_THEME } from "@/components/ordo/OrdoTaskCard";
+import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
+import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
   OrdoCardOverflowMenu,
@@ -42,7 +42,7 @@ import {
   OrdoColumnOverflowMenu,
   OrdoBulkActionMenu,
   InlineTaskTitle,
-  InlineLabelEditor,
+  InlineLabelPicker,
   InlineMemberPicker,
   InlineDatePicker,
   type TaskMenuHandlers,
@@ -50,6 +50,16 @@ import {
   type ColumnMenuHandlers,
   type BulkActionHandlers,
 } from "@/components/ordo";
+import type { LabelColor } from "@/lib/labelColors";
+import {
+  useProjectLabels,
+  useTaskLabelMap,
+  useSetTaskLabels,
+  useCreateLabel,
+  useUpdateLabel,
+  useDeleteLabel,
+  type ProjectLabel,
+} from "@/hooks/useLabels";
 import { TaskDetailDrawer } from "@/components/projects/TaskDetailDrawer";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import {
