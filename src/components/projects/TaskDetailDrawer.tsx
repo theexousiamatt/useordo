@@ -110,15 +110,10 @@ function DrawerBody({
             {task.due_date ? dateShort(task.due_date) : "No due date"}
           </span>
         </div>
-        {task.labels?.length > 0 && (
+        {taskLabels.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pb-1">
-            {task.labels.map((l) => (
-              <span
-                key={l}
-                className="inline-flex items-center rounded-pill bg-black/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-              >
-                {l}
-              </span>
+            {taskLabels.map((l) => (
+              <LabelBadge key={l.id} name={l.name} color={l.color} />
             ))}
           </div>
         )}
