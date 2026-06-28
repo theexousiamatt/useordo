@@ -131,7 +131,31 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Tasks (track id mapping for comments).
+    // 3b. Project labels (always cloned so task labels can be remapped).
+    const labelIdMap = new Map<string, string>();
+    {
+      const { data: labels } = await admin
+        .from("project_labels")
+        .select("*")
+        .eq("project_id", opts.projectId)
+        .order("position", { ascending: true });
+      for (const l of labels ?? []) {
+        const { data: nl } = await admin
+          .from("project_labels")
+          .insert({
+            workspace_id: workspaceId,
+            project_id: newId,
+            name: l.name,
+            color: l.color,
+            position: l.position,
+          })
+          .select("id")
+          .single();
+        if (nl) labelIdMap.set(l.id, nl.id);
+      }
+    }
+
+    // 4. Tasks (track id mapping for comments and labels).
     const taskIdMap = new Map<string, string>();
     if (opts.copyTasks) {
       const { data: tasks } = await admin
@@ -148,7 +172,6 @@ Deno.serve(async (req) => {
             title: t.title,
             description: t.description,
             status: t.status,
-            priority: t.priority,
             position: t.position,
             assignee_id: opts.copyTeam ? t.assignee_id : null,
             due_date: opts.copyDueDates ? t.due_date : null,
@@ -159,7 +182,28 @@ Deno.serve(async (req) => {
         if (nt) taskIdMap.set(t.id, nt.id);
       }
       records.tasks = taskIdMap.size;
+
+      // 4b. Task label assignments (remap task + label ids).
+      const { data: taskLabels } = await admin
+        .from("task_labels")
+        .select("*")
+        .eq("project_id", opts.projectId);
+      const tlRows = (taskLabels ?? [])
+        .map((tl) => {
+          const newTaskId = taskIdMap.get(tl.task_id);
+          const newLabelId = labelIdMap.get(tl.label_id);
+          if (!newTaskId || !newLabelId) return null;
+          return {
+            workspace_id: workspaceId,
+            project_id: newId,
+            task_id: newTaskId,
+            label_id: newLabelId,
+          };
+        })
+        .filter(Boolean);
+      if (tlRows.length) await admin.from("task_labels").insert(tlRows);
     }
+
 
     // 5. Comments (require tasks; remap task_id).
     if (opts.copyComments && opts.copyTasks) {
