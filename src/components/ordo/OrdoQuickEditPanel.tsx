@@ -99,22 +99,14 @@ export function OrdoQuickEditPanel({
           />
         </OrdoField>
 
-        <div className="grid grid-cols-2 gap-3">
-          <OrdoField label="Status">
-            <OrdoSelect
-              value={status}
-              onValueChange={(v) => setStatus(v as TaskStatus)}
-              options={TASK_COLUMNS.map((c) => ({ value: c.id, label: c.title }))}
-            />
-          </OrdoField>
-          <OrdoField label="Priority">
-            <OrdoSelect
-              value={priority}
-              onValueChange={(v) => setPriority(v as TaskPriority)}
-              options={PRIORITIES.map((p) => ({ value: p.value, label: p.label }))}
-            />
-          </OrdoField>
-        </div>
+        <OrdoField label="Status">
+          <OrdoSelect
+            value={status}
+            onValueChange={(v) => setStatus(v as TaskStatus)}
+            options={TASK_COLUMNS.map((c) => ({ value: c.id, label: c.title }))}
+          />
+        </OrdoField>
+
 
         <OrdoField label="Assignee">
           <OrdoSelect
