@@ -41,20 +41,6 @@ export const TASK_COLUMNS: { id: TaskStatus; title: string }[] = [
   { id: "done", title: "Done" },
 ];
 
-export const PRIORITIES: { value: TaskPriority; label: string }[] = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "critical", label: "Critical" },
-];
-
-export const PRIORITY_STYLES: Record<TaskPriority, string> = {
-  low: "bg-muted text-muted-foreground",
-  medium: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
-  high: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-  critical: "bg-destructive/15 text-destructive",
-};
-
 export const DELIVERABLE_STATUS_STYLES: Record<DeliverableStatus, string> = {
   draft: "bg-muted text-muted-foreground",
   submitted: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
