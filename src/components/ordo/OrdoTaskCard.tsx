@@ -14,7 +14,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { dateShort, initials } from "@/lib/format";
-import type { TaskStatus, TaskPriority } from "@/lib/projectConstants";
+import { LabelBadge } from "@/components/ordo/LabelBadge";
+import type { TaskStatus } from "@/lib/projectConstants";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
 /**
