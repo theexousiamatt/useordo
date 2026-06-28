@@ -317,7 +317,14 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
 
   const inlineCtx: BoardInlineCtx = {
     members,
-    allLabels,
+    projectLabels,
+    labelChipsFor,
+    labelIdsFor,
+    toggleLabel,
+    createLabel,
+    renameLabel,
+    recolorLabel,
+    deleteLabel,
     moveTargets,
     inline,
     setInline,
@@ -325,6 +332,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     assigneesFor,
     setTaskAssignees,
   };
+
 
   const stub = useCallback((label: string) => toast(`${label} — coming soon`), []);
 
