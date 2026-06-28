@@ -434,10 +434,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
           update.mutate({ id: task.id, status: STATUS_ORDER[(idx + 1) % STATUS_ORDER.length] });
           break;
         }
-        case "p": {
+        case "l": {
           e.preventDefault();
-          const pi = PRIORITY_ORDER.indexOf(task.priority);
-          update.mutate({ id: task.id, priority: PRIORITY_ORDER[(pi + 1) % PRIORITY_ORDER.length] as TaskPriority });
+          startInline(task, "labels");
           break;
         }
         default:
