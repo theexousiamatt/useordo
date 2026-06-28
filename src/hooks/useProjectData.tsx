@@ -321,7 +321,7 @@ export function useCreateTask(projectId: string, workspaceId: string) {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { title: string; status: TaskStatus; priority?: TaskPriority }) => {
+    mutationFn: async (input: { title: string; status: TaskStatus }) => {
       const existing = qc.getQueryData<TaskRow[]>(["project-tasks", projectId]) ?? [];
       const position = existing.filter((t) => t.status === input.status).length;
       const { error } = await supabase.from("tasks").insert({
@@ -329,7 +329,6 @@ export function useCreateTask(projectId: string, workspaceId: string) {
         project_id: projectId,
         title: input.title,
         status: input.status,
-        priority: input.priority ?? "medium",
         position,
         created_by: user?.id ?? null,
       });
