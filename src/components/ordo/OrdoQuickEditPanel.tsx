@@ -39,7 +39,7 @@ export function OrdoQuickEditPanel({
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<TaskPriority>("medium");
+  
   const [status, setStatus] = useState<TaskStatus>("todo");
   const [assignee, setAssignee] = useState<string>("none");
   const [due, setDue] = useState<Date | undefined>(undefined);
@@ -48,7 +48,7 @@ export function OrdoQuickEditPanel({
     if (!task) return;
     setTitle(task.title);
     setDescription(task.description ?? "");
-    setPriority(task.priority);
+    
     setStatus(task.status);
     setAssignee(task.assignee_id ?? "none");
     setDue(task.due_date ? new Date(task.due_date) : undefined);
@@ -59,7 +59,7 @@ export function OrdoQuickEditPanel({
     onSave(task.id, {
       title: title.trim() || task.title,
       description: description.trim() || null,
-      priority,
+      
       status,
       assignee_id: assignee === "none" ? null : assignee,
       due_date: due ? due.toISOString().slice(0, 10) : null,
