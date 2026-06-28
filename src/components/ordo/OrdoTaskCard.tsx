@@ -179,7 +179,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
         )}
       >
         <div className={cn("rounded-[16px] p-4", surface)}>
-          {/* Header: status pill + priority */}
+          {/* Header: status pill */}
           <div className="flex items-center justify-between gap-2">
             <span
               className={cn(
@@ -190,27 +190,18 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
               <StatusIcon className={cn("h-3 w-3", theme.pill.includes("text-white") ? "" : iconColor)} />
               {isBlocked ? "Blocked" : theme.label}
             </span>
-            <div className="flex items-center gap-1">
-              <span
-                className={cn(
-                  "rounded-pill px-2 py-0.5 text-[10px] font-semibold capitalize",
-                  PRIORITY_PILL[priority],
-                )}
+            {dragHandleProps && (
+              <button
+                {...dragHandleProps}
+                className="cursor-grab touch-none rounded-md p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:text-muted-foreground group-hover:opacity-100"
+                aria-label="Drag task"
+                onClick={(e) => e.stopPropagation()}
               >
-                {priority}
-              </span>
-              {dragHandleProps && (
-                <button
-                  {...dragHandleProps}
-                  className="cursor-grab touch-none rounded-md p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:text-muted-foreground group-hover:opacity-100"
-                  aria-label="Drag task"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <GripVertical className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+                <GripVertical className="h-4 w-4" />
+              </button>
+            )}
           </div>
+
 
           {/* Body: title + description */}
           <div className="mt-3">
