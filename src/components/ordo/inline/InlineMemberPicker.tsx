@@ -23,11 +23,20 @@ export function InlineMemberPicker({ members, value, onChange }: InlineMemberPic
 
   const filtered = useMemo(
     () =>
-      members.filter((m) =>
-        (m.full_name ?? "").toLowerCase().includes(query.trim().toLowerCase()),
-      ),
-    [members, query],
+      members
+        .filter((m) =>
+          (m.full_name ?? "").toLowerCase().includes(query.trim().toLowerCase()),
+        )
+        // Assigned members surface first, then the rest alphabetically by selection.
+        .sort((a, b) => {
+          const aSel = value.includes(a.user_id) ? 0 : 1;
+          const bSel = value.includes(b.user_id) ? 0 : 1;
+          if (aSel !== bSel) return aSel - bSel;
+          return (a.full_name ?? "").localeCompare(b.full_name ?? "");
+        }),
+    [members, query, value],
   );
+
 
   const toggle = (userId: string) => {
     if (value.includes(userId)) {

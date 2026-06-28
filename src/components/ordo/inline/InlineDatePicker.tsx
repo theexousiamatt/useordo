@@ -34,7 +34,7 @@ export function InlineDatePicker({ value, onChange }: InlineDatePickerProps) {
             key={p.label}
             type="button"
             onClick={() => onChange(toISO(p.get()))}
-            className="flex w-full items-center gap-2.5 rounded-small px-2.5 py-1.5 text-left text-sm hover:bg-secondary"
+            className="flex w-full items-center gap-2.5 rounded-small px-2.5 py-2 text-left text-sm text-foreground transition-colors hover:bg-secondary"
           >
             <p.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
             {p.label}
@@ -44,18 +44,18 @@ export function InlineDatePicker({ value, onChange }: InlineDatePickerProps) {
           type="button"
           onClick={() => setShowCalendar((v) => !v)}
           className={cn(
-            "flex w-full items-center gap-2.5 rounded-small px-2.5 py-1.5 text-left text-sm hover:bg-secondary",
+            "flex w-full items-center gap-2.5 rounded-small px-2.5 py-2 text-left text-sm text-foreground transition-colors hover:bg-secondary",
             showCalendar && "bg-secondary",
           )}
         >
           <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
-          Custom date
+          Pick date…
         </button>
         {value && (
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="flex w-full items-center gap-2.5 rounded-small px-2.5 py-1.5 text-left text-sm text-destructive hover:bg-destructive/10"
+            className="flex w-full items-center gap-2.5 rounded-small px-2.5 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
           >
             <CalendarX className="h-4 w-4 shrink-0" />
             Remove date
@@ -63,19 +63,27 @@ export function InlineDatePicker({ value, onChange }: InlineDatePickerProps) {
         )}
       </div>
 
-      {showCalendar && (
-        <div className="border-t border-border">
-          <Calendar
-            mode="single"
-            selected={selected}
-            onSelect={(d) => {
-              if (d) onChange(toISO(d));
-            }}
-            initialFocus
-            className={cn("p-3 pointer-events-auto")}
-          />
+      <div
+        className={cn(
+          "grid overflow-hidden transition-all duration-300 ease-out",
+          showCalendar ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        )}
+      >
+        <div className="min-h-0">
+          <div className="border-t border-border">
+            <Calendar
+              mode="single"
+              selected={selected}
+              onSelect={(d) => {
+                if (d) onChange(toISO(d));
+              }}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
+
