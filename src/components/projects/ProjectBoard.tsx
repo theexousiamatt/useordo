@@ -782,15 +782,13 @@ function SortableTask({
   selected,
   handlers,
   inlineCtx,
-  onSelect,
-  onOpen,
+  onCardClick,
 }: {
   task: TaskRow;
   selected: boolean;
   handlers: TaskMenuHandlers;
   inlineCtx: BoardInlineCtx;
-  onSelect: (e: React.MouseEvent, id: string) => void;
-  onOpen: (t: TaskRow) => void;
+  onCardClick: (e: React.MouseEvent, t: TaskRow) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
   const {
