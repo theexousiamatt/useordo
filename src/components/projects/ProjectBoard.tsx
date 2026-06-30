@@ -555,8 +555,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
               cardHandlers={cardHandlers}
               inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
-              onSelectCard={handleSelect}
-              onOpenCard={openTask}
+              onCardClick={handleCardClick}
               onAdd={(title) => createTask.mutate({ title, status: col.id })}
               adding={createTask.isPending}
             />
