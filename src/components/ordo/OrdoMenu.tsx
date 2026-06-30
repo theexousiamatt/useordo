@@ -180,7 +180,12 @@ export function OrdoContextMenu({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <ContextMenuContent className={CONTENT_CLASS}>
+      <ContextMenuContent
+        className={CONTENT_CLASS}
+        // Don't yank focus back to the trigger on close — an action may have
+        // moved focus into an inline editor (e.g. Rename) that must keep it.
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         {renderConfig(config, CONTEXT_PRIMS)}
       </ContextMenuContent>
     </ContextMenu>
