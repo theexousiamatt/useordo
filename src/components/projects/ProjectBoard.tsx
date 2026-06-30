@@ -842,18 +842,17 @@ function SortableTask({
             aria-pressed={selected}
             aria-label={`Task: ${task.title}`}
             onClick={(e) => {
-              // Modifier-click manages multi-select; a plain click opens deep work.
-              if (e.metaKey || e.ctrlKey || e.shiftKey) {
-                onSelect(e, task.id);
-              } else {
-                onSelect(e, task.id);
-                onOpen(task);
-              }
+              // Interaction precedence: rename / context menu / popover take
+              // over the card entirely. Otherwise resolve exactly one outcome
+              // (range-select, toggle-select, or open) from the modifier keys.
+              if (renaming || popoverMode) return;
+              onCardClick(e, task);
             }}
             onKeyDown={(e) => {
+              if (renaming || popoverMode) return;
               if (e.key === "Enter") {
                 e.preventDefault();
-                onOpen(task);
+                onCardClick(e as unknown as React.MouseEvent, task);
               }
             }}
             className={cn(
