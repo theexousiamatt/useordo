@@ -367,23 +367,53 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     onAction: (action) => stub(action),
   };
 
-  // ---------------- Selection ----------------
-  const handleSelect = useCallback(
-    (e: React.MouseEvent, taskId: string) => {
-      setFocusedId(taskId);
-      if (e.metaKey || e.ctrlKey) {
-        setSelected((prev) => {
-          const next = new Set(prev);
-          next.has(taskId) ? next.delete(taskId) : next.add(taskId);
-          return next;
-        });
-      } else if (e.shiftKey) {
-        setSelected((prev) => new Set(prev).add(taskId));
+  // ---------------- Selection (explicit modes only) ----------------
+  // Plain clicks NEVER select — they open the task. Selection happens only via
+  // Cmd/Ctrl (toggle one) or Shift (extend a range from the last anchor).
+  const toggleSelect = useCallback((taskId: string) => {
+    setFocusedId(taskId);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
+      return next;
+    });
+  }, []);
+
+  const rangeSelect = useCallback(
+    (taskId: string) => {
+      const order = items.map((t) => t.id);
+      const anchor = focusedId ?? taskId;
+      const a = order.indexOf(anchor);
+      const b = order.indexOf(taskId);
+      if (a === -1 || b === -1) {
+        toggleSelect(taskId);
+        return;
+      }
+      const [lo, hi] = a < b ? [a, b] : [b, a];
+      setSelected((prev) => {
+        const next = new Set(prev);
+        for (let i = lo; i <= hi; i++) next.add(order[i]);
+        return next;
+      });
+    },
+    [items, focusedId, toggleSelect],
+  );
+
+  // Single deterministic entry point for card pointer interactions. Resolves
+  // exactly one outcome per click based on the active modifier keys.
+  const handleCardClick = useCallback(
+    (e: React.MouseEvent, task: TaskRow) => {
+      if (e.shiftKey) {
+        rangeSelect(task.id);
+      } else if (e.metaKey || e.ctrlKey) {
+        toggleSelect(task.id);
       } else {
-        setSelected(new Set([taskId]));
+        // Plain click: open only. Do not touch selection.
+        setFocusedId(task.id);
+        openTask(task);
       }
     },
-    [],
+    [rangeSelect, toggleSelect, openTask],
   );
 
   // ---------------- Keyboard shortcuts ----------------
@@ -525,8 +555,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
               cardHandlers={cardHandlers}
               inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
-              onSelectCard={handleSelect}
-              onOpenCard={openTask}
+              onCardClick={handleCardClick}
               onAdd={(title) => createTask.mutate({ title, status: col.id })}
               adding={createTask.isPending}
             />
@@ -605,8 +634,7 @@ function Column({
   cardHandlers,
   inlineCtx,
   columnHandlers,
-  onSelectCard,
-  onOpenCard,
+  onCardClick,
   onAdd,
   adding,
 }: {
@@ -620,8 +648,7 @@ function Column({
   cardHandlers: TaskMenuHandlers;
   inlineCtx: BoardInlineCtx;
   columnHandlers: ColumnMenuHandlers;
-  onSelectCard: (e: React.MouseEvent, id: string) => void;
-  onOpenCard: (t: TaskRow) => void;
+  onCardClick: (e: React.MouseEvent, t: TaskRow) => void;
   onAdd: (title: string) => void;
   adding: boolean;
 }) {
@@ -710,8 +737,7 @@ function Column({
               selected={selected.has(t.id)}
               handlers={cardHandlers}
               inlineCtx={inlineCtx}
-              onSelect={onSelectCard}
-              onOpen={onOpenCard}
+              onCardClick={onCardClick}
             />
 
           ))}
@@ -756,15 +782,13 @@ function SortableTask({
   selected,
   handlers,
   inlineCtx,
-  onSelect,
-  onOpen,
+  onCardClick,
 }: {
   task: TaskRow;
   selected: boolean;
   handlers: TaskMenuHandlers;
   inlineCtx: BoardInlineCtx;
-  onSelect: (e: React.MouseEvent, id: string) => void;
-  onOpen: (t: TaskRow) => void;
+  onCardClick: (e: React.MouseEvent, t: TaskRow) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
   const {
@@ -818,18 +842,17 @@ function SortableTask({
             aria-pressed={selected}
             aria-label={`Task: ${task.title}`}
             onClick={(e) => {
-              // Modifier-click manages multi-select; a plain click opens deep work.
-              if (e.metaKey || e.ctrlKey || e.shiftKey) {
-                onSelect(e, task.id);
-              } else {
-                onSelect(e, task.id);
-                onOpen(task);
-              }
+              // Interaction precedence: rename / context menu / popover take
+              // over the card entirely. Otherwise resolve exactly one outcome
+              // (range-select, toggle-select, or open) from the modifier keys.
+              if (renaming || popoverMode) return;
+              onCardClick(e, task);
             }}
             onKeyDown={(e) => {
+              if (renaming || popoverMode) return;
               if (e.key === "Enter") {
                 e.preventDefault();
-                onOpen(task);
+                onCardClick(e as unknown as React.MouseEvent, task);
               }
             }}
             className={cn(
