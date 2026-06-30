@@ -281,8 +281,19 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
   const patchTask = useCallback(
-    (id: string, patch: Partial<TaskRow>) => update.mutate({ id, ...patch }),
-    [update],
+    (id: string, patch: Partial<TaskRow>) => {
+      // Apply the change to local board state AND the query cache synchronously
+      // so the new value is on screen the instant the editor closes — before
+      // the mutation's async onMutate runs. This prevents a one-frame flash of
+      // the stale title when exiting rename mode. The mutation then persists in
+      // the background and reconciles silently on success.
+      setItems((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+      qc.setQueryData<TaskRow[]>(["project-tasks", projectId], (old) =>
+        (old ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)),
+      );
+      update.mutate({ id, ...patch });
+    },
+    [update, qc, projectId],
   );
 
   const startInline = useCallback((t: TaskRow, mode: InlineMode) => setInline({ id: t.id, mode }), []);
