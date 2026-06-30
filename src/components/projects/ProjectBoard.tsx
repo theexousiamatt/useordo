@@ -737,8 +737,7 @@ function Column({
               selected={selected.has(t.id)}
               handlers={cardHandlers}
               inlineCtx={inlineCtx}
-              onSelect={onSelectCard}
-              onOpen={onOpenCard}
+              onCardClick={onCardClick}
             />
 
           ))}
