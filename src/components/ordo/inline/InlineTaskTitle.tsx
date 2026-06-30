@@ -108,8 +108,14 @@ export function InlineTaskTitle({ value, onSave, onCancel, className }: InlineTa
           }
         }}
         onBlur={() => {
-          // Blur saves; an empty value cancels rather than blocking focus loss.
+          // Ignore spurious blur right after entering edit mode (menu close /
+          // re-render). Reclaim focus instead of exiting.
           if (committed.current) return;
+          if (focusedAt.current === 0 || Date.now() - focusedAt.current < 250) {
+            requestAnimationFrame(() => ref.current?.focus());
+            return;
+          }
+          // Intentional blur saves; an empty value cancels.
           if (!read()) cancel();
           else commit();
         }}
