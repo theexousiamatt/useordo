@@ -205,7 +205,11 @@ export function OrdoOverflowMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className={CONTENT_CLASS}>
+      <DropdownMenuContent
+        align={align}
+        className={CONTENT_CLASS}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         {renderConfig(config, DROPDOWN_PRIMS)}
       </DropdownMenuContent>
     </DropdownMenu>
