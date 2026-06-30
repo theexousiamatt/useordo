@@ -648,8 +648,7 @@ function Column({
   cardHandlers: TaskMenuHandlers;
   inlineCtx: BoardInlineCtx;
   columnHandlers: ColumnMenuHandlers;
-  onSelectCard: (e: React.MouseEvent, id: string) => void;
-  onOpenCard: (t: TaskRow) => void;
+  onCardClick: (e: React.MouseEvent, t: TaskRow) => void;
   onAdd: (title: string) => void;
   adding: boolean;
 }) {
