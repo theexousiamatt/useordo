@@ -634,8 +634,7 @@ function Column({
   cardHandlers,
   inlineCtx,
   columnHandlers,
-  onSelectCard,
-  onOpenCard,
+  onCardClick,
   onAdd,
   adding,
 }: {
