@@ -174,6 +174,7 @@ export default function ProjectDetail() {
             workspaceId={project.workspace_id}
             tasks={tasks}
             members={assignableMembers}
+            initialTaskId={deepLinkedTaskId}
           />
         </TabsContent>
         <TabsContent value="milestones" className="mt-6">
