@@ -78,6 +78,9 @@ import {
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 import { useProjects } from "@/hooks/useProjects";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { useAuth } from "@/hooks/useAuth";
+import { sendAppEmail } from "@/lib/email";
+import { dateShort } from "@/lib/format";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -86,6 +89,8 @@ interface Props {
   workspaceId: string;
   tasks: TaskRow[];
   members: ProjectMemberProfile[];
+  /** When set (e.g. from a ?task= deep link), open this task's drawer on mount. */
+  initialTaskId?: string | null;
 }
 
 type PendingDelete = { type: "single"; task: TaskRow } | { type: "bulk"; ids: string[] } | null;
@@ -113,9 +118,10 @@ interface BoardInlineCtx {
 
 const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
 
-export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) {
+export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId }: Props) {
   const qc = useQueryClient();
-  const { role } = useWorkspace();
+  const { role, currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
   const createTask = useCreateTask(projectId, workspaceId);
   const reorder = useReorderTasks(projectId);
   const update = useUpdateTask(projectId);
@@ -258,9 +264,72 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     [assigneesMap, memberMap],
   );
 
+  // Fire branded assignment emails for members newly added to a task.
+  // Email failures are logged only — they never block or roll back the
+  // assignment, which has already committed to the database at this point.
+  const notifyAssigned = useCallback(
+    (task: TaskRow, addedIds: string[]) => {
+      const project = (allProjects ?? []).find((p) => p.id === projectId);
+      const projectName = project?.name ?? "your project";
+      const workspaceName = currentWorkspace?.name ?? "Ordo";
+      const assignerName =
+        members.find((m) => m.user_id === user?.id)?.full_name ?? user?.email ?? "A teammate";
+      const labels = labelChipsFor(task.id).map((c) => c.name);
+      const dueDate = task.due_date ? dateShort(task.due_date) : undefined;
+      const description = task.description
+        ? task.description.length > 240
+          ? `${task.description.slice(0, 240)}…`
+          : task.description
+        : undefined;
+      const taskUrl = `${window.location.origin}/projects/${projectId}?task=${task.id}`;
+
+      for (const uid of addedIds) {
+        const member = members.find((m) => m.user_id === uid);
+        // Never email yourself; skip members without a resolvable email.
+        if (!member?.email || uid === user?.id) continue;
+        void sendAppEmail({
+          template: "task-assigned",
+          to: member.email,
+          // Timestamped so re-assigning a previously removed member still sends.
+          idempotencyKey: `task-assigned-${task.id}-${uid}-${Date.now()}`,
+          data: {
+            assigneeName: member.full_name ?? "there",
+            workspaceName,
+            projectName,
+            taskTitle: task.title,
+            taskDescription: description,
+            dueDate,
+            labels,
+            assignerName,
+            assignedAt: new Date().toLocaleString(),
+            taskUrl,
+          },
+        }).catch((err) => {
+          console.error("[task-assigned] email delivery failed", { taskId: task.id, uid, err });
+        });
+      }
+    },
+    [allProjects, projectId, currentWorkspace, members, user, labelChipsFor],
+  );
+
   const setTaskAssignees = useCallback(
-    (taskId: string, userIds: string[]) => setAssignees.mutate({ taskId, userIds }),
-    [setAssignees],
+    (taskId: string, userIds: string[]) => {
+      // Diff against the current assignees so we only email brand-new additions,
+      // never removals or unchanged members.
+      const prev = new Set(assigneesMap?.get(taskId) ?? []);
+      const added = userIds.filter((id) => !prev.has(id));
+      setAssignees.mutate(
+        { taskId, userIds },
+        {
+          onSuccess: () => {
+            if (added.length === 0) return;
+            const task = items.find((t) => t.id === taskId);
+            if (task) notifyAssigned(task, added);
+          },
+        },
+      );
+    },
+    [setAssignees, assigneesMap, items, notifyAssigned],
   );
 
   const sensors = useSensors(
@@ -277,6 +346,17 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) 
     setEditTask(t);
     setEditOpen(true);
   }, []);
+
+  // Deep-link: open the drawer for the task referenced by ?task= once loaded.
+  const deepLinkedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialTaskId || deepLinkedRef.current === initialTaskId) return;
+    const target = items.find((t) => t.id === initialTaskId);
+    if (target) {
+      deepLinkedRef.current = initialTaskId;
+      openTask(target);
+    }
+  }, [initialTaskId, items, openTask]);
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 

@@ -33,6 +33,7 @@ export interface ProjectMemberProfile {
   role: ProjectMemberRole;
   full_name: string | null;
   avatar_url: string | null;
+  email?: string | null;
 }
 
 export interface ProjectWithMembers extends ProjectRow {

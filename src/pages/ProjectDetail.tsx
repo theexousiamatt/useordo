@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CalendarDays, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import { useProjectPermissions } from "@/hooks/useProjectPermissions";
 import {
   useProject,
   useProjectMembers,
+  useAssignableMembers,
   useProjectTasks,
 } from "@/hooks/useProjectData";
 import {
@@ -40,8 +41,11 @@ import { dateShort } from "@/lib/format";
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const deepLinkedTaskId = searchParams.get("task");
   const { data: project, isLoading, isError, refetch } = useProject(id);
   const { data: members = [] } = useProjectMembers(id);
+  const { data: assignableMembers = [] } = useAssignableMembers(id);
   const { data: tasks = [] } = useProjectTasks(id);
   const perms = useProjectPermissions(project);
   const archiveProject = useArchiveProject();
@@ -169,7 +173,8 @@ export default function ProjectDetail() {
             projectId={project.id}
             workspaceId={project.workspace_id}
             tasks={tasks}
-            members={members}
+            members={assignableMembers}
+            initialTaskId={deepLinkedTaskId}
           />
         </TabsContent>
         <TabsContent value="milestones" className="mt-6">
