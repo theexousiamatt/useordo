@@ -41,6 +41,8 @@ import { dateShort } from "@/lib/format";
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const deepLinkedTaskId = searchParams.get("task");
   const { data: project, isLoading, isError, refetch } = useProject(id);
   const { data: members = [] } = useProjectMembers(id);
   const { data: assignableMembers = [] } = useAssignableMembers(id);
