@@ -100,6 +100,75 @@ export function useProjectMembers(projectId?: string) {
 }
 
 /**
+ * Members that can be assigned to a task in this project.
+ *
+ * Precedence:
+ *  1. Explicit project members (future project-scoped permissions), if any exist.
+ *  2. Otherwise, all active workspace collaborators (owner/manager/member).
+ *
+ * Clients are intentionally excluded — they cannot be assigned to tasks.
+ * Every row is enriched with profile data (name, avatar, email) and workspace
+ * role so the picker can render a full, non-mock member list.
+ */
+export function useAssignableMembers(projectId?: string) {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+  return useQuery({
+    queryKey: ["assignable-members", projectId, workspaceId],
+    enabled: !!projectId && !!workspaceId,
+    queryFn: async (): Promise<ProjectMemberProfile[]> => {
+      // 1. Explicit project members take precedence when present.
+      const { data: pm, error: pmErr } = await supabase
+        .from("project_members")
+        .select("user_id, role")
+        .eq("project_id", projectId!);
+      if (pmErr) throw pmErr;
+
+      let rows: { user_id: string; role: ProjectMemberRole }[] = (pm ?? []).map((m) => ({
+        user_id: m.user_id,
+        role: m.role as ProjectMemberRole,
+      }));
+
+      // 2. Fall back to active workspace collaborators (excluding clients).
+      if (rows.length === 0) {
+        const { data: wm, error: wmErr } = await supabase
+          .from("workspace_members")
+          .select("user_id, role, status")
+          .eq("workspace_id", workspaceId!)
+          .eq("status", "active");
+        if (wmErr) throw wmErr;
+        rows = (wm ?? [])
+          .filter((m) => ["owner", "manager", "member"].includes(m.role))
+          .map((m) => ({ user_id: m.user_id, role: m.role as ProjectMemberRole }));
+
+        // Ensure the workspace owner is always assignable, even without a row.
+        const ownerId = currentWorkspace?.owner_id;
+        if (ownerId && !rows.some((r) => r.user_id === ownerId)) {
+          rows.unshift({ user_id: ownerId, role: "owner" as ProjectMemberRole });
+        }
+      }
+
+      const ids = rows.map((r) => r.user_id);
+      if (ids.length === 0) return [];
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, email")
+        .in("id", ids);
+      const map = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+      return rows.map((r) => ({
+        user_id: r.user_id,
+        role: r.role,
+        full_name: map.get(r.user_id)?.full_name ?? null,
+        avatar_url: map.get(r.user_id)?.avatar_url ?? null,
+        email: (map.get(r.user_id) as { email?: string | null } | undefined)?.email ?? null,
+      }));
+    },
+  });
+}
+
+/**
  * Fetch the multi-assignee map for every task in a project.
  * Returns a Map of task_id -> array of assigned user ids.
  */

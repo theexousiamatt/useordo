@@ -26,6 +26,7 @@ import { useProjectPermissions } from "@/hooks/useProjectPermissions";
 import {
   useProject,
   useProjectMembers,
+  useAssignableMembers,
   useProjectTasks,
 } from "@/hooks/useProjectData";
 import {
@@ -42,6 +43,7 @@ export default function ProjectDetail() {
   const navigate = useNavigate();
   const { data: project, isLoading, isError, refetch } = useProject(id);
   const { data: members = [] } = useProjectMembers(id);
+  const { data: assignableMembers = [] } = useAssignableMembers(id);
   const { data: tasks = [] } = useProjectTasks(id);
   const perms = useProjectPermissions(project);
   const archiveProject = useArchiveProject();
@@ -169,7 +171,7 @@ export default function ProjectDetail() {
             projectId={project.id}
             workspaceId={project.workspace_id}
             tasks={tasks}
-            members={members}
+            members={assignableMembers}
           />
         </TabsContent>
         <TabsContent value="milestones" className="mt-6">
