@@ -118,7 +118,7 @@ interface BoardInlineCtx {
 
 const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
 
-export function ProjectBoard({ projectId, workspaceId, tasks, members }: Props) {
+export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId }: Props) {
   const qc = useQueryClient();
   const { role, currentWorkspace } = useWorkspace();
   const { user } = useAuth();
