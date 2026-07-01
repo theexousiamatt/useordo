@@ -89,6 +89,8 @@ interface Props {
   workspaceId: string;
   tasks: TaskRow[];
   members: ProjectMemberProfile[];
+  /** When set (e.g. from a ?task= deep link), open this task's drawer on mount. */
+  initialTaskId?: string | null;
 }
 
 type PendingDelete = { type: "single"; task: TaskRow } | { type: "bulk"; ids: string[] } | null;
