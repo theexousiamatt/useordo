@@ -347,6 +347,17 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     setEditOpen(true);
   }, []);
 
+  // Deep-link: open the drawer for the task referenced by ?task= once loaded.
+  const deepLinkedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialTaskId || deepLinkedRef.current === initialTaskId) return;
+    const target = items.find((t) => t.id === initialTaskId);
+    if (target) {
+      deepLinkedRef.current = initialTaskId;
+      openTask(target);
+    }
+  }, [initialTaskId, items, openTask]);
+
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
   const patchTask = useCallback(
