@@ -281,7 +281,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           ? `${task.description.slice(0, 240)}…`
           : task.description
         : undefined;
-      const taskUrl = `${window.location.origin}/projects/${projectId}?task=${task.id}`;
+      const taskUrl = projectUrl(projectId, task.id);
 
       for (const uid of addedIds) {
         const member = members.find((m) => m.user_id === uid);
