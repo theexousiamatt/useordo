@@ -19,7 +19,7 @@ const Email = ({
   projectName = 'your project',
   reviewerName = 'Your client',
   feedback,
-  url = 'https://useordo.app',
+  url = APP_URL,
 }: Props) => (
   <OrdoEmailLayout
     siteName="Ordo"
