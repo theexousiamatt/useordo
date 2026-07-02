@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace, type WorkspaceRole } from "@/hooks/useWorkspace";
 import { sendAppEmail } from "@/lib/email";
+import { inviteUrl } from "@/lib/appUrl";
 import { toast } from "sonner";
 
 export interface TeamMember {
