@@ -382,7 +382,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 
   const copyLink = useCallback(
     (t: TaskRow) => {
-      navigator.clipboard?.writeText(`${window.location.origin}/projects/${projectId}?task=${t.id}`);
+      navigator.clipboard?.writeText(projectUrl(projectId, t.id));
       toast.success("Task link copied");
     },
     [projectId],
