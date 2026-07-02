@@ -18,6 +18,7 @@ import {
 export default function SignIn() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const [params] = useSearchParams();
   const { signIn: socialSignIn, pending: socialPending } = useSocialAuth();
 
@@ -28,8 +29,20 @@ export default function SignIn() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Where to return after a successful login. Priority:
+  // 1. The protected route the user was bounced from (state.from), so email
+  //    deep links like /projects/:id?task=:id survive the auth round-trip.
+  // 2. A `redirect` query param (absolute-path only, to avoid open redirects).
+  // 3. Home.
+  const fromState = (routerLocation.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+  const redirectParam = params.get("redirect");
+  const returnTo =
+    (fromState?.pathname ? `${fromState.pathname}${fromState.search ?? ""}` : null) ??
+    (redirectParam && redirectParam.startsWith("/") ? redirectParam : null) ??
+    "/";
+
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to={returnTo} replace />;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +54,9 @@ export default function SignIn() {
       setError(friendlyAuthError(error));
       return;
     }
-    navigate("/");
+    navigate(returnTo, { replace: true });
   };
+
 
   return (
     <AuthLayout
