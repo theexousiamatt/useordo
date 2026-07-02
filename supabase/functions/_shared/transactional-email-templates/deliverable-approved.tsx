@@ -17,7 +17,7 @@ const Email = ({
   deliverableTitle = 'a deliverable',
   projectName = 'your project',
   reviewerName = 'Your client',
-  url = 'https://useordo.app',
+  url = APP_URL,
 }: Props) => (
   <OrdoEmailLayout
     siteName="Ordo"
