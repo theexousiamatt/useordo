@@ -16,7 +16,7 @@ const Email = ({
   recipientName = 'there',
   title = 'Something happened in your workspace',
   message = 'There is a new update waiting for you in Ordo.',
-  url = 'https://useordo.app',
+  url = APP_URL,
   actionLabel = 'Open Ordo',
 }: Props) => (
   <OrdoEmailLayout siteName="Ordo" categoryLabel="Notification" preview={title}>
