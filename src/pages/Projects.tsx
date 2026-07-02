@@ -30,6 +30,7 @@ import {
 import { useProjectPermissions } from "@/hooks/useProjectPermissions";
 import { dateShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { projectUrl } from "@/lib/appUrl";
 
 export default function Projects() {
   const navigate = useNavigate();
