@@ -238,5 +238,5 @@ export function useTeam() {
 }
 
 export function inviteLink(token: string) {
-  return `${window.location.origin}/auth/invite?token=${encodeURIComponent(token)}`;
+  return inviteUrl(token);
 }
