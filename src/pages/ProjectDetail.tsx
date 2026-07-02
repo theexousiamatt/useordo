@@ -36,6 +36,7 @@ import {
 } from "@/hooks/useProjects";
 
 import { dateShort } from "@/lib/format";
+import { projectUrl } from "@/lib/appUrl";
 
 
 export default function ProjectDetail() {
