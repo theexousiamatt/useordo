@@ -27,7 +27,7 @@ const Email = ({
   labels = [],
   assignerName = 'A teammate',
   assignedAt,
-  taskUrl = 'https://useordo.app',
+  taskUrl = APP_URL,
 }: Props) => (
   <OrdoEmailLayout
     siteName="Ordo"
