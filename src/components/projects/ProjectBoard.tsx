@@ -80,6 +80,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAuth } from "@/hooks/useAuth";
 import { sendAppEmail } from "@/lib/email";
+import { projectUrl } from "@/lib/appUrl";
 import { dateShort } from "@/lib/format";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
