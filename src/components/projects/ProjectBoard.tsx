@@ -80,6 +80,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAuth } from "@/hooks/useAuth";
 import { sendAppEmail } from "@/lib/email";
+import { projectUrl } from "@/lib/appUrl";
 import { dateShort } from "@/lib/format";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -281,7 +282,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           ? `${task.description.slice(0, 240)}…`
           : task.description
         : undefined;
-      const taskUrl = `${window.location.origin}/projects/${projectId}?task=${task.id}`;
+      const taskUrl = projectUrl(projectId, task.id);
 
       for (const uid of addedIds) {
         const member = members.find((m) => m.user_id === uid);
@@ -381,7 +382,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 
   const copyLink = useCallback(
     (t: TaskRow) => {
-      navigator.clipboard?.writeText(`${window.location.origin}/projects/${projectId}?task=${t.id}`);
+      navigator.clipboard?.writeText(projectUrl(projectId, t.id));
       toast.success("Task link copied");
     },
     [projectId],

@@ -36,6 +36,7 @@ import {
 } from "@/hooks/useProjects";
 
 import { dateShort } from "@/lib/format";
+import { projectUrl } from "@/lib/appUrl";
 
 
 export default function ProjectDetail() {
@@ -83,7 +84,7 @@ export default function ProjectDetail() {
       }
     },
     onCopyLink: (p) => {
-      navigator.clipboard.writeText(`${window.location.origin}/projects/${p.id}`);
+      navigator.clipboard.writeText(projectUrl(p.id));
       toast.success("Link copied.");
     },
     onDelete: () => setDeleteOpen(true),

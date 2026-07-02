@@ -2,6 +2,7 @@
 import * as React from 'npm:react@18.3.1'
 import { OrdoEmailLayout, styles, Link, Text } from './_layout.tsx'
 import type { TemplateEntry } from './registry.ts'
+import { APP_URL } from '../app-url.ts'
 
 interface Props {
   recipientName?: string
@@ -18,7 +19,7 @@ const Email = ({
   projectName = 'your project',
   reviewerName = 'Your client',
   feedback,
-  url = 'https://useordo.app',
+  url = APP_URL,
 }: Props) => (
   <OrdoEmailLayout
     siteName="Ordo"

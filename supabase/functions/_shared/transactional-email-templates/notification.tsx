@@ -2,6 +2,7 @@
 import * as React from 'npm:react@18.3.1'
 import { OrdoEmailLayout, styles, Link, Text } from './_layout.tsx'
 import type { TemplateEntry } from './registry.ts'
+import { APP_URL } from '../app-url.ts'
 
 interface Props {
   recipientName?: string
@@ -15,7 +16,7 @@ const Email = ({
   recipientName = 'there',
   title = 'Something happened in your workspace',
   message = 'There is a new update waiting for you in Ordo.',
-  url = 'https://useordo.app',
+  url = APP_URL,
   actionLabel = 'Open Ordo',
 }: Props) => (
   <OrdoEmailLayout siteName="Ordo" categoryLabel="Notification" preview={title}>
