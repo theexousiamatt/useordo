@@ -73,7 +73,7 @@ export default function Projects() {
       }
     },
     onCopyLink: (p) => {
-      navigator.clipboard.writeText(`${window.location.origin}/projects/${p.id}`);
+      navigator.clipboard.writeText(projectUrl(p.id));
       toast.success("Link copied.");
     },
     onDelete: (p) => setDeleteTarget(p),
