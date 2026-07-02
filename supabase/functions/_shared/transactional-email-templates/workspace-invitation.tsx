@@ -15,7 +15,7 @@ const Email = ({
   inviterName = 'Someone',
   workspaceName = 'a workspace',
   role = 'member',
-  acceptUrl = 'https://useordo.app',
+  acceptUrl = APP_URL,
 }: Props) => (
   <OrdoEmailLayout
     siteName="Ordo"
