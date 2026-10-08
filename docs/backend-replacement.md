@@ -58,3 +58,7 @@ Hostinger accepted an authorized test invitation and the owner confirmed inbox r
 ## Independence from the previous builder
 
 Removed the builder SDK, editor tagger, unused authentication adapter, planning metadata, obsolete email-provider functions, and stale binary lockfile. Both development and production use the owned Supabase backend. GitHub installation access and both OAuth/user app authorizations were revoked for the entire account at the owner’s request. Hostinger access remains connected. Historical migration and audit records remain for traceability; they are not active dependencies. Build and TypeScript checks passed.
+
+## Hostinger Git deployment without a build step
+
+The first live deployment served source index.html with /src/main.tsx, which browsers cannot execute as a built React application. For Hostinger's plain Git deployment into public_html, select `codex/hostinger-static`; that branch contains the compiled site at its root. The source remains on `codex/owned-supabase-backend`. Run `scripts/publish-hostinger.sh` from the source checkout to rebuild and publish future updates. It updates the deployment branch with a normal push, never a force push. A source push alone does not update the static branch. Retain the included .htaccess for direct routes.
