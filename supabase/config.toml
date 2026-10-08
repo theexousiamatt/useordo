@@ -12,6 +12,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.send-transactional-email]
+# Gateway and handler both verify the user; recipients come from authorized events.
 verify_jwt = true
 
 [functions.preview-transactional-email]

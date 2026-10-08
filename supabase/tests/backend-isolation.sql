@@ -41,6 +41,15 @@ DO $$ DECLARE blocked boolean:=false; BEGIN
  EXCEPTION WHEN OTHERS THEN blocked:=true; END;
  IF NOT blocked THEN RAISE EXCEPTION 'Invitation replay succeeded'; END IF;
 END $$;
+DO $$ DECLARE claim jsonb; BEGIN
+ claim:=public.claim_smtp_delivery('test-mail-event','20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','test@example.invalid','workspace-invitation');
+ IF claim->>'state'<>'claimed' THEN RAISE EXCEPTION 'SMTP claim failed'; END IF;
+ claim:=public.claim_smtp_delivery('test-mail-event','20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','test@example.invalid','workspace-invitation');
+ IF claim->>'state'<>'busy' THEN RAISE EXCEPTION 'Concurrent email deduplication failed'; END IF;
+ UPDATE public.smtp_deliveries SET status='sent' WHERE event_key='test-mail-event';
+ claim:=public.claim_smtp_delivery('test-mail-event','20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','test@example.invalid','workspace-invitation');
+ IF claim->>'state'<>'sent' THEN RAISE EXCEPTION 'Sent email deduplication failed'; END IF;
+END $$;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000002',true);
 SELECT set_config('request.jwt.claim.role','authenticated',true);
@@ -62,4 +71,4 @@ DO $$ DECLARE blocked boolean:=false; BEGIN
 END $$;
 RESET ROLE;
 ROLLBACK;
-SELECT 'PASS: client isolation, hidden tasks/drafts, authorized reviews, review replay, email-bound invite and invite replay' AS result;
+SELECT 'PASS: client isolation, hidden tasks/drafts, authorized reviews, review replay, email-bound invite, invite replay and SMTP deduplication' AS result;

@@ -34,7 +34,7 @@ try:
   expect(role+' password authentication',status,200)
   accounts.append({'id':user['id'],'email':email,'token':session['access_token']})
  owner,client=accounts;owner_token=owner['token']
- for fn in ['create-workspace','list-workspaces','duplicate-project','delete-workspace','generate-project-plan']:
+ for fn in ['create-workspace','list-workspaces','duplicate-project','delete-workspace','generate-project-plan','send-transactional-email']:
   status,_=call('/functions/v1/'+fn,{})
   expect(fn+' rejects unauthenticated caller',status,401)
  status,result=call('/functions/v1/create-workspace',{'name':'Temporary integration test','slug':'ordo-test-'+uuid.uuid4().hex,'type':'agency'},token=owner_token)
@@ -44,6 +44,13 @@ try:
  assert any(w['id']==workspace for w in result['workspaces'])
  status,invites=call('/rest/v1/workspace_invitations',{'workspace_id':workspace,'email':client['email'],'role':'client','invited_by':owner['id']},token=owner_token)
  expect('owner creates client invitation',status,201);invite=invites[0]
+ status,result=call('/functions/v1/send-transactional-email',{'templateName':'workspace-invitation','entityId':invite['id'],'dryRun':True,'recipientEmail':'untrusted@example.invalid'},token=owner_token)
+ if status!=200: print('Mail handler error:', result.get('error') or result.get('message'))
+ expect('owner email preparation without sending',status,200)
+ status,_=call('/functions/v1/send-transactional-email',{'templateName':'workspace-invitation','entityId':invite['id'],'dryRun':True},token=client['token'])
+ expect('email endpoint rejects unrelated user',status,403)
+ status,_=call('/functions/v1/send-transactional-email',{'templateName':'notification','entityId':str(uuid.uuid4()),'dryRun':True},token=owner_token)
+ expect('email endpoint rejects fabricated event',status,403)
  status,_=call('/functions/v1/accept-invitation',{'token':invite['token'],'accept':False})
  expect('token-based invitation preview with publishable key',status,200)
  status,_=call('/functions/v1/accept-invitation',{'token':invite['token'],'accept':True},token=owner_token)

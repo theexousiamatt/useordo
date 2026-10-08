@@ -131,6 +131,7 @@ export function useTeam() {
         (inserted ?? []).map((inv: any) =>
           sendAppEmail({
             template: "workspace-invitation",
+            entityId: inv.id,
             to: inv.email,
             idempotencyKey: `invite-${inv.id}`,
             data: {
@@ -209,6 +210,7 @@ export function useTeam() {
       if (updated) {
         const delivered = await sendAppEmail({
           template: "workspace-invitation",
+          entityId: updated.id,
           to: updated.email,
           idempotencyKey: `invite-resend-${updated.id}-${Date.now()}`,
           data: {

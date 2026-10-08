@@ -3,6 +3,7 @@ import { Check, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sendAppEmail } from "@/lib/email";
 import type { ActionItem } from "@/hooks/useClientDashboard";
 
 interface ApprovalCardProps {
@@ -14,11 +15,16 @@ export function ApprovalCard({ item }: ApprovalCardProps) {
 
   const mutation = useMutation({
     mutationFn: async (status: "approved" | "changes_requested") => {
-      const { error } = await supabase.rpc("review_deliverable", {
+      const { data: reviewId, error } = await supabase.rpc("review_deliverable", {
         _id: item.id,
         _decision: status === "approved" ? "approved" : "rejected",
       });
       if (error) throw error;
+      if (reviewId) void sendAppEmail({
+        template: status === "approved" ? "deliverable-approved" : "deliverable-rejected",
+        entityId: reviewId,
+        idempotencyKey: `review-${reviewId}`,
+      });
       return status;
     },
     onSuccess: (status) => {

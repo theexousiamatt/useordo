@@ -14,7 +14,9 @@ export type OrdoEmailTemplate =
 
 export async function sendAppEmail(params: {
   template: OrdoEmailTemplate;
-  to: string;
+  to?: string;
+  entityId: string;
+  recipientId?: string;
   idempotencyKey: string;
   data?: Record<string, unknown>;
 }): Promise<boolean> {
@@ -22,6 +24,8 @@ export async function sendAppEmail(params: {
     const { error } = await supabase.functions.invoke("send-transactional-email", {
       body: {
         templateName: params.template,
+        entityId: params.entityId,
+        recipientId: params.recipientId,
         recipientEmail: params.to,
         idempotencyKey: params.idempotencyKey,
         templateData: params.data ?? {},

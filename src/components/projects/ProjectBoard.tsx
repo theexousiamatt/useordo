@@ -290,6 +290,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         if (!member?.email || uid === user?.id) continue;
         void sendAppEmail({
           template: "task-assigned",
+          entityId: task.id,
+          recipientId: uid,
           to: member.email,
           // Timestamped so re-assigning a previously removed member still sends.
           idempotencyKey: `task-assigned-${task.id}-${uid}-${Date.now()}`,

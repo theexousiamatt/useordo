@@ -16,12 +16,12 @@ Before switching production:
 6. Verify sign-up, workspace creation, invitations, two-client isolation, files, approvals, notifications, and password reset.
 7. Update production build variables and deploy only after all checks pass. Existing users must create new accounts because this is an empty backend.
 
-Status: local connection prepared; database deployment and production cutover pending.
+Status: database and core functions deployed and verified; provider setup and production cutover pending.
 
 ## Deployment progress — 8 October 2026
 
 - New project linked through the owner's Supabase CLI authentication.
-- Existing schema migrations plus two owned-backend security migrations applied.
+- Existing schema migrations plus owned-backend security, project visibility, and SMTP delivery migrations applied.
 - Historical invitation migration corrected to use the `extensions` cryptography schema.
 - Email-bound, atomic invitation acceptance implemented and deployed.
 - Client review RPC deployed; decisions create an audit row and an owner notification. Client UI uses deliverables instead of private tasks.
@@ -29,7 +29,7 @@ Status: local connection prepared; database deployment and production cutover pe
 - Google OAuth changed locally from Lovable authentication to direct Supabase authentication. Google/GitHub provider credentials still require dashboard configuration.
 - `APP_URL` set to `https://ordo.inspirarestudio.com`.
 - AI endpoint deployed with verified-user/workspace checks. Independent AI provider credentials are not configured; authorized users receive a clear 503 until configured.
-- Email sending has not been deployed: the old implementation depends on Lovable's email service and lacks adequate recipient authorization. Frontend invitation messages now distinguish created invitations from successful email delivery.
+- Hostinger SMTP sending is deployed with verified-user/event authorization, derived recipients, and persistent duplicate-send protection. Host and sender are configured; SMTP_PASSWORD must be set privately before delivery. Supabase Auth custom SMTP must be configured separately. See hostinger-email-setup.md. Frontend invitation messages distinguish created invitations from successful email delivery.
 - Owner explicitly approved in-function token validation for invitation, duplication and deletion. The compatibility configuration is deployed and tested. Each modifying operation still requires a verified user and the relevant permissions.
 - Production frontend environment has not been switched; the old backend remains in the committed `.env`. Local `.env.local` targets the new backend.
 
@@ -44,3 +44,7 @@ The replacement is not yet ready for production cutover. Remaining steps: authen
 Owner approved both compatibility and AI deployment changes. Real Supabase Auth integration tests passed for password sign-in, workspace creation/listing, invitation preview with the publishable key, rejection of wrong-email acceptance, correct-email acceptance, replay rejection, owner project creation, client assignment, deliverable submission/approval, owner duplication, rejection of client duplication/deletion, and unauthenticated rejection on protected endpoints. AI requests from clients return 403; authorized owner requests return 503 because provider credentials are absent. Temporary accounts/workspaces were deleted, and the private key file was removed.
 
 A project SELECT-policy regression was fixed so authenticated `INSERT ... RETURNING` works; the rollback-only SQL test now covers it. Client isolation remains verified. The reusable HTTP integration check is `scripts/backend-integration.py`; it accepts a private management-key JSON file generated locally, deletes that file afterward, creates confirmed synthetic accounts without sending email, and cleans up its fixtures. Never commit the key file.
+
+## Hostinger verification
+
+Email dry-run integration checks passed for an authorized invitation and rejected unauthenticated, unrelated-user, and fabricated events. Rollback-only SQL checks passed for SMTP concurrent-send and sent-event deduplication. TypeScript checking and production build passed. No real emails were sent; mailbox authentication and inbox delivery remain unverified until private SMTP configuration is completed.
