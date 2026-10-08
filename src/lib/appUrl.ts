@@ -1,38 +1,10 @@
-/**
- * Canonical application URL — the single source of truth for every deep link
- * that leaves the app (emails, notifications, and future push / universal links).
- *
- * Links inside emails must ALWAYS point at the production Ordo application,
- * never at a Lovable preview/generated domain (`*.lovableproject.com`,
- * `*.lovable.app`), a staging host, or `localhost`. Because emails are often
- * composed client-side, we cannot trust `window.location.origin` — in preview
- * that resolves to a Lovable domain. Instead we resolve a stable base URL from
- * environment configuration with a production fallback.
- *
- * Configure per environment with the `VITE_APP_URL` build variable, e.g.:
- *   - Development: http://localhost:3000
- *   - Staging:     https://staging.useordo.app
- *   - Production:  https://ordo.inspirarestudio.com
- */
+/** Canonical origin for links shared outside the app. Set VITE_APP_URL per environment. */
 
 const PRODUCTION_APP_URL = "https://ordo.inspirarestudio.com";
 
-// Hosts we must never emit in shareable/email links.
-const NON_CANONICAL_HOST = /(^localhost$|127\.0\.0\.1|lovableproject\.com$|lovable\.app$|lovable\.dev$)/i;
-
 function resolveBaseUrl(): string {
   const configured = (import.meta.env.VITE_APP_URL as string | undefined)?.trim();
-  if (configured) return configured.replace(/\/+$/, "");
-
-  // No explicit config: fall back to the current origin only when it is a real
-  // (non-Lovable, non-local) host; otherwise use the production URL so email
-  // links never leak a preview/dev domain.
-  if (typeof window !== "undefined") {
-    const { hostname, origin } = window.location;
-    if (!NON_CANONICAL_HOST.test(hostname)) return origin.replace(/\/+$/, "");
-  }
-
-  return PRODUCTION_APP_URL;
+  return (configured || PRODUCTION_APP_URL).replace(/\/+$/, "");
 }
 
 /**

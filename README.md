@@ -1,26 +1,25 @@
 # Ordo
 
-Create a client operating system dashboard that lets users track multiple projects, view progress, approve tasks, and follow updates in a simple, intuitive interface.
-
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://useordo.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/93138860-61e6-46c4-8949-f679db2724a9).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+Client operating system for projects, deliverables, approvals, and collaboration.
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Use Node.js and npm:
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm ci
 npm run dev
 ```
+
+## Production
+
+Target: https://ordo.inspirarestudio.com on Hostinger.
+
+```sh
+npm ci
+npm run build
+```
+
+Deploy `dist`, with an index.html fallback for client routes. Apache hosting can use the included `.htaccess`. Production configuration targets the owned Supabase project. Server credentials belong only in Supabase secrets; never frontend build variables.
+
+Backend setup and remaining launch checks: [backend replacement](docs/backend-replacement.md) and [Hostinger email setup](docs/hostinger-email-setup.md).

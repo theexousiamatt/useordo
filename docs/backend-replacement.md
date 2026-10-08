@@ -2,7 +2,7 @@
 
 Target: `ilvqopsvyacegotplstw` (`https://ilvqopsvyacegotplstw.supabase.co`). Start empty; do not migrate or delete data in the old backend. Keep the existing interface.
 
-The new frontend connection is configured in ignored `.env.local` for local verification only. The committed `.env` still points at the old backend until the replacement has been deployed and tested. This branch must not be merged into the live app yet.
+The frontend configuration in .env, .env.production, and ignored .env.local targets the owned backend. Deploy the replacement branch to Hostinger after verifying Auth redirects and production hosting.
 
 Deployment requires authenticated Supabase management access; a publishable key cannot create tables or deploy functions. Sign in through the Supabase CLI on this computer, or connect the Supabase management integration. Do not place access tokens, service-role keys, or database passwords in the frontend or repository.
 
@@ -31,7 +31,7 @@ Status: database and core functions deployed and verified; provider setup and pr
 - AI endpoint deployed with verified-user/workspace checks. Independent AI provider credentials are not configured; authorized users receive a clear 503 until configured.
 - Hostinger SMTP sending is deployed with verified-user/event authorization, derived recipients, and persistent duplicate-send protection. Host and sender are configured; SMTP_PASSWORD must be set privately before delivery. Supabase Auth custom SMTP must be configured separately. See hostinger-email-setup.md. Frontend invitation messages distinguish created invitations from successful email delivery.
 - Owner explicitly approved in-function token validation for invitation, duplication and deletion. The compatibility configuration is deployed and tested. Each modifying operation still requires a verified user and the relevant permissions.
-- Production frontend environment has not been switched; the old backend remains in the committed `.env`. Local `.env.local` targets the new backend.
+- Production hosting has not been switched. The replacement branch environment files target the owned backend.
 
 ## Verification
 
@@ -54,3 +54,7 @@ Email dry-run integration checks passed for an authorized invitation and rejecte
 Production mode now reads .env.production targeting the owned Supabase project and planned https://ordo.inspirarestudio.com URL. Development keeps its existing environment. Hostinger must use npm ci, npm run build, and dist as the output directory. Any hosting environment variables must match .env.production, since supplied variables override files. The public/.htaccess fallback supports direct SPA routes on Apache hosting; Node/static hosting must configure an equivalent index.html fallback. The dependency lockfile was reconciled for clean installs. Production build and TypeScript verification passed.
 
 Hostinger accepted an authorized test invitation and the owner confirmed inbox receipt. The temporary invitation workspace and test sender were removed. Supabase Auth sign-up/reset delivery, redirect settings, and the actual production hosting connection still need verification before merging/deploying the branch. The planned subdomain did not resolve during the readiness check.
+
+## Independence from the previous builder
+
+Removed the builder SDK, editor tagger, unused authentication adapter, planning metadata, obsolete email-provider functions, and stale binary lockfile. Both development and production use the owned Supabase backend. GitHub installation access and both OAuth/user app authorizations were revoked for the entire account at the owner’s request. Hostinger access remains connected. Historical migration and audit records remain for traceability; they are not active dependencies. Build and TypeScript checks passed.

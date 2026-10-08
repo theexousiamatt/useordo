@@ -2,11 +2,10 @@
  * Canonical application URL for Edge Functions / server-side email rendering.
  *
  * Single source of truth for deep links generated on the server. Configure with
- * the `APP_URL` secret (e.g. https://app.useordo.app). Never emit Lovable
- * preview, staging, or localhost URLs in production emails.
+ * the `APP_URL` secret (e.g. https://ordo.inspirarestudio.com). Never emit preview, staging, or localhost URLs in production emails.
  */
 
-const PRODUCTION_APP_URL = "https://app.useordo.app";
+const PRODUCTION_APP_URL = "https://ordo.inspirarestudio.com";
 
 export const APP_URL: string = (() => {
   try {
