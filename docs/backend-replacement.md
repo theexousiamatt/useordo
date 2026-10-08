@@ -28,13 +28,19 @@ Status: local connection prepared; database deployment and production cutover pe
 - `create-workspace`, `list-workspaces`, `accept-invitation`, and `duplicate-project` deployed. Listing excludes inactive memberships.
 - Google OAuth changed locally from Lovable authentication to direct Supabase authentication. Google/GitHub provider credentials still require dashboard configuration.
 - `APP_URL` set to `https://ordo.inspirarestudio.com`.
-- AI endpoint code hardened locally, but deployment is pending authorization review. Independent AI provider credentials are not configured.
+- AI endpoint deployed with verified-user/workspace checks. Independent AI provider credentials are not configured; authorized users receive a clear 503 until configured.
 - Email sending has not been deployed: the old implementation depends on Lovable's email service and lacks adequate recipient authorization. Frontend invitation messages now distinguish created invitations from successful email delivery.
-- Default gateway JWT checking remains on the invitation/duplication endpoints. The new publishable-key setup needs compatibility verification; any proposed boundary change is pending explicit approval following automatic approval-review rejection.
+- Owner explicitly approved in-function token validation for invitation, duplication and deletion. The compatibility configuration is deployed and tested. Each modifying operation still requires a verified user and the relevant permissions.
 - Production frontend environment has not been switched; the old backend remains in the committed `.env`. Local `.env.local` targets the new backend.
 
 ## Verification
 
 Rollback-only SQL tests passed for: assigned-project isolation between two clients, hidden internal tasks, hidden unshared drafts, rejection of another client's review, review audit history, duplicate-decision rejection, wrong-email invitations, and token replay. No test users remained afterward. Production build and TypeScript checking passed; existing bundle-size and duplicate-shortcut warnings remain unrelated to this backend change.
 
-The replacement is not yet ready for production cutover. Remaining steps: gateway compatibility approval/testing, authenticated browser workflow, independent email delivery, optional AI provider setup, Supabase Auth redirect/provider settings, and hosting deployment. No existing client data was migrated or deleted.
+The replacement is not yet ready for production cutover. Remaining steps: authenticated browser workflow, independent email delivery, optional AI provider setup, Supabase Auth redirect/provider settings, and hosting deployment. No existing client data was migrated or deleted.
+
+## Approved deployment verification
+
+Owner approved both compatibility and AI deployment changes. Real Supabase Auth integration tests passed for password sign-in, workspace creation/listing, invitation preview with the publishable key, rejection of wrong-email acceptance, correct-email acceptance, replay rejection, owner project creation, client assignment, deliverable submission/approval, owner duplication, rejection of client duplication/deletion, and unauthenticated rejection on protected endpoints. AI requests from clients return 403; authorized owner requests return 503 because provider credentials are absent. Temporary accounts/workspaces were deleted, and the private key file was removed.
+
+A project SELECT-policy regression was fixed so authenticated `INSERT ... RETURNING` works; the rollback-only SQL test now covers it. Client isolation remains verified. The reusable HTTP integration check is `scripts/backend-integration.py`; it accepts a private management-key JSON file generated locally, deletes that file afterward, creates confirmed synthetic accounts without sending email, and cleans up its fixtures. Never commit the key file.

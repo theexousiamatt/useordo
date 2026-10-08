@@ -22,3 +22,13 @@ verify_jwt = false
 
 [functions.handle-email-suppression]
 verify_jwt = false
+
+# These handlers authenticate users with Supabase Auth and enforce permissions.
+[functions.accept-invitation]
+verify_jwt = false
+
+[functions.duplicate-project]
+verify_jwt = false
+
+[functions.delete-workspace]
+verify_jwt = false
