@@ -17,6 +17,11 @@ SELECT set_config('request.jwt.claim.role','authenticated',true);
 INSERT INTO public.projects(id,workspace_id,name,owner_id,status) VALUES
  ('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','Client A project','10000000-0000-4000-8000-000000000001','active'),
  ('30000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001','Client B project','10000000-0000-4000-8000-000000000001','active') RETURNING id;
+INSERT INTO public.activity(workspace_id,project_id,actor_id,type,payload) VALUES
+ ('20000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','task_created','{"title":"Private task"}');
+DO $$ BEGIN
+ IF (SELECT count(*) FROM public.activity)<>1 THEN RAISE EXCEPTION 'Owner activity read failed'; END IF;
+END $$;
 RESET ROLE;
 INSERT INTO public.project_members(project_id,workspace_id,user_id,role) VALUES
  ('30000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002','client'),
@@ -55,6 +60,7 @@ SELECT set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000002'
 SELECT set_config('request.jwt.claim.role','authenticated',true);
 DO $$ DECLARE blocked boolean:=false; BEGIN
  IF (SELECT count(*) FROM public.projects)<>1 THEN RAISE EXCEPTION 'Client project isolation failed'; END IF;
+ IF (SELECT count(*) FROM public.activity)<>0 THEN RAISE EXCEPTION 'Internal activity visible to client'; END IF;
  IF (SELECT count(*) FROM public.tasks)<>0 THEN RAISE EXCEPTION 'Internal tasks visible to client'; END IF;
  IF (SELECT count(*) FROM public.deliverables)<>1 THEN RAISE EXCEPTION 'Client sees draft or another client deliverable'; END IF;
  BEGIN
