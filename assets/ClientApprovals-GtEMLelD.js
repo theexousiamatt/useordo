@@ -1,0 +1,1 @@
+import{j as e,A as t}from"./index-DZudfaLQ.js";import{C as r}from"./ClientHeader-CR3z3w1G.js";function n(){return e.jsxs(e.Fragment,{children:[e.jsx(r,{title:"Approvals",subtitle:"Review and sign off on deliverables."}),e.jsx(t,{})]})}export{n as default};
