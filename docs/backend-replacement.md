@@ -48,3 +48,9 @@ A project SELECT-policy regression was fixed so authenticated `INSERT ... RETURN
 ## Hostinger verification
 
 Email dry-run integration checks passed for an authorized invitation and rejected unauthenticated, unrelated-user, and fabricated events. Rollback-only SQL checks passed for SMTP concurrent-send and sent-event deduplication. TypeScript checking and production build passed. No real emails were sent; mailbox authentication and inbox delivery remain unverified until private SMTP configuration is completed.
+
+## Production build preparation
+
+Production mode now reads .env.production targeting the owned Supabase project and planned https://ordo.inspirarestudio.com URL. Development keeps its existing environment. Hostinger must use npm ci, npm run build, and dist as the output directory. Any hosting environment variables must match .env.production, since supplied variables override files. The public/.htaccess fallback supports direct SPA routes on Apache hosting; Node/static hosting must configure an equivalent index.html fallback. The dependency lockfile was reconciled for clean installs. Production build and TypeScript verification passed.
+
+Hostinger accepted an authorized test invitation and the owner confirmed inbox receipt. The temporary invitation workspace and test sender were removed. Supabase Auth sign-up/reset delivery, redirect settings, and the actual production hosting connection still need verification before merging/deploying the branch. The planned subdomain did not resolve during the readiness check.

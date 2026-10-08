@@ -12,10 +12,10 @@
  * Configure per environment with the `VITE_APP_URL` build variable, e.g.:
  *   - Development: http://localhost:3000
  *   - Staging:     https://staging.useordo.app
- *   - Production:  https://app.useordo.app
+ *   - Production:  https://ordo.inspirarestudio.com
  */
 
-const PRODUCTION_APP_URL = "https://app.useordo.app";
+const PRODUCTION_APP_URL = "https://ordo.inspirarestudio.com";
 
 // Hosts we must never emit in shareable/email links.
 const NON_CANONICAL_HOST = /(^localhost$|127\.0\.0\.1|lovableproject\.com$|lovable\.app$|lovable\.dev$)/i;
@@ -45,7 +45,7 @@ export const APP_URL = resolveBaseUrl();
  * Always rooted at the canonical {@link APP_URL}.
  *
  * @example buildAppUrl("/projects/123", { task: "abc" })
- *   -> "https://app.useordo.app/projects/123?task=abc"
+ *   -> "https://ordo.inspirarestudio.com/projects/123?task=abc"
  */
 export function buildAppUrl(path: string, params?: Record<string, string | number | undefined | null>): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
