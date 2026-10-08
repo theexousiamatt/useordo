@@ -1,3 +1,4 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
@@ -19,10 +20,24 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("AI gateway is not configured.");
-
-    const body = (await req.json()) as PlanRequest;
+    const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: auth, error: authError } = await admin.auth.getUser(token ?? "");
+    if (!token || authError || !auth.user) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const body = (await req.json()) as PlanRequest & { workspaceId?: string };
+    if (!body.workspaceId || !body.generate || typeof body.name !== "string" || body.name.length > 200 || (body.description?.length ?? 0) > 5000) {
+      return new Response(JSON.stringify({ error: "Invalid planning request" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const { data: allowed } = await admin.rpc("is_workspace_collaborator", { _workspace_id: body.workspaceId, _user_id: auth.user.id });
+    if (!allowed) return new Response(JSON.stringify({ error: "Workspace access denied" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const apiKey = Deno.env.get("AI_API_KEY");
+    const apiUrl = Deno.env.get("AI_API_URL");
+    const model = Deno.env.get("AI_MODEL");
+    if (!apiKey || !apiUrl || !model) {
+      return new Response(JSON.stringify({ error: "AI planning is not configured yet. Create your plan manually." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     if (!body.name?.trim()) {
       return new Response(JSON.stringify({ error: "Project name is required." }), {
         status: 400,
@@ -37,14 +52,14 @@ Deno.serve(async (req) => {
 
     const prompt = `You are a senior project planner. Create a concise, realistic plan for the project below.\n\nProject: ${body.name}\nDescription: ${body.description ?? "(none)"}\nStart date: ${body.start_date ?? "(not set)"}\nDue date: ${body.due_date ?? "(not set)"}\n\nGenerate: ${wants.join(", ")}.\nReturn 3-5 milestones and 6-10 tasks. Keep titles short and professional. Use due_offset_days relative to project start (integer days).`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model,
         messages: [{ role: "user", content: prompt }],
         tools: [
           {

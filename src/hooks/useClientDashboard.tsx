@@ -59,7 +59,7 @@ export function useClientProjects() {
       const { data: projects, error } = await scopedSelect(
         "projects",
         workspaceId,
-        "id, name, description, status, progress, due_date",
+        "id, name, description, status, health, progress, due_date",
       ).order("created_at", { ascending: false });
       if (error) throw error;
 
@@ -84,6 +84,7 @@ export function useClientProjects() {
 
       return list.map((p) => ({
         ...p,
+        status: p.status === "completed" ? "done" : p.status === "draft" ? "planning" : p.health,
         phase: phaseByProject.get(p.id) ?? null,
       })) as ClientProject[];
     },
@@ -112,12 +113,13 @@ export function useActionItems() {
     enabled: !!workspaceId,
     queryFn: async (): Promise<ActionItem[]> => {
       const { data, error } = await scopedSelect(
-        "tasks",
+        "deliverables",
         workspaceId,
-        "id, title, status, due_date, project_id",
+        "id, title, status, project_id",
       )
-        .in("status", ["awaiting_approval", "changes_requested"])
-        .order("due_date", { ascending: true, nullsFirst: false });
+        .eq("status", "submitted")
+        .eq("requires_approval", true)
+        .order("created_at", { ascending: true });
       if (error) throw error;
       const rows = data ?? [];
       const names = await projectNameMap(
@@ -127,8 +129,8 @@ export function useActionItems() {
       return rows.map((t) => ({
         id: t.id,
         title: t.title,
-        status: t.status as TaskStatus,
-        due_date: t.due_date,
+        status: "awaiting_approval" as TaskStatus,
+        due_date: null,
         project_id: t.project_id,
         project_name: names.get(t.project_id) ?? "Project",
       }));

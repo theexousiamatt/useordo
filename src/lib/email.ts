@@ -17,7 +17,7 @@ export async function sendAppEmail(params: {
   to: string;
   idempotencyKey: string;
   data?: Record<string, unknown>;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     const { error } = await supabase.functions.invoke("send-transactional-email", {
       body: {
@@ -27,8 +27,13 @@ export async function sendAppEmail(params: {
         templateData: params.data ?? {},
       },
     });
-    if (error) console.warn("[email] send failed", params.template, error.message);
+    if (error) {
+      console.warn("[email] send failed", params.template, error.message);
+      return false;
+    }
+    return true;
   } catch (err) {
     console.warn("[email] send threw", params.template, err);
+    return false;
   }
 }

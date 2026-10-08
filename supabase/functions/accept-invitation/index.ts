@@ -94,29 +94,13 @@ Deno.serve(async (req) => {
       return json({ error: `This invitation is ${preview.status}.`, valid: false }, 410);
     }
 
-    // Upsert membership (idempotent on workspace_id + user_id).
-    const { error: memberError } = await admin
-      .from("workspace_members")
-      .upsert(
-        {
-          workspace_id: invite.workspace_id,
-          user_id: user.id,
-          role: invite.role,
-          invited_by: invite.invited_by,
-          status: "active",
-        },
-        { onConflict: "workspace_id,user_id" },
-      );
-
+    const { error: memberError } = await admin.rpc("accept_workspace_invitation", {
+      _token: token,
+      _user_id: user.id,
+    });
     if (memberError) {
-      console.error("membership upsert failed", memberError);
-      return json({ error: "Could not join workspace" }, 400);
+      return json({ error: memberError.message }, 403);
     }
-
-    await admin
-      .from("workspace_invitations")
-      .update({ status: "accepted", accepted_at: new Date().toISOString() })
-      .eq("id", invite.id);
 
     return json({
       joined: true,

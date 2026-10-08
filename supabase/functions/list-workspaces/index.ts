@@ -50,7 +50,8 @@ Deno.serve(async (req) => {
     const { data: memberships, error: membershipsError } = await admin
       .from("workspace_members")
       .select("role, workspaces(id, name, slug, type, owner_id)")
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .eq("status", "active");
 
     if (membershipsError) {
       console.error("Workspace membership list failed", membershipsError);

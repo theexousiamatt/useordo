@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 
 -- ============ workspace_members extensions ============
 ALTER TABLE public.workspace_members
@@ -40,7 +42,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_invitations (
   email text NOT NULL,
   role public.workspace_role NOT NULL DEFAULT 'member',
   invited_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  token text NOT NULL DEFAULT encode(gen_random_bytes(24), 'hex'),
+  token text NOT NULL DEFAULT encode(extensions.gen_random_bytes(24), 'hex'),
   status text NOT NULL DEFAULT 'pending',
   expires_at timestamptz NOT NULL DEFAULT (now() + interval '7 days'),
   accepted_at timestamptz,

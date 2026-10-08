@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import {
   useCreateProject,
   useWorkspaceMembers,
@@ -30,6 +31,7 @@ const STEPS = ["Basics", "Timeline", "Team", "AI planning"] as const;
 
 export function CreateProjectDrawer({ open, onOpenChange, onCreated }: Props) {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const { data: members = [] } = useWorkspaceMembers();
   const createProject = useCreateProject();
 
@@ -116,6 +118,7 @@ export function CreateProjectDrawer({ open, onOpenChange, onCreated }: Props) {
     try {
       const { data, error } = await supabase.functions.invoke("generate-project-plan", {
         body: {
+          workspaceId: currentWorkspace?.id,
           name: name.trim(),
           description: description.trim() || undefined,
           start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,

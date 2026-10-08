@@ -14,7 +14,10 @@ export function ApprovalCard({ item }: ApprovalCardProps) {
 
   const mutation = useMutation({
     mutationFn: async (status: "approved" | "changes_requested") => {
-      const { error } = await supabase.from("tasks").update({ status }).eq("id", item.id);
+      const { error } = await supabase.rpc("review_deliverable", {
+        _id: item.id,
+        _decision: status === "approved" ? "approved" : "rejected",
+      });
       if (error) throw error;
       return status;
     },

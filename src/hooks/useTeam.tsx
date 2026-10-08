@@ -127,7 +127,7 @@ export function useTeam() {
         return false;
       }
       // Send branded invitation emails (non-blocking).
-      await Promise.all(
+      const deliveryResults = await Promise.all(
         (inserted ?? []).map((inv: any) =>
           sendAppEmail({
             template: "workspace-invitation",
@@ -142,7 +142,11 @@ export function useTeam() {
           }),
         ),
       );
-      toast.success(`${rows.length} invitation${rows.length > 1 ? "s" : ""} sent`);
+      if (deliveryResults.every(Boolean)) {
+        toast.success(`${rows.length} invitation${rows.length > 1 ? "s" : ""} sent`);
+      } else {
+        toast.warning("Invitations created, but email delivery is unavailable. Copy the invitation links to share them.");
+      }
       await load();
       return true;
     },
@@ -203,7 +207,7 @@ export function useTeam() {
         .single();
       if (error) return toast.error("Could not resend invitation");
       if (updated) {
-        await sendAppEmail({
+        const delivered = await sendAppEmail({
           template: "workspace-invitation",
           to: updated.email,
           idempotencyKey: `invite-resend-${updated.id}-${Date.now()}`,
@@ -214,8 +218,9 @@ export function useTeam() {
             acceptUrl: inviteLink(updated.token),
           },
         });
+        if (delivered) toast.success("Invitation resent");
+        else toast.warning("Invitation renewed, but email delivery is unavailable. Copy its link to share it.");
       }
-      toast.success("Invitation resent");
       await load();
     },
     [load, currentWorkspace],
