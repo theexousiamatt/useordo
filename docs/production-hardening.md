@@ -57,6 +57,6 @@ Verification:
 - TypeScript and production build pass. Targeted new/modified recovery/auth/service/onboarding checks have no lint errors; Fast Refresh export warnings remain. Existing full-repo lint/build warnings are not all fixed.
 - Actual recovery component rendered in a development-only fixture at a 390px constrained width; no internal horizontal overflow, Tab focuses Try again, Enter activates it. This is a container-width check, not a physical-device/Safari certification.
 - Local fixture: `/tests/workspace-recovery.html?width=390` on port 5180. It simulates UI actions only and sends no requests.
-- Frontend changes are **not yet published**. Full live signup/invitation inbox → acceptance, physical-device checks and sustained concurrent load remain unverified.
+- Frontend published on 2026-10-24: source `d271285`, Hostinger static release `a759434`. Production served `/assets/index-D4ScF-yS.js`; authenticated Clients page and default Client invitation role verified without sending email. Full live signup/invitation inbox → acceptance, physical-device checks and sustained concurrent load remain unverified.
 
 Next: transaction/data-integrity fixes and complete client/project/milestone workflows, followed by CI/staging/restore gates. Wider role-downgrade/rejoin semantics should be tested explicitly alongside the authorization matrix before claiming the entire membership lifecycle is production-certified.
