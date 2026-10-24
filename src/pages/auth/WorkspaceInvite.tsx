@@ -61,7 +61,7 @@ export default function WorkspaceInvite() {
     const timer = setTimeout(() => setCooldown(value => value - 1), 1000);
     return () => clearTimeout(timer);
   }, [cooldown]);
-  const wrongAccount = !!user && !!preview && user.email?.trim().toLowerCase() !== preview.email.trim().toLowerCase();
+  const wrongAccount = !!user && !!preview?.valid && !!preview.email && user.email?.trim().toLowerCase() !== preview.email.trim().toLowerCase();
   const accept = useCallback(async () => {
     if (!user || wrongAccount || requestInProgress.current) return;
     requestInProgress.current = true; setBusy(true); setError(null);

@@ -32,7 +32,7 @@ Database checks enforce email binding, verified identity, workspace/project cons
 
 ## Verification
 
-- `npm test`: 44 tests, including invitation-first entry, explicit project/workspace scopes, wrong-account recovery, passwordless return URL, accepted-link reopening, expired-link requests, email failure recovery and pending-invitation onboarding gates.
+- `npm test`: 45 tests, including invitation-first entry, explicit project/workspace scopes, wrong-account recovery, passwordless return URL, accepted-link reopening, expired-link requests, email failure recovery and pending-invitation onboarding gates.
 - `npm run verify:access:local`: real isolated PostgreSQL (PGlite), repository schema/access migrations and three rollback SQL suites. Checks project/file/Storage isolation, draft deliverable/internal task privacy, client write denial, workspace upgrades, wrong-email acceptance, repeat acceptance, deactivation and renewal deduplication. Supabase auth/storage platform tables are represented locally; email queue/cron/vault/network transport extensions are excluded. This is not a deployed Supabase or live SMTP test.
 - TypeScript and Vite production build pass. Targeted lint has no errors. Existing unrelated build warnings remain (duplicate ProjectBoard shortcut, Tailwind duration, Browserslist age, main bundle size).
 - Browser checked desktop and an actual 390px iframe viewport for invitation, account mismatch, expired invitation, client scope selection and project Review/Files/Milestones. Keyboard activation checked. These are development fixtures with stubbed auth/invitation responses; no real email or membership was sent/changed. Physical phones, Safari and real inbox round trips remain unverified.

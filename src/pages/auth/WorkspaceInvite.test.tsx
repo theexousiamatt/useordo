@@ -18,6 +18,12 @@ describe('invitation-first client journey', () => {
     expect(screen.queryByText('Create your workspace')).toBeNull();
     expect(screen.getByRole('button', { name: /Send again in/ })).toBeDisabled();
   });
+  it('renders an invalid link safely for a signed-in user when the server omits recipient details', async () => {
+    mock.user={id:'owner',email:'owner@example.com'};
+    mock.invoke.mockResolvedValue({data:{invite:{valid:false,status:'invalid'}},error:null});
+    show(); expect(await screen.findByRole('heading',{name:'Invitation unavailable'})).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'Back to sign in'})).toBeInTheDocument();
+  });
   it('requires account switching when the signed-in email does not match', async () => {
     mock.user = { id: 'other', email: 'other@example.com' }; show();
     fireEvent.click(await screen.findByRole('button', { name: 'Use the invited email' }));
