@@ -1,6 +1,6 @@
 # Client invitations and account entry
 
-Implemented locally, not yet deployed. Existing invitations remain workspace-scoped. Existing memberships and project assignments are preserved.
+Published on 2026-10-25. Existing invitations remain workspace-scoped. Existing memberships and project assignments are preserved.
 
 ## Agency workflow
 
@@ -45,3 +45,12 @@ Development-only previews (not production build entrypoints):
 - `/tests/invitation-journey.html?state=wrong&width=390`
 - `/tests/invitation-journey.html?state=expired&width=390`
 - `/tests/invitation-journey.html?state=detail&width=390`
+
+## Production release — 2026-10-25
+
+- Source `7bbc705`; Hostinger static release `0f48d88`; production served `/assets/index-mOuK0S75.js`.
+- Scoped migration and fixtures passed together inside a rollback transaction on actual Supabase. The managed platform blocks direct Storage SQL deletes; the fixture accepts that denial without disabling the safeguard. Migration then applied and registered in the ledger; synthetic users remaining: zero.
+- `accept-invitation` and `send-transactional-email` deployed through Supabase, including the project-aware email template.
+- Added same-origin invitation, verification and password-reset redirect patterns so nested return query strings survive authentication. Existing URLs retained. Magic-link and confirmation templates use `.ConfirmationURL`.
+- Final live checks: owner project opens, client invitations default to that project with a workspace alternative, invalid invitation links render recovery for signed-in visitors, existing Files tab loads normally. No invitations/emails were sent and no real membership was changed by smoke tests.
+- Full mailbox receipt → new/existing recipient sign-in → project remains unverified; the production check did not use client addresses as fixtures.
