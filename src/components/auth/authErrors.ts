@@ -11,6 +11,14 @@ export function friendlyAuthError(error: unknown): string {
         : "";
 
   const msg = raw.toLowerCase();
+  const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
+
+  if (code === "over_email_send_rate_limit")
+    return "Please wait at least a minute before requesting another email. Use the newest link in your inbox.";
+  if (code === "email_address_not_authorized" || msg.includes("error sending") || msg.includes("smtp"))
+    return "We couldn't send the email. Please try again later or contact support if it continues.";
+  if (code === "otp_expired")
+    return "This link is invalid, expired, or already used. Please request a new one.";
 
   if (!raw) return "Something went wrong. Please try again.";
 

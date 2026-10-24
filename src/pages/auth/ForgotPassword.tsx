@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, MailCheck } from "lucide-react";
+import { buildAppUrl } from "@/lib/appUrl";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AuthLayout,
@@ -11,7 +12,8 @@ import {
 } from "@/components/auth";
 
 export default function ForgotPassword() {
-  const [email, setEmail] = useState("");
+  const [params] = useSearchParams();
+  const [email, setEmail] = useState(params.get("email") || "");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,16 +21,22 @@ export default function ForgotPassword() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (busy) return;
     setBusy(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setBusy(false);
-    if (error) {
-      setError(friendlyAuthError(error));
-      return;
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: buildAppUrl("/reset-password"),
+      });
+      if (error) {
+        setError(friendlyAuthError(error));
+        return;
+      }
+      setSent(true);
+    } catch (err) {
+      setError(friendlyAuthError(err));
+    } finally {
+      setBusy(false);
     }
-    setSent(true);
   };
 
   return (
@@ -52,8 +60,7 @@ export default function ForgotPassword() {
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">Check your inbox</h2>
               <p className="mt-2 text-muted-foreground">
-                We sent a reset link to <strong className="text-foreground">{email}</strong>. The link
-                expires in 60 minutes.
+                If an account exists for <strong className="text-foreground">{email.trim()}</strong>, you’ll receive a reset link. Check your spam folder too, and use only the newest email.
               </p>
             </div>
             <OrdoButton variant="outline" onClick={() => setSent(false)}>

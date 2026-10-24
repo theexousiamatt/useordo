@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+import { buildAppUrl } from "@/lib/appUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -27,6 +28,7 @@ export default function SignUp() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [existingAccount, setExistingAccount] = useState(false);
   const [fieldError, setFieldError] = useState<AuthErrorField>(null);
 
   if (loading) return null;
@@ -35,8 +37,9 @@ export default function SignUp() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setExistingAccount(false);
     setFieldError(null);
-    if (evaluatePassword(password).score < 2) {
+    if (password.length < 8 || evaluatePassword(password).score < 2) {
       setError("Please choose a stronger password (at least 8 characters).");
       setFieldError("password");
       logAuthError("signup_weak_password", { code: "weak_password" }, "password");
@@ -48,24 +51,44 @@ export default function SignUp() {
       logAuthError("signup_password_mismatch", { code: "password_mismatch" }, "password");
       return;
     }
+    if (busy) return;
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/verify-email`,
-        data: { full_name: fullName },
-      },
-    });
-    setBusy(false);
-    if (error) {
-      const detailed = friendlyAuthErrorDetailed(error);
-      setError(detailed.message);
-      setFieldError(detailed.field);
-      logAuthError("signup_failed", error, detailed.field);
-      return;
+    try {
+      const normalizedEmail = email.trim();
+      const { data, error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          emailRedirectTo: buildAppUrl("/auth/verify-email"),
+          data: { full_name: fullName.trim() },
+        },
+      });
+      if (error) {
+        if (error.code === "user_already_exists" || /already (?:been )?registered/i.test(error.message)) {
+          setExistingAccount(true);
+          return;
+        }
+        const detailed = friendlyAuthErrorDetailed(error);
+        setError(detailed.message);
+        setFieldError(detailed.field);
+        logAuthError("signup_failed", error, detailed.field);
+        return;
+      }
+      if (data.session) {
+        navigate("/", { replace: true });
+        return;
+      }
+      // Supabase can return an obfuscated user for repeat signup instead of an error.
+      if (Array.isArray(data.user?.identities) && data.user.identities.length === 0) {
+        setExistingAccount(true);
+        return;
+      }
+      navigate(`/auth/verify-email?email=${encodeURIComponent(normalizedEmail)}`);
+    } catch (err) {
+      setError(friendlyAuthErrorDetailed(err).message);
+    } finally {
+      setBusy(false);
     }
-    navigate(`/auth/verify-email?email=${encodeURIComponent(email)}`);
   };
 
   return (
@@ -79,6 +102,15 @@ export default function SignUp() {
           <p className="mt-1 text-muted-foreground">Start your free Ordo workspace.</p>
         </div>
 
+        {existingAccount && (
+          <OrdoAlert variant="info" className="mb-5" title="You already have an account">
+            <span>This email is already registered. Sign in to continue. No new confirmation email was sent.</span>
+            <span className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-semibold">
+              <Link className="underline underline-offset-4" to={`/auth?email=${encodeURIComponent(email.trim())}`}>Sign in</Link>
+              <Link className="underline underline-offset-4" to={`/auth/forgot-password?email=${encodeURIComponent(email.trim())}`}>Reset password</Link>
+            </span>
+          </OrdoAlert>
+        )}
         {error && !fieldError && (
           <OrdoAlert variant="error" className="mb-5">
             {error}

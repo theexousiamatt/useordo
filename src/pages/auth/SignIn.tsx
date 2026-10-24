@@ -23,7 +23,8 @@ export default function SignIn() {
   const { signIn: socialSignIn, pending: socialPending } = useSocialAuth();
 
   const inviteWorkspace = params.get("workspace");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(params.get("email") || "");
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -38,7 +39,7 @@ export default function SignIn() {
   const redirectParam = params.get("redirect");
   const returnTo =
     (fromState?.pathname ? `${fromState.pathname}${fromState.search ?? ""}` : null) ??
-    (redirectParam && redirectParam.startsWith("/") ? redirectParam : null) ??
+    (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//") ? redirectParam : null) ??
     "/";
 
   if (loading) return null;
@@ -47,14 +48,22 @@ export default function SignIn() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (busy) return;
+    setNeedsVerification(false);
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) {
-      setError(friendlyAuthError(error));
-      return;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        setError(friendlyAuthError(error));
+        setNeedsVerification(error.code === "email_not_confirmed" || /not confirmed/i.test(error.message));
+        return;
+      }
+      navigate(returnTo, { replace: true });
+    } catch (err) {
+      setError(friendlyAuthError(err));
+    } finally {
+      setBusy(false);
     }
-    navigate(returnTo, { replace: true });
   };
 
 
@@ -81,6 +90,11 @@ export default function SignIn() {
           </OrdoAlert>
         )}
 
+        {needsVerification && (
+          <Link className="mb-5 block text-sm font-semibold text-accent hover:underline" to={`/auth/verify-email?email=${encodeURIComponent(email.trim())}`}>
+            Request a new verification email
+          </Link>
+        )}
         <form onSubmit={onSubmit} className="space-y-5">
           <OrdoInput
             label="Email address"

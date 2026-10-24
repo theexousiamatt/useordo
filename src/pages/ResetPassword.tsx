@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -14,19 +14,32 @@ import {
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
+    let active = true;
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        setReady(Boolean(session));
+        setChecking(false);
+      }
+      if (event === "SIGNED_OUT") setReady(false);
     });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!active) return;
+      setReady(Boolean(session));
+      if (error) setError(friendlyAuthError(error));
+    }).catch((err) => {
+      if (active) setError(friendlyAuthError(err));
+    }).finally(() => {
+      if (active) setChecking(false);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -36,18 +49,24 @@ export default function ResetPassword() {
       setError("Passwords don't match. Please re-enter them.");
       return;
     }
-    if (evaluatePassword(password).score < 2) {
+    if (password.length < 8 || evaluatePassword(password).score < 2) {
       setError("Please choose a stronger password (at least 8 characters).");
       return;
     }
+    if (busy || !ready) return;
     setBusy(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setBusy(false);
-    if (error) {
-      setError(friendlyAuthError(error));
-      return;
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setError(friendlyAuthError(error));
+        return;
+      }
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(friendlyAuthError(err));
+    } finally {
+      setBusy(false);
     }
-    navigate("/");
   };
 
   return (
@@ -65,10 +84,16 @@ export default function ResetPassword() {
           </div>
         </div>
 
-        {!ready ? (
+        {checking ? (
           <div className="flex flex-col items-center gap-3 py-10 text-center text-sm text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
             Verifying your reset link…
+          </div>
+        ) : !ready ? (
+          <div className="space-y-5">
+            <OrdoAlert variant="error">{error || "This reset link is invalid, expired, or has already been used. Request a new link to continue."}</OrdoAlert>
+            <Link to="/auth/forgot-password" className="block font-semibold text-accent hover:underline">Request a new reset link</Link>
+            <Link to="/auth" className="block text-sm hover:underline">Back to sign in</Link>
           </div>
         ) : (
           <>

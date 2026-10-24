@@ -17,19 +17,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
+    let receivedAuthEvent = false;
     // Set up listener FIRST
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      receivedAuthEvent = true;
+      setLoading(false);
       setSession(session);
       setUser(session?.user ?? null);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active || receivedAuthEvent) return;
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+    }).catch(() => {
+      // Recover to sign-in rather than leaving every route on a blank loader.
+      if (!active || receivedAuthEvent) return;
+      setSession(null);
+      setUser(null);
+    }).finally(() => {
+      if (active) setLoading(false);
     });
 
-    return () => sub.subscription.unsubscribe();
+    return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
 
   const signOut = async () => {
