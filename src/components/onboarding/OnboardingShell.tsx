@@ -58,7 +58,7 @@ export function OnboardingShell({
         >
           <div className="flex flex-1 flex-col p-6 sm:p-8">{children}</div>
           {footer && (
-            <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-5 sm:px-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-5 sm:px-8">
               {footer}
             </div>
           )}

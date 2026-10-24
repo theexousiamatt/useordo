@@ -1,3 +1,5 @@
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { WorkspaceRecovery } from "@/components/states/WorkspaceRecovery";
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,8 +33,9 @@ function ClientShell() {
 export function ClientLayout() {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const { loading: workspaceLoading, resolved, error, workspaces } = useWorkspace();
 
-  if (loading) {
+  if (loading || (user && workspaceLoading)) {
     return (
       <div className="client-os flex min-h-screen items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -40,6 +43,9 @@ export function ClientLayout() {
     );
   }
   if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
+
+  if (error || !resolved) return <WorkspaceRecovery />;
+  if (!workspaces.length) return <Navigate to="/onboarding" replace />;
 
   return (
     <SidebarCollapseProvider>

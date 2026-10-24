@@ -46,7 +46,7 @@ export function ProjectCreationStep({ draft, onChange, clientOptions }: ProjectC
           />
         </OrdoField>
 
-        <OrdoField label="Client" htmlFor="project-client" hint="Link this project to one of your invited clients.">
+        {clientOptions.length > 0 && <OrdoField label="Client" htmlFor="project-client" hint="Assign clients after they accept their invitation.">
           <Select
             value={draft.client || NO_CLIENT}
             onValueChange={(v) => onChange({ ...draft, client: v === NO_CLIENT ? "" : v })}
@@ -63,7 +63,7 @@ export function ProjectCreationStep({ draft, onChange, clientOptions }: ProjectC
               ))}
             </SelectContent>
           </Select>
-        </OrdoField>
+        </OrdoField>}
 
         <OrdoField label="Description" htmlFor="project-description">
           <Textarea

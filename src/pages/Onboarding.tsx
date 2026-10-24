@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { inviteWorkspacePeople, type InvitationSummary } from "@/lib/invitations";
+import { WorkspaceRecovery } from "@/components/states/WorkspaceRecovery";
+import { OrdoAlert } from "@/components/auth";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Loader2, ArrowRight, ArrowLeft, Sparkles, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
-import { slugify, uniqueSlug } from "@/lib/slug";
+import { uniqueSlug } from "@/lib/slug";
 import { toast } from "sonner";
 import { SectionHeader, OrdoField } from "@/components/ordo";
 import {
@@ -66,16 +69,18 @@ export default function Onboarding() {
   });
   const [busy, setBusy] = useState(false);
   const redirected = useRef(false);
+  const finishing = useRef(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSummary, setInviteSummary] = useState<InvitationSummary | null>(null);
 
   const { step, name, type, workspaceId, team, clients, project } = state;
   const patch = (p: Partial<PersistedState>) => setState((s) => ({ ...s, ...p }));
 
-  const slug = useMemo(() => slugify(name) || "your-workspace", [name]);
 
   // Persist progress so users can resume if interrupted.
   useEffect(() => {
     if (!storageKey) return;
-    localStorage.setItem(storageKey, JSON.stringify(state));
+    try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch { /* Setup remains usable without storage. */ }
   }, [state, storageKey]);
 
   // Existing-workspace users who haven't started onboarding go straight in.
@@ -105,6 +110,8 @@ export default function Onboarding() {
       </div>
     );
   }
+
+  if (error || !resolved) return <WorkspaceRecovery />;
 
   const sidebarTitle = workspaceId && name ? name : "Welcome to Ordo";
   const sidebarSubtitle = workspaceId
@@ -143,17 +150,6 @@ export default function Onboarding() {
     }
   };
 
-  const logInvites = async (emails: string[], action: string) => {
-    if (!emails.length || !workspaceId) return;
-    const { error: logError } = await supabase.from("activity_logs").insert({
-      workspace_id: workspaceId,
-      actor_id: user.id,
-      action,
-      metadata: { emails },
-    });
-    if (logError) console.error("Invite log failed:", logError);
-  };
-
   const createFirstProject = async () => {
     if (!workspaceId || !project.name.trim()) return;
     setBusy(true);
@@ -177,21 +173,37 @@ export default function Onboarding() {
     }
   };
 
-  const finish = async () => {
-    setBusy(true);
+  const finish = async (skipUnconfirmedEmail = false) => {
+    if (finishing.current || !workspaceId) return;
+    finishing.current = true;
+    setBusy(true); setInviteError(null);
     try {
-      await Promise.all([
-        logInvites(team, "members.invited"),
-        logInvites(clients, "clients.invited"),
-      ]);
+      if (!skipUnconfirmedEmail) {
+        const overlap = team.some((email) => clients.some((client) => client.trim().toLowerCase() === email.trim().toLowerCase()));
+        if (overlap) throw new Error("An email appears in both Team and Clients. Go back and choose one role for each person.");
+        const results = [];
+        // A retry reuses prepared invitations even if the previous batch partly completed.
+        for (const [emails, role] of [[team, "member"], [clients, "client"]] as const) {
+          results.push(await inviteWorkspacePeople(workspaceId, emails, role));
+        }
+        const summary = results.reduce<InvitationSummary>((total, result) => ({
+          invitations: total.invitations + result.invitations,
+          alreadyMembers: total.alreadyMembers + result.alreadyMembers,
+          emailAccepted: total.emailAccepted + result.emailAccepted,
+          emailUnconfirmed: total.emailUnconfirmed + result.emailUnconfirmed,
+        }), { invitations: 0, alreadyMembers: 0, emailAccepted: 0, emailUnconfirmed: 0 });
+        setInviteSummary(summary);
+        if (summary.emailUnconfirmed) return;
+        if (summary.invitations) toast.success("Invitations ready. Email accepted for delivery.");
+      }
       await refresh();
-      if (workspaceId) selectWorkspace(workspaceId);
-      if (storageKey) localStorage.removeItem(storageKey);
+      selectWorkspace(workspaceId);
+      if (storageKey) { try { localStorage.removeItem(storageKey); } catch { /* Nonessential cleanup. */ } }
       navigate("/", { replace: true });
-    } catch {
-      toast.error("Something went wrong. Please try again.");
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : "We couldn't finish setup. Retry without creating duplicate invitations.");
     } finally {
-      setBusy(false);
+      finishing.current = false; setBusy(false);
     }
   };
 
@@ -237,7 +249,7 @@ export default function Onboarding() {
             title="Create your workspace"
             description="This is where your projects, team, and clients live."
           />
-          <OrdoField label="Workspace name" htmlFor="ws-name" hint={`URL: ordo.app/${slug}`}>
+          <OrdoField label="Workspace name" htmlFor="ws-name" hint="You can change this name later in workspace settings.">
             <Input
               id="ws-name"
               autoFocus
@@ -290,7 +302,7 @@ export default function Onboarding() {
       body = (
         <InviteUsersStep
           title="Invite your team"
-          description="Bring your collaborators into the workspace. This step is optional."
+          description="Add collaborators to invite when you enter Ordo. This step is optional."
           placeholder="teammate@email.com"
           emails={team}
           onChange={(t) => patch({ team: t })}
@@ -299,7 +311,8 @@ export default function Onboarding() {
       );
       footer = (
         <>
-          {skipButton(goNext, "Skip for now")}
+          {backButton}
+          {skipButton(() => patch({ team: [], step: 5 }), "Skip for now")}
           <Button className="rounded-pill" onClick={goNext}>
             Continue <ArrowRight className="ml-1.5 h-4 w-4" />
           </Button>
@@ -311,7 +324,7 @@ export default function Onboarding() {
       body = (
         <InviteUsersStep
           title="Invite your clients"
-          description="Give clients a calm, branded view of their projects. This step is optional."
+          description="Invite clients when you enter Ordo. Assign their projects after they accept. This step is optional."
           placeholder="client@email.com"
           emails={clients}
           onChange={(c) => patch({ clients: c })}
@@ -320,7 +333,8 @@ export default function Onboarding() {
       );
       footer = (
         <>
-          {skipButton(goNext, "Skip for now")}
+          {backButton}
+          {skipButton(() => patch({ clients: [], step: 6 }), "Skip for now")}
           <Button className="rounded-pill" onClick={goNext}>
             Continue <ArrowRight className="ml-1.5 h-4 w-4" />
           </Button>
@@ -333,11 +347,12 @@ export default function Onboarding() {
         <ProjectCreationStep
           draft={project}
           onChange={(p) => patch({ project: p })}
-          clientOptions={clients}
+          clientOptions={[]}
         />
       );
       footer = (
         <>
+          {backButton}
           {skipButton(goNext, "Skip for now")}
           <Button
             className="rounded-pill"
@@ -384,11 +399,18 @@ export default function Onboarding() {
       break;
 
     default:
-      body = <CompletionScreen workspaceName={name || "Your workspace"} />;
+      body = <div className="space-y-5">
+        <CompletionScreen workspaceName={name || "Your workspace"} />
+        {inviteError && <OrdoAlert variant="error">{inviteError} Your workspace is saved; you can retry.</OrdoAlert>}
+        {inviteSummary && inviteSummary.emailUnconfirmed > 0 && <div role="status" className="space-y-4">
+          <OrdoAlert variant="warning">{inviteSummary.invitations} invitation(s) are ready, but email delivery could not be confirmed for {inviteSummary.emailUnconfirmed}. Retry, or enter Ordo and manage invitation links from Team.</OrdoAlert>
+          <Button variant="outline" disabled={busy} onClick={() => void finish(true)}>Enter Ordo and manage invitations later</Button>
+        </div>}
+      </div>;
       footer = (
         <>
-          <span />
-          <Button className="rounded-pill" disabled={busy} onClick={finish}>
+          {backButton}
+          <Button className="rounded-pill" disabled={busy} onClick={() => void finish()}>
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LayoutGrid className="mr-2 h-4 w-4" />}
             Enter Ordo
           </Button>

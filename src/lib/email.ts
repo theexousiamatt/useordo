@@ -21,7 +21,7 @@ export async function sendAppEmail(params: {
   data?: Record<string, unknown>;
 }): Promise<boolean> {
   try {
-    const { error } = await supabase.functions.invoke("send-transactional-email", {
+    const { data, error } = await supabase.functions.invoke("send-transactional-email", {
       body: {
         templateName: params.template,
         entityId: params.entityId,
@@ -31,8 +31,8 @@ export async function sendAppEmail(params: {
         templateData: params.data ?? {},
       },
     });
-    if (error) {
-      console.warn("[email] send failed", params.template, error.message);
+    if (error || data?.success !== true) {
+      console.warn("[email] send failed", params.template, error?.message ?? "Delivery was not confirmed");
       return false;
     }
     return true;

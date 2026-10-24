@@ -1,169 +1,82 @@
-import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 export type WorkspaceRole = "owner" | "manager" | "member" | "client";
-
-export type Workspace = {
-  id: string;
-  name: string;
-  slug: string;
-  type: "freelancer" | "agency" | "consultant" | "other";
-  owner_id: string;
-  role: WorkspaceRole;
-};
-
+export type Workspace = { id: string; name: string; slug: string; type: "freelancer" | "agency" | "consultant" | "other"; owner_id: string; role: WorkspaceRole };
 type WorkspaceContextValue = {
-  workspaces: Workspace[];
-  currentWorkspace: Workspace | null;
-  role: WorkspaceRole | null;
-  loading: boolean;
-  /** True once a workspace fetch has completed successfully (no error). */
-  resolved: boolean;
-  error: string | null;
-  debug: {
-    lastResponse: unknown;
-    parsedWorkspaceCount: number | null;
-    tokenAttached: boolean;
-  };
-  selectWorkspace: (id: string) => void;
-  refresh: () => Promise<void>;
+  workspaces: Workspace[]; currentWorkspace: Workspace | null; role: WorkspaceRole | null;
+  loading: boolean; resolved: boolean; error: string | null;
+  selectWorkspace: (id: string) => void; refresh: () => Promise<void>;
 };
-
-const STORAGE_KEY = "ordo:current-workspace";
-
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
 
+// Remount account-scoped state and children immediately on identity changes.
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  return <WorkspaceState key={user?.id ?? "signed-out"}>{children}</WorkspaceState>;
+}
+function WorkspaceState({ children }: { children: ReactNode }) {
   const { user, session, loading: authLoading } = useAuth();
+  const storageKey = `ordo:current-workspace:${user?.id ?? "signed-out"}`;
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [currentId, setCurrentId] = useState<string | null>(
-    () => localStorage.getItem(STORAGE_KEY),
-  );
+  const [currentId, setCurrentId] = useState<string | null>(() => {
+    try { return localStorage.getItem(storageKey); } catch { return null; }
+  });
   const [loading, setLoading] = useState(true);
   const [resolved, setResolved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [debug, setDebug] = useState<WorkspaceContextValue["debug"]>({
-    lastResponse: null,
-    parsedWorkspaceCount: null,
-    tokenAttached: false,
-  });
+  const pending = useRef<AbortController | null>(null);
+  const sequence = useRef(0);
+  const userId = user?.id;
+  const token = session?.access_token;
 
-  const load = async () => {
-    if (authLoading) {
-      console.info("[useWorkspace] auth still loading, holding workspace resolution");
-      setLoading(true);
-      setResolved(false);
-      return;
+  const load = useCallback(async () => {
+    const request = ++sequence.current;
+    pending.current?.abort();
+    if (authLoading) { setLoading(true); return; }
+    if (!userId) {
+      setWorkspaces([]); setError(null); setResolved(true); setLoading(false); return;
     }
-
-    // No authenticated user → nothing to load, but this is a resolved "zero" state.
-    if (!user) {
-      console.info("[useWorkspace] no auth user, clearing workspaces");
-      setWorkspaces([]);
-      setDebug({ lastResponse: null, parsedWorkspaceCount: 0, tokenAttached: false });
-      setResolved(true);
-      setLoading(false);
-      return;
-    }
-
-    const token = session?.access_token;
     if (!token) {
-      // Session not ready yet — keep loading, do NOT resolve to an empty state.
-      console.info("[useWorkspace] auth user present but no access token yet, waiting", {
-        userId: user.id,
+      setWorkspaces([]); setResolved(false); setLoading(false);
+      setError("Your session is unavailable. Please sign in again."); return;
+    }
+    const controller = new AbortController();
+    pending.current = controller;
+    setLoading(true); setResolved(false); setError(null);
+    try {
+      const { data, error: requestError } = await supabase.functions.invoke<{ workspaces?: Workspace[]; error?: string }>("list-workspaces", {
+        headers: { Authorization: `Bearer ${token}` }, signal: controller.signal, timeout: 15000,
       });
-      setDebug((current) => ({ ...current, tokenAttached: false }));
-      setLoading(true);
-      setResolved(false);
-      return;
+      if (controller.signal.aborted || request !== sequence.current) return;
+      if (requestError || data?.error || !Array.isArray(data?.workspaces)) {
+        throw new Error("Workspace request failed");
+      }
+      setWorkspaces(data.workspaces); setResolved(true);
+    } catch {
+      if (!controller.signal.aborted && request === sequence.current) {
+        setWorkspaces([]); setResolved(false);
+        setError("We couldn't load your workspaces. Check your connection and try again.");
+      }
+    } finally {
+      if (!controller.signal.aborted && request === sequence.current) setLoading(false);
     }
-
-    setLoading(true);
-    setResolved(false);
-    setError(null);
-    console.info("[useWorkspace] loading workspaces", {
-      userId: user.id,
-      sessionExists: Boolean(session),
-      tokenAttached: true,
-    });
-    setDebug((current) => ({ ...current, tokenAttached: true }));
-
-    const { data, error } = await supabase.functions.invoke<{ workspaces?: Workspace[]; error?: string }>(
-      "list-workspaces",
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
-
-    if (error) {
-      console.error("[useWorkspace] list-workspaces invoke error", error);
-      setDebug((current) => ({ ...current, lastResponse: error, parsedWorkspaceCount: null }));
-      setError(error.message);
-      setResolved(false);
-      setLoading(false);
-      return;
-    }
-
-    if (data?.error) {
-      console.error("[useWorkspace] list-workspaces returned error", data.error);
-      setDebug((current) => ({ ...current, lastResponse: data, parsedWorkspaceCount: null }));
-      setError(data.error);
-      setResolved(false);
-      setLoading(false);
-      return;
-    }
-
-    const list = data?.workspaces ?? [];
-    console.info("[useWorkspace] list-workspaces response", data);
-    console.info("[useWorkspace] workspaces loaded", {
-      userId: user.id,
-      sessionExists: Boolean(session),
-      accessTokenExists: Boolean(token),
-      count: list.length,
-      ids: list.map((w) => w.id),
-    });
-
-    setWorkspaces(list);
-    setDebug({ lastResponse: data, parsedWorkspaceCount: list.length, tokenAttached: true });
-    setResolved(true);
-    setLoading(false);
-  };
-
+  }, [authLoading, userId, token]);
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user?.id, session?.access_token]);
-
+    void load();
+    return () => { pending.current?.abort(); };
+  }, [load]);
   const selectWorkspace = (id: string) => {
+    // Onboarding may select a newly created workspace before the next fetch.
     setCurrentId(id);
-    localStorage.setItem(STORAGE_KEY, id);
+    try { localStorage.setItem(storageKey, id); } catch { /* Memory selection still works. */ }
   };
-
-  const currentWorkspace =
-    workspaces.find((w) => w.id === currentId) ?? workspaces[0] ?? null;
-
-  return (
-    <WorkspaceContext.Provider
-      value={{
-        workspaces,
-        currentWorkspace,
-        role: currentWorkspace?.role ?? null,
-        loading,
-        resolved,
-        error,
-        debug,
-        selectWorkspace,
-        refresh: load,
-      }}
-    >
-      {children}
-    </WorkspaceContext.Provider>
-  );
+  const currentWorkspace = workspaces.find((workspace) => workspace.id === currentId) ?? workspaces[0] ?? null;
+  return <WorkspaceContext.Provider value={{ workspaces, currentWorkspace, role: currentWorkspace?.role ?? null, loading, resolved, error, selectWorkspace, refresh: load }}>{children}</WorkspaceContext.Provider>;
 }
-
 export function useWorkspace() {
-  const ctx = useContext(WorkspaceContext);
-  if (!ctx) throw new Error("useWorkspace must be used inside WorkspaceProvider");
-  return ctx;
+  const context = useContext(WorkspaceContext);
+  if (!context) throw new Error("useWorkspace must be used inside WorkspaceProvider");
+  return context;
 }

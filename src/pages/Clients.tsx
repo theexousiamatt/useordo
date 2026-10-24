@@ -111,6 +111,7 @@ export default function Clients() {
       )}
 
       <InviteMemberDrawer
+        initialRole="client"
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         workspaceName={currentWorkspace?.name ?? "your workspace"}

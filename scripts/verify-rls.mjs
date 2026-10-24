@@ -132,6 +132,21 @@ console.log("\n4. Policy expressions are workspace/project scoped");
   if (unscoped === 0) ok("All policy expressions reference a scoping guard");
 }
 
+// Exposed privileged functions bypass table RLS; audit their ACLs separately.
+console.log("\n5. Destructive RPC and policy helper execution contract");
+{
+  const rows = runSql(`SELECT
+    has_function_privilege('anon','public.delete_project(uuid)','EXECUTE') AS anon_delete,
+    has_function_privilege('authenticated','public.is_project_member(uuid,uuid)','EXECUTE') AS member_guard,
+    has_function_privilege('authenticated','public.has_role(uuid,public.app_role)','EXECUTE') AS role_guard`);
+  const [anonDelete, memberGuard, roleGuard] = rows[0] ?? [];
+  const enabled = (value) => value === true || value === "t";
+  if (enabled(anonDelete)) fail("delete_project: anonymous execution allowed");
+  if (!enabled(memberGuard)) fail("is_project_member: authenticated policy helper execution missing");
+  if (!enabled(roleGuard)) fail("has_role: authenticated policy helper execution missing");
+  if (!enabled(anonDelete) && enabled(memberGuard) && enabled(roleGuard)) ok("RPC/helper execution contract satisfied");
+}
+
 console.log("\n===================================");
 if (failures.length) {
   console.error(`\n✖ RELEASE BLOCKED: ${failures.length} issue(s) found.\n`);

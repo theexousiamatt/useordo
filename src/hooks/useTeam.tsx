@@ -1,3 +1,4 @@
+import { inviteWorkspacePeople } from "@/lib/invitations";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace, type WorkspaceRole } from "@/hooks/useWorkspace";
@@ -105,51 +106,24 @@ export function useTeam() {
     async (emails: string[], role: WorkspaceRole) => {
       if (!workspaceId) return false;
       setBusy(true);
-      const { data: auth } = await supabase.auth.getUser();
-      const inviterName =
-        (auth.user?.user_metadata?.full_name as string) ??
-        auth.user?.email ??
-        "A teammate";
-      const rows = emails.map((email) => ({
-        workspace_id: workspaceId,
-        email: email.toLowerCase().trim(),
-        role,
-        invited_by: auth.user?.id ?? null,
-        status: "pending",
-      }));
-      const { data: inserted, error } = await db
-        .from("workspace_invitations")
-        .insert(rows)
-        .select("id, email, token");
-      setBusy(false);
-      if (error) {
-        toast.error(error.message ?? "Could not send invitations");
+      try {
+        if (role === "owner") throw new Error("Ownership cannot be granted by invitation");
+        const result = await inviteWorkspacePeople(workspaceId, emails, role);
+        if (result.emailUnconfirmed) {
+          toast.warning(`${result.invitations} invitation(s) ready, but email delivery could not be confirmed for ${result.emailUnconfirmed}. Manage their links from Team.`);
+        } else if (result.invitations) {
+          toast.success(`${result.invitations} invitation(s) ready. Email accepted for delivery.`);
+        } else {
+          toast.info("These people already have workspace access.");
+        }
+        await load();
+        return true;
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Could not create invitations. Please retry.");
         return false;
+      } finally {
+        setBusy(false);
       }
-      // Send branded invitation emails (non-blocking).
-      const deliveryResults = await Promise.all(
-        (inserted ?? []).map((inv: any) =>
-          sendAppEmail({
-            template: "workspace-invitation",
-            entityId: inv.id,
-            to: inv.email,
-            idempotencyKey: `invite-${inv.id}`,
-            data: {
-              inviterName,
-              workspaceName: currentWorkspace?.name ?? "a workspace",
-              role,
-              acceptUrl: inviteLink(inv.token),
-            },
-          }),
-        ),
-      );
-      if (deliveryResults.every(Boolean)) {
-        toast.success(`${rows.length} invitation${rows.length > 1 ? "s" : ""} sent`);
-      } else {
-        toast.warning("Invitations created, but email delivery is unavailable. Copy the invitation links to share them.");
-      }
-      await load();
-      return true;
     },
     [workspaceId, load, currentWorkspace],
   );

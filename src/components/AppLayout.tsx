@@ -1,3 +1,4 @@
+import { WorkspaceRecovery } from "@/components/states/WorkspaceRecovery";
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,63 +43,14 @@ function FullScreenLoader() {
 }
 
 export default function AppLayout() {
-  const { user, session, loading: authLoading } = useAuth();
-  const { workspaces, loading: wsLoading, resolved, error, role, debug } = useWorkspace();
+  const { user, loading: authLoading } = useAuth();
+  const { workspaces, loading: wsLoading, resolved, error, role } = useWorkspace();
   const location = useLocation();
-
-  const debugSnapshot = {
-    authUserId: user?.id ?? null,
-    sessionExists: Boolean(session),
-    accessTokenExists: Boolean(session?.access_token),
-    listWorkspacesResponse: debug.lastResponse,
-    parsedWorkspaceCount: debug.parsedWorkspaceCount,
-    useWorkspace: {
-      loading: wsLoading,
-      resolved,
-      error,
-      workspacesLength: workspaces.length,
-    },
-  };
-
   if (authLoading) return <FullScreenLoader />;
   if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
-
-  // Still loading, or the last fetch failed/has not resolved cleanly:
-  // never make a routing decision (especially onboarding) on an unresolved state.
-  if (wsLoading || (!resolved && error)) {
-    console.info("[AppLayout] workspace state unresolved, holding", {
-      ...debugSnapshot,
-      wsLoading,
-      resolved,
-      error,
-    });
-    return <FullScreenLoader />;
-  }
-
-  const shouldOnboard = workspaces.length === 0;
-  const onboardingCondition = `workspaces.length === 0 -> ${workspaces.length} === 0 (${shouldOnboard})`;
-  const decision =
-    shouldOnboard
-      ? "onboarding"
-      : role === "client"
-        ? "client"
-        : "dashboard";
-
-  console.info("[AppLayout] routing decision", {
-    ...debugSnapshot,
-    role,
-    workspaceCount: workspaces.length,
-    decision,
-    onboardingCondition,
-  });
-
-  if (decision === "onboarding") return <Navigate to="/onboarding" replace />;
-  if (decision === "client") return <Navigate to="/client" replace />;
-
-
-  return (
-    <SidebarCollapseProvider>
-      <AppShell />
-    </SidebarCollapseProvider>
-  );
+  if (wsLoading) return <FullScreenLoader />;
+  if (error || !resolved) return <WorkspaceRecovery />;
+  if (workspaces.length === 0) return <Navigate to="/onboarding" replace />;
+  if (role === "client") return <Navigate to="/client" replace />;
+  return <SidebarCollapseProvider><AppShell /></SidebarCollapseProvider>;
 }

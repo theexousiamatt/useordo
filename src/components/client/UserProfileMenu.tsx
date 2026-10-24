@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, LogOut, Settings, User } from "lucide-react";
 import {
@@ -42,7 +43,7 @@ export function UserProfileMenu({ settingsPath = "/client/settings" }: { setting
           <Settings className="h-4 w-4" /> Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut} className="gap-2 text-destructive focus:text-destructive">
+        <DropdownMenuItem onClick={() => { void signOut().catch(() => toast.error("Could not sign out. Check your connection and try again.")); }} className="gap-2 text-destructive focus:text-destructive">
           <LogOut className="h-4 w-4" /> Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>

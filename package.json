@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "verify:rls": "node scripts/verify-rls.mjs",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:access": "node scripts/verify-access.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

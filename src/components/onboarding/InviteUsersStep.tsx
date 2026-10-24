@@ -53,6 +53,7 @@ export function InviteUsersStep({
       <div className="flex gap-2">
         <Input
           type="email"
+          aria-label="Invitation email address"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
@@ -74,7 +75,7 @@ export function InviteUsersStep({
         <EmptyState
           icon={Mail}
           title={emptyLabel}
-          description="Add as many as you like — or skip and invite people later from Settings."
+          description="Add as many as you like — or skip and invite people later from Team."
         />
       ) : (
         <ul className="flex flex-col gap-2">

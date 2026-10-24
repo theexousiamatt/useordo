@@ -14,6 +14,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   workspaceName: string;
   busy?: boolean;
+  initialRole?: WorkspaceRole;
   onInvite: (emails: string[], role: WorkspaceRole) => Promise<boolean | void>;
 }
 
@@ -32,10 +33,10 @@ function parseEmails(raw: string): string[] {
 
 const STEPS = ["Recipients", "Role", "Review"] as const;
 
-export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, onInvite }: Props) {
+export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, onInvite, initialRole = "member" }: Props) {
   const [step, setStep] = useState(0);
   const [raw, setRaw] = useState("");
-  const [role, setRole] = useState<WorkspaceRole>("member");
+  const [role, setRole] = useState<WorkspaceRole>(initialRole);
 
   const emails = useMemo(() => parseEmails(raw), [raw]);
   const invalid = useMemo(() => emails.filter((e) => !EMAIL_RE.test(e)), [emails]);
@@ -44,7 +45,7 @@ export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, on
   const reset = () => {
     setStep(0);
     setRaw("");
-    setRole("member");
+    setRole(initialRole);
   };
 
   const close = (o: boolean) => {
@@ -154,6 +155,7 @@ export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, on
             <button
               key={r.value}
               type="button"
+              aria-pressed={role === r.value}
               onClick={() => setRole(r.value)}
               className={cn(
                 "flex w-full items-start gap-3 rounded-card border p-4 text-left transition-all",
