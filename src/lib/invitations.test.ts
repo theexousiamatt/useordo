@@ -26,3 +26,8 @@ describe('shared invitation preparation and delivery', () => {
   await expect(inviteWorkspacePeople('workspace', ['a@example.com'], 'member')).rejects.toThrow(/confirm every invitation/);
  });
 });
+it('prepares project scope explicitly without silently falling back to workspace access', async () => {
+ mock.rpc.mockResolvedValue({ data: [{ email: 'a@example.com', invitation_id: 'invite', outcome: 'created' }], error: null }); mock.send.mockResolvedValue(true);
+ await inviteWorkspacePeople('workspace', ['a@example.com'], 'client', { projectId: 'ivy' });
+ expect(mock.rpc).toHaveBeenCalledWith('prepare_scoped_invitations', { _workspace_id: 'workspace', _emails: ['a@example.com'], _role: 'client', _project_id: 'ivy' });
+});

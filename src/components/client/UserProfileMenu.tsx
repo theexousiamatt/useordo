@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, Settings, User } from "lucide-react";
+import { ChevronDown, LogOut, Settings, User, Mail } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +36,7 @@ export function UserProfileMenu({ settingsPath = "/client/settings" }: { setting
           <span className="truncate text-xs font-normal text-muted-foreground">{user?.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate("/auth/invitations")} className="gap-2"><Mail className="h-4 w-4" />Invitations</DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate(settingsPath)} className="gap-2">
           <User className="h-4 w-4" /> Profile
         </DropdownMenuItem>

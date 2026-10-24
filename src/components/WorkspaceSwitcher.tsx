@@ -45,7 +45,7 @@ export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }
         {workspaces.map((w) => (
           <DropdownMenuItem
             key={w.id}
-            onClick={() => selectWorkspace(w.id)}
+            onClick={() => { selectWorkspace(w.id); navigate(w.role === "client" ? "/client" : "/"); }}
             className="gap-2"
           >
             <div className="flex h-6 w-6 items-center justify-center rounded bg-muted text-xs font-medium">
@@ -61,7 +61,7 @@ export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/onboarding")} className="gap-2">
+        <DropdownMenuItem onClick={() => navigate("/onboarding?create=1")} className="gap-2">
           <Plus className="h-4 w-4" />
           New workspace
         </DropdownMenuItem>

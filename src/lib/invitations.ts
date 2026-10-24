@@ -2,18 +2,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendAppEmail } from "./email";
 import type { WorkspaceRole } from "@/hooks/useWorkspace";
 
+export type InvitationScope = { projectId?: string | null };
 export type InvitationResult = { email: string; invitation_id: string | null; outcome: "member" | "pending" | "created" };
 export type InvitationSummary = { invitations: number; alreadyMembers: number; emailAccepted: number; emailUnconfirmed: number };
 // Narrow compatibility adapter until the generated schema includes this migration.
 const invitationRpc = supabase as unknown as {
-  rpc(name: "prepare_workspace_invitations", args: { _workspace_id: string; _emails: string[]; _role: WorkspaceRole }): PromiseLike<{ data: InvitationResult[] | null; error: { message: string } | null }>;
+  rpc(name: "prepare_workspace_invitations" | "prepare_scoped_invitations", args: { _workspace_id: string; _emails: string[]; _role: WorkspaceRole; _project_id?: string | null }): PromiseLike<{ data: InvitationResult[] | null; error: { message: string } | null }>;
 };
-export async function inviteWorkspacePeople(workspaceId: string, emails: string[], role: Exclude<WorkspaceRole, "owner">): Promise<InvitationSummary> {
+export async function inviteWorkspacePeople(workspaceId: string, emails: string[], role: Exclude<WorkspaceRole, "owner">, scope?: InvitationScope): Promise<InvitationSummary> {
   const normalized = [...new Set(emails.map((email) => email.trim().toLowerCase()))];
   const summary: InvitationSummary = { invitations: 0, alreadyMembers: 0, emailAccepted: 0, emailUnconfirmed: 0 };
   if (!normalized.length) return summary;
-  const { data, error } = await invitationRpc.rpc("prepare_workspace_invitations", {
-    _workspace_id: workspaceId, _emails: normalized, _role: role,
+  const { data, error } = await invitationRpc.rpc(scope ? "prepare_scoped_invitations" : "prepare_workspace_invitations", {
+    _workspace_id: workspaceId, _emails: normalized, _role: role, ...(scope ? { _project_id: scope.projectId ?? null } : {}),
   });
   if (error) throw new Error(error.message);
   if (!data || data.length !== normalized.length) throw new Error("We couldn't confirm every invitation. Retry to check their status.");

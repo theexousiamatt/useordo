@@ -38,7 +38,7 @@ export const ROLE_META: Record<WorkspaceRole, RoleMeta> = {
   member: {
     value: "member",
     label: "Member",
-    description: "Access assigned projects, create and update tasks.",
+    description: "Access agency projects, create and update tasks.",
     badge: "bg-secondary text-foreground",
     weight: 2,
   },

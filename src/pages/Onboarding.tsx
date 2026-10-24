@@ -1,3 +1,5 @@
+import { InvitationInbox } from "@/components/auth/InvitationInbox";
+import { useSearchParams } from "react-router-dom";
 import { inviteWorkspacePeople, type InvitationSummary } from "@/lib/invitations";
 import { WorkspaceRecovery } from "@/components/states/WorkspaceRecovery";
 import { OrdoAlert } from "@/components/auth";
@@ -35,6 +37,8 @@ interface PersistedState {
   team: string[];
   clients: string[];
   project: ProjectDraft;
+  projectId: string | null;
+  clientInviteScope: "project" | "workspace";
 }
 
 const emptyProject: ProjectDraft = { name: "", client: "", description: "" };
@@ -47,12 +51,15 @@ const defaultState: PersistedState = {
   team: [],
   clients: [],
   project: emptyProject,
+  projectId: null,
+  clientInviteScope: "project",
 };
 
 export default function Onboarding() {
   const { user, loading } = useAuth();
   const { refresh, selectWorkspace, workspaces, loading: wsLoading, resolved, error } = useWorkspace();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   const storageKey = user ? `ordo:onboarding:${user.id}` : null;
 
@@ -92,6 +99,7 @@ export default function Onboarding() {
       resolved &&
       !error &&
       workspaces.length > 0 &&
+      params.get("create") !== "1" &&
       step === 1 &&
       !workspaceId &&
       !redirected.current
@@ -99,7 +107,7 @@ export default function Onboarding() {
       redirected.current = true;
       navigate("/", { replace: true });
     }
-  }, [loading, user, wsLoading, resolved, error, workspaces.length, step, workspaceId, navigate]);
+  }, [loading, user, wsLoading, resolved, error, workspaces.length, step, workspaceId, navigate, params]);
 
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
@@ -112,6 +120,7 @@ export default function Onboarding() {
   }
 
   if (error || !resolved) return <WorkspaceRecovery />;
+  if (!workspaces.length && !workspaceId && params.get("create") !== "1") return <InvitationInbox />;
 
   const sidebarTitle = workspaceId && name ? name : "Welcome to Ordo";
   const sidebarSubtitle = workspaceId
@@ -154,20 +163,22 @@ export default function Onboarding() {
     if (!workspaceId || !project.name.trim()) return;
     setBusy(true);
     try {
-      const { error: projError } = await supabase.from("projects").insert({
+      const values = {
         workspace_id: workspaceId,
         name: project.name.trim(),
         description: project.description.trim() || null,
         owner_id: user.id,
         created_by: user.id,
-      });
-      if (projError) {
-        toast.error("Could not create the project, but you can add it later.");
-        console.error("Project insert failed:", projError);
-      } else {
-        toast.success("First project created");
+      };
+      const { data: savedProject, error: projError } = state.projectId
+        ? await supabase.from("projects").update(values).eq("id", state.projectId).eq("workspace_id", workspaceId).select("id").single()
+        : await supabase.from("projects").insert(values).select("id").single();
+      if (projError || !savedProject) {
+        toast.error("Could not save your project. Retry, or skip and add it later.");
+        return;
       }
-      goNext();
+      patch({ projectId: savedProject.id, step: step + 1 });
+      toast.success("First project saved");
     } finally {
       setBusy(false);
     }
@@ -184,7 +195,9 @@ export default function Onboarding() {
         const results = [];
         // A retry reuses prepared invitations even if the previous batch partly completed.
         for (const [emails, role] of [[team, "member"], [clients, "client"]] as const) {
-          results.push(await inviteWorkspacePeople(workspaceId, emails, role));
+          results.push(await inviteWorkspacePeople(workspaceId, emails, role, role === "client" ? {
+            projectId: state.clientInviteScope === "project" ? state.projectId : null,
+          } : undefined));
         }
         const summary = results.reduce<InvitationSummary>((total, result) => ({
           invitations: total.invitations + result.invitations,
@@ -324,7 +337,7 @@ export default function Onboarding() {
       body = (
         <InviteUsersStep
           title="Invite your clients"
-          description="Invite clients when you enter Ordo. Assign their projects after they accept. This step is optional."
+          description="Add clients to invite when setup is complete. You’ll choose project or client workspace access before sending. This step is optional."
           placeholder="client@email.com"
           emails={clients}
           onChange={(c) => patch({ clients: c })}
@@ -401,6 +414,11 @@ export default function Onboarding() {
     default:
       body = <div className="space-y-5">
         <CompletionScreen workspaceName={name || "Your workspace"} />
+        {clients.length > 0 && <fieldset disabled={busy || !!inviteSummary} className="space-y-3 rounded-card bg-background p-5">
+          <legend className="px-1 text-sm font-semibold">Client invitation access</legend>
+          {state.projectId && <label className="flex items-start gap-3 text-sm"><input type="radio" name="onboarding-client-scope" checked={state.clientInviteScope === "project"} onChange={() => patch({ clientInviteScope: "project" })} className="mt-1 accent-[hsl(var(--foreground))]" /><span>Only {project.name}<span className="block text-xs text-muted-foreground">Clients land directly in this project.</span></span></label>}
+          <label className="flex items-start gap-3 text-sm"><input type="radio" name="onboarding-client-scope" checked={!state.projectId || state.clientInviteScope === "workspace"} onChange={() => patch({ clientInviteScope: "workspace" })} className="mt-1 accent-[hsl(var(--foreground))]" /><span>Client workspace<span className="block text-xs text-muted-foreground">Share projects individually after they join. Other projects stay private.</span></span></label>
+        </fieldset>}
         {inviteError && <OrdoAlert variant="error">{inviteError} Your workspace is saved; you can retry.</OrdoAlert>}
         {inviteSummary && inviteSummary.emailUnconfirmed > 0 && <div role="status" className="space-y-4">
           <OrdoAlert variant="warning">{inviteSummary.invitations} invitation(s) are ready, but email delivery could not be confirmed for {inviteSummary.emailUnconfirmed}. Retry, or enter Ordo and manage invitation links from Team.</OrdoAlert>

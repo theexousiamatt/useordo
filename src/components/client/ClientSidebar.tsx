@@ -1,3 +1,4 @@
+import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher";
 import { NavLink, useLocation } from "react-router-dom";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
         )}
       </div>
 
+      <div className="mb-5"><WorkspaceSwitcher collapsed={collapsed} /></div>
       {/* Nav items */}
       <ul className="flex flex-1 flex-col gap-1">
         {clientNavItems.map((item) => {

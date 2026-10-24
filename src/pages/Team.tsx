@@ -1,3 +1,4 @@
+import { useInvitationProjects } from "@/hooks/useInvitationProjects";
 import { useMemo, useState } from "react";
 import {
   UserCog,
@@ -45,6 +46,7 @@ export default function Team() {
   const team = useTeam();
   const perms = permissionsFor(role);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const invitationProjects = useInvitationProjects(inviteOpen);
   const [confirm, setConfirm] = useState<{
     title: string;
     description: string;
@@ -279,6 +281,7 @@ export default function Team() {
       )}
 
       <InviteMemberDrawer
+        projects={invitationProjects.data} projectsLoading={invitationProjects.isLoading} projectsError={invitationProjects.isError}
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         workspaceName={currentWorkspace.name}
@@ -331,6 +334,7 @@ function InvitationRow({
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{inv.email}</div>
+        <p className="truncate text-xs text-muted-foreground">{inv.project_name ? `Project: ${inv.project_name}` : "Workspace invitation"}</p>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
           {expired ? "Expired" : `Expires ${timeAgo(inv.expires_at)}`} · Sent {timeAgo(inv.created_at)}

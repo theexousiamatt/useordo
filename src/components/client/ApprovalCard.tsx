@@ -38,7 +38,7 @@ export function ApprovalCard({ item }: ApprovalCardProps) {
   const urgent = item.status === "changes_requested" || isDueSoon(item.due_date);
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-small border border-transparent bg-card px-5 py-4 transition-colors hover:border-border">
+    <div className="flex flex-col items-stretch justify-between gap-4 rounded-small sm:flex-row sm:items-center border border-transparent bg-card px-5 py-4 transition-colors hover:border-border">
       <div className="flex min-w-0 items-center gap-4">
         <span
           className={cn(

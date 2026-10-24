@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Mail, Send, Users } from "lucide-react";
 import { OrdoDrawer } from "@/components/ordo/OrdoDrawer";
 import { OrdoField } from "@/components/ordo/OrdoField";
-import { OrdoInput } from "@/components/ordo/OrdoInput";
+import type { InvitationScope } from "@/lib/invitations";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,11 @@ interface Props {
   workspaceName: string;
   busy?: boolean;
   initialRole?: WorkspaceRole;
-  onInvite: (emails: string[], role: WorkspaceRole) => Promise<boolean | void>;
+  projects?: { id: string; name: string }[];
+  projectsLoading?: boolean;
+  projectsError?: boolean;
+  initialProjectId?: string;
+  onInvite: (emails: string[], role: WorkspaceRole, scope?: InvitationScope) => Promise<boolean | void>;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,11 +37,15 @@ function parseEmails(raw: string): string[] {
 
 const STEPS = ["Recipients", "Role", "Review"] as const;
 
-export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, onInvite, initialRole = "member" }: Props) {
+export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, onInvite, initialRole = "member", projects = [], projectsLoading, projectsError, initialProjectId }: Props) {
   const [step, setStep] = useState(0);
   const [raw, setRaw] = useState("");
   const [role, setRole] = useState<WorkspaceRole>(initialRole);
 
+  const [scope, setScope] = useState<"project" | "workspace">("project");
+  const [projectId, setProjectId] = useState(initialProjectId ?? "");
+  const selectedProjectId = projectId || projects[0]?.id || "";
+  const selectedProject = projects.find((project) => project.id === selectedProjectId);
   const emails = useMemo(() => parseEmails(raw), [raw]);
   const invalid = useMemo(() => emails.filter((e) => !EMAIL_RE.test(e)), [emails]);
   const validEmails = useMemo(() => emails.filter((e) => EMAIL_RE.test(e)), [emails]);
@@ -46,26 +54,29 @@ export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, on
     setStep(0);
     setRaw("");
     setRole(initialRole);
+    setScope("project");
+    setProjectId(initialProjectId ?? "");
   };
 
   const close = (o: boolean) => {
+    if (busy) return;
     onOpenChange(o);
-    if (!o) setTimeout(reset, 200);
+    if (!o) reset();
   };
 
   const send = async () => {
-    const ok = await onInvite(validEmails, role);
+    const ok = await onInvite(validEmails, role, role === "client" ? { projectId: scope === "project" ? selectedProjectId : null } : undefined);
     if (ok !== false) close(false);
   };
 
-  const canNext = step === 0 ? validEmails.length > 0 && invalid.length === 0 : true;
+  const canNext = step === 0 ? validEmails.length > 0 && validEmails.length <= 50 && invalid.length === 0 : !(role === "client" && scope === "project" && (!selectedProject || projectsLoading || projectsError));
 
   return (
     <OrdoDrawer
       open={open}
       onOpenChange={close}
-      title="Invite to workspace"
-      description={`New teammates will join ${workspaceName}.`}
+      title={role === "client" ? "Invite client" : "Invite to workspace"}
+      description={role === "client" ? `Share work from ${workspaceName}. Clients skip agency setup.` : `New teammates will join ${workspaceName}.`}
       footer={
         <div className="flex w-full items-center justify-between">
           {step > 0 ? (
@@ -80,7 +91,7 @@ export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, on
               Continue <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={send} disabled={busy}>
+            <Button onClick={send} disabled={busy || !canNext}>
               <Send className="mr-1.5 h-4 w-4" />
               {busy ? "Sending…" : `Send ${validEmails.length > 1 ? `${validEmails.length} invites` : "invite"}`}
             </Button>
@@ -118,6 +129,7 @@ export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, on
             hint="Add one or many — separate with commas, spaces or new lines."
           >
             <Textarea
+              aria-label="Email addresses"
               autoFocus
               value={raw}
               onChange={(e) => setRaw(e.target.value)}
@@ -137,6 +149,7 @@ export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, on
               ))}
             </div>
           )}
+          {validEmails.length > 50 && <p role="alert" className="text-sm text-destructive">Invite up to 50 people at a time.</p>}
           {invalid.length > 0 && (
             <p className="text-xs font-medium text-destructive">
               Invalid: {invalid.join(", ")}
@@ -148,10 +161,9 @@ export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, on
       {step === 1 && (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Choose the role for {validEmails.length > 1 ? "these teammates" : "this teammate"}.
-            Ownership can only be transferred by the workspace owner.
+            {initialRole === "client" ? "Choose what this client can access. Other clients’ work stays private." : "Choose a role. Ownership can only be transferred by the workspace owner."}
           </p>
-          {ASSIGNABLE_ROLES.map((r) => (
+          {initialRole !== "client" && ASSIGNABLE_ROLES.map((r) => (
             <button
               key={r.value}
               type="button"
@@ -178,13 +190,34 @@ export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, on
               </div>
             </button>
           ))}
+          {role === "client" && <fieldset className="space-y-3 pt-4">
+            <legend className="text-sm font-semibold">Where should they join?</legend>
+            <label className="flex items-start gap-3 rounded-small border border-border p-3">
+              <input type="radio" name="invitation-scope" checked={scope === "project"} onChange={() => setScope("project")} className="mt-1 accent-[hsl(var(--foreground))]" />
+              <span><span className="block text-sm font-medium">A project</span><span className="text-xs text-muted-foreground">Only this project and its shared files, updates and approvals.</span></span>
+            </label>
+            {scope === "project" && <div className="space-y-2">
+              <label htmlFor="invite-project" className="text-sm font-medium">Project</label>
+              <select id="invite-project" value={selectedProjectId} onChange={(event) => setProjectId(event.target.value)} disabled={projectsLoading || projectsError} className="w-full rounded-small border border-border bg-card p-3 text-sm">
+                {!projects.length && <option value="">{projectsLoading ? "Loading projects…" : "No active projects"}</option>}
+                {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+              </select>
+              {projectsError && <p role="alert" className="text-sm text-destructive">Projects couldn't load. Close this invitation and try again.</p>}
+              {!projectsLoading && !projectsError && !projects.length && <p className="text-sm text-muted-foreground">Create a project first, or choose workspace access below.</p>}
+            </div>}
+            <label className="flex items-start gap-3 rounded-small border border-border p-3">
+              <input type="radio" name="invitation-scope" checked={scope === "workspace"} onChange={() => setScope("workspace")} className="mt-1 accent-[hsl(var(--foreground))]" />
+              <span><span className="block text-sm font-medium">Client workspace</span><span className="text-xs text-muted-foreground">Join the agency's client portal. Projects must still be shared individually.</span></span>
+            </label>
+          </fieldset>}
         </div>
       )}
 
       {step === 2 && (
         <div className="space-y-5">
           <div className="rounded-card border border-border bg-secondary/40 p-5">
-            <ReviewRow icon={Users} label="Workspace" value={workspaceName} />
+            <ReviewRow icon={Users} label={role === "client" && scope === "project" ? "Project" : "Workspace"} value={role === "client" && scope === "project" ? selectedProject?.name ?? "Choose a project" : workspaceName} />
+            {role === "client" && <p className="mt-3 text-sm text-muted-foreground">{scope === "project" ? "Access is limited to this project. No agency setup is required." : "Only projects explicitly shared with this client are visible."}</p>}
             <div className="my-3 h-px bg-border" />
             <ReviewRow
               icon={Check}

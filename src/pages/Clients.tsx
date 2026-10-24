@@ -1,3 +1,4 @@
+import { useInvitationProjects } from "@/hooks/useInvitationProjects";
 import { useMemo, useState } from "react";
 import { Users, Plus, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export default function Clients() {
   const { currentWorkspace, role } = useWorkspace();
   const { members, invitations, loading, busy, inviteMembers } = useTeam();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const invitationProjects = useInvitationProjects(inviteOpen);
 
   const canInvite = role === "owner" || role === "manager";
 
@@ -98,7 +100,7 @@ export default function Clients() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{i.email}</p>
                       <p className="text-xs text-muted-foreground">
-                        Invited {timeAgo(i.created_at)}
+                        {i.project_name ? `Project: ${i.project_name}` : "Client workspace"} · Invited {timeAgo(i.created_at)}
                       </p>
                     </div>
                     <Badge variant="secondary">Pending</Badge>
@@ -111,6 +113,7 @@ export default function Clients() {
       )}
 
       <InviteMemberDrawer
+        projects={invitationProjects.data} projectsLoading={invitationProjects.isLoading} projectsError={invitationProjects.isError}
         initialRole="client"
         open={inviteOpen}
         onOpenChange={setInviteOpen}

@@ -7,7 +7,7 @@ if (!connection) {
   console.error('Set TEST_DATABASE_URL to an isolated migrated test database.');
   process.exit(2);
 }
-const fixtures = ['access-contract.sql', 'invitation-preparation.sql'].map(name => readFileSync(new URL(`../supabase/tests/${name}`, import.meta.url), 'utf8')).join("\nRESET ROLE;\nSELECT set_config('request.jwt.claim.sub','',true),set_config('request.jwt.claim.role','service_role',true);\n");
+const fixtures = ['access-contract.sql', 'invitation-preparation.sql', 'scoped-invitations.sql'].map(name => readFileSync(new URL(`../supabase/tests/${name}`, import.meta.url), 'utf8')).join("\nRESET ROLE;\nSELECT set_config('request.jwt.claim.sub','',true),set_config('request.jwt.claim.role','service_role',true);\n");
 try {
   execFileSync('psql', ['-X', '-v', 'ON_ERROR_STOP=1', connection], {
     input: `BEGIN;\n${fixtures}\nROLLBACK;\n`,

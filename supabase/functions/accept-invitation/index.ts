@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     // Look up the invitation by token.
     const { data: invite, error: inviteError } = await admin
       .from("workspace_invitations")
-      .select("id, workspace_id, email, role, status, expires_at, invited_by")
+      .select("id, workspace_id, email, role, status, expires_at, invited_by, project_id")
       .eq("token", token)
       .maybeSingle();
 
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       console.error("invitation lookup failed", inviteError);
       return json({ error: "Could not load invitation" }, 400);
     }
-    if (!invite) return json({ error: "This invitation does not exist", valid: false }, 404);
+    if (!invite) return json({ invite: { valid: false, status: "invalid" } });
 
     const now = Date.now();
     const expired = new Date(invite.expires_at).getTime() < now;
@@ -66,9 +66,13 @@ Deno.serve(async (req) => {
       inviterName = inviter?.full_name ?? null;
     }
 
+    const { data: project } = invite.project_id ? await admin.from("projects").select("id,name,workspace_id,archived_at").eq("id", invite.project_id).maybeSingle() : { data: null };
+    const projectAvailable = !invite.project_id || (project?.workspace_id === invite.workspace_id && (invite.status === "accepted" || !project.archived_at));
     const preview = {
-      valid: usable,
-      status: expired && invite.status === "pending" ? "expired" : invite.status,
+      valid: projectAvailable && (usable || invite.status === "accepted"),
+      projectId: invite.project_id,
+      projectName: project?.name ?? null,
+      status: !projectAvailable ? "project_unavailable" : expired && invite.status === "pending" ? "expired" : invite.status,
       email: invite.email,
       role: invite.role,
       workspaceId: invite.workspace_id,
@@ -77,7 +81,12 @@ Deno.serve(async (req) => {
       expiresAt: invite.expires_at,
     };
 
-    // Preview only.
+    if (body.action === "request-renewal") {
+      const { data: requested, error: renewalError } = await admin.rpc("request_invitation_renewal", { _token: token });
+      if (renewalError || !requested) return json({ error: "A new invitation could not be requested. Contact the agency." }, 400);
+      return json({ requested: true });
+    }
+    // Viewing a link never consumes it; email security scanners cannot accept it.
     if (!accept) return json({ invite: preview });
 
     // Accepting requires an authenticated user.
@@ -90,7 +99,7 @@ Deno.serve(async (req) => {
     }
     const user = authData.user;
 
-    if (!usable) {
+    if (!projectAvailable || (!usable && invite.status !== "accepted")) {
       return json({ error: `This invitation is ${preview.status}.`, valid: false }, 410);
     }
 
@@ -102,7 +111,10 @@ Deno.serve(async (req) => {
       return json({ error: memberError.message }, 403);
     }
 
+    const { data: actualRole } = await admin.rpc("get_workspace_role", { _workspace_id: invite.workspace_id, _user_id: user.id });
     return json({
+      projectId: invite.project_id,
+      destination: invite.project_id ? `${actualRole === "client" ? "/client" : ""}/projects/${invite.project_id}` : actualRole === "client" ? "/client" : "/",
       joined: true,
       workspaceId: invite.workspace_id,
       workspaceName: preview.workspaceName,

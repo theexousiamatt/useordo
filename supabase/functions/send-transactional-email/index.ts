@@ -44,7 +44,9 @@ Deno.serve(async (req) => {
       workspaceId = invite.workspace_id;
       recipient = invite.email;
       eventKey = `invite:${invite.id}:${invite.updated_at}`;
-      data = { inviterName: await nameFor(actor), workspaceName: ws?.name, role: invite.role, acceptUrl: inviteUrl(invite.token) };
+      const { data: project } = invite.project_id ? await admin.from('projects').select('name,workspace_id').eq('id', invite.project_id).maybeSingle() : { data: null };
+      if (invite.project_id && project?.workspace_id !== invite.workspace_id) return reply({ error: 'Project invitation unavailable' }, 403);
+      data = { inviterName: await nameFor(actor), workspaceName: ws?.name, projectName: project?.name, role: invite.role, acceptUrl: inviteUrl(invite.token) };
     } else if (templateName === 'task-assigned') {
       if (!uuid.test(body.recipientId ?? '')) return reply({ error: 'recipientId is required' }, 400);
       const { data: task } = await admin.from('tasks').select('*').eq('id', entityId).maybeSingle();

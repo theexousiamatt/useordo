@@ -1,3 +1,4 @@
+import { authReturnPath, authPath } from "@/lib/authReturn";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { MailCheck, CheckCircle2 } from "lucide-react";
@@ -16,6 +17,8 @@ export default function VerifyEmail() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const returnTo = authReturnPath(params);
+  const invited = returnTo.startsWith("/auth/invite?");
   const [email, setEmail] = useState(params.get("email") || user?.email || "");
   const [linkError] = useState(() => {
     const hash = new URLSearchParams(window.location.hash.slice(1));
@@ -33,8 +36,8 @@ export default function VerifyEmail() {
   const verified = !!user?.email_confirmed_at;
 
   useEffect(() => {
-    if (!loading && verified) navigate("/", { replace: true });
-  }, [loading, verified, navigate]);
+    if (!loading && verified) navigate(returnTo, { replace: true });
+  }, [loading, verified, navigate, returnTo]);
 
   useEffect(() => {
     if (linkError) window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
@@ -55,7 +58,7 @@ export default function VerifyEmail() {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: email.trim(),
-        options: { emailRedirectTo: buildAppUrl("/auth/verify-email") },
+        options: { emailRedirectTo: buildAppUrl(authPath("/auth/verify-email", returnTo)) },
       });
       if (error) {
         setError(friendlyAuthError(error));
@@ -87,10 +90,10 @@ export default function VerifyEmail() {
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">Email verified</h2>
               <p className="mt-2 text-muted-foreground">
-                Your account is confirmed. Let's finish setting up your workspace.
+                {invited ? "Your account is confirmed. Opening your invitation…" : "Your account is confirmed. Let’s finish setting up your workspace."}
               </p>
             </div>
-            <OrdoButton onClick={() => navigate("/")}>Continue to workspace</OrdoButton>
+            <OrdoButton onClick={() => navigate(returnTo)}>{invited ? "Continue to invitation" : "Continue to workspace"}</OrdoButton>
           </div>
         ) : (
           <div className="space-y-6">
@@ -123,11 +126,11 @@ export default function VerifyEmail() {
               </OrdoButton>
               <p className="text-center text-sm text-muted-foreground">
                 Wrong email?{" "}
-                <Link to="/auth/sign-up" className="font-semibold text-foreground hover:underline">
+                <Link to={authPath("/auth/sign-up", returnTo, email.trim())} className="font-semibold text-foreground hover:underline">
                   Start over
                 </Link>
               </p>
-              <Link to={`/auth?email=${encodeURIComponent(email.trim())}`} className="block text-center text-sm font-semibold hover:underline">Already verified? Sign in</Link>
+              <Link to={authPath("/auth", returnTo, email.trim())} className="block text-center text-sm font-semibold hover:underline">Already verified? Sign in</Link>
             </form>
           </div>
         )}

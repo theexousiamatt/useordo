@@ -1,3 +1,4 @@
+import { InvitationInbox } from "@/components/auth/InvitationInbox";
 import { WorkspaceRecovery } from "@/components/states/WorkspaceRecovery";
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -50,7 +51,7 @@ export default function AppLayout() {
   if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
   if (wsLoading) return <FullScreenLoader />;
   if (error || !resolved) return <WorkspaceRecovery />;
-  if (workspaces.length === 0) return <Navigate to="/onboarding" replace />;
-  if (role === "client") return <Navigate to="/client" replace />;
+  if (workspaces.length === 0) return <InvitationInbox />;
+  if (role === "client") return <Navigate to={location.pathname.startsWith("/projects/") ? `/client${location.pathname}${location.search}` : "/client"} replace />;
   return <SidebarCollapseProvider><AppShell /></SidebarCollapseProvider>;
 }

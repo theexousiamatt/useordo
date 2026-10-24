@@ -1,3 +1,4 @@
+import { authReturnPath, authPath } from "@/lib/authReturn";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, MailCheck } from "lucide-react";
@@ -13,6 +14,7 @@ import {
 
 export default function ForgotPassword() {
   const [params] = useSearchParams();
+  const returnTo = authReturnPath(params);
   const [email, setEmail] = useState(params.get("email") || "");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -25,7 +27,7 @@ export default function ForgotPassword() {
     setBusy(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: buildAppUrl("/reset-password"),
+        redirectTo: buildAppUrl(authPath("/reset-password", returnTo)),
       });
       if (error) {
         setError(friendlyAuthError(error));
@@ -46,7 +48,7 @@ export default function ForgotPassword() {
     >
       <div className="mx-auto w-full max-w-sm">
         <Link
-          to="/auth"
+          to={authPath("/auth", returnTo, email.trim())}
           className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" /> Back to sign in

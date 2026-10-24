@@ -1,4 +1,4 @@
-import { inviteWorkspacePeople } from "@/lib/invitations";
+import { inviteWorkspacePeople, type InvitationScope } from "@/lib/invitations";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace, type WorkspaceRole } from "@/hooks/useWorkspace";
@@ -27,6 +27,8 @@ export interface Invitation {
   token: string;
   expires_at: string;
   created_at: string;
+  project_id: string | null;
+  project_name?: string | null;
 }
 
 // The generated types may lag the latest migration; use a loose client for the
@@ -58,7 +60,7 @@ export function useTeam() {
         .eq("workspace_id", workspaceId),
       db
         .from("workspace_invitations")
-        .select("id, email, role, status, token, expires_at, created_at")
+        .select("id, email, role, status, token, expires_at, created_at, project_id, projects(name)")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false }),
     ]);
@@ -93,7 +95,7 @@ export function useTeam() {
     );
 
     setInvitations(
-      (inviteRows ?? []).filter((i: any) => i.status === "pending"),
+      (inviteRows ?? []).filter((i: any) => i.status === "pending").map((i: any) => ({ ...i, project_name: i.projects?.name })),
     );
     setLoading(false);
   }, [workspaceId, ownerId]);
@@ -103,18 +105,18 @@ export function useTeam() {
   }, [load]);
 
   const inviteMembers = useCallback(
-    async (emails: string[], role: WorkspaceRole) => {
+    async (emails: string[], role: WorkspaceRole, scope?: InvitationScope) => {
       if (!workspaceId) return false;
       setBusy(true);
       try {
         if (role === "owner") throw new Error("Ownership cannot be granted by invitation");
-        const result = await inviteWorkspacePeople(workspaceId, emails, role);
+        const result = await inviteWorkspacePeople(workspaceId, emails, role, scope);
         if (result.emailUnconfirmed) {
           toast.warning(`${result.invitations} invitation(s) ready, but email delivery could not be confirmed for ${result.emailUnconfirmed}. Manage their links from Team.`);
         } else if (result.invitations) {
           toast.success(`${result.invitations} invitation(s) ready. Email accepted for delivery.`);
         } else {
-          toast.info("These people already have workspace access.");
+          toast.info("These people already have the selected access.");
         }
         await load();
         return true;

@@ -1,3 +1,4 @@
+import { InvitationInbox } from "@/components/auth/InvitationInbox";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Suspense, lazy } from "react";
@@ -30,6 +31,7 @@ import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import { ClientLayout } from "@/components/client/ClientLayout";
 
+const ClientProjectDetail = lazy(() => import("@/pages/ClientProjectDetail"));
 const ClientDashboard = lazy(() => import("@/pages/ClientDashboard"));
 const ClientProjects = lazy(() => import("@/pages/ClientProjects"));
 const ClientApprovals = lazy(() => import("@/pages/ClientApprovals"));
@@ -60,6 +62,7 @@ const App = () => (
                 <Route path="/auth/sign-up" element={<SignUp />} />
                 <Route path="/auth/forgot-password" element={<ForgotPassword />} />
                 <Route path="/auth/verify-email" element={<VerifyEmail />} />
+                <Route path="/auth/invitations" element={<InvitationInbox allowSetup={false} />} />
                 <Route path="/auth/invite" element={<WorkspaceInvite />} />
                 <Route path="/auth/locked" element={<AccountLocked />} />
                 <Route path="/auth/session-expired" element={<SessionExpired />} />
@@ -71,7 +74,7 @@ const App = () => (
                 <Route path="/client" element={<ClientLayout />}>
                   <Route index element={<ClientDashboard />} />
                   <Route path="projects" element={<ClientProjects />} />
-                  <Route path="projects/:id" element={<ClientProjects />} />
+                  <Route path="projects/:id" element={<ClientProjectDetail />} />
                   <Route path="approvals" element={<ClientApprovals />} />
                   <Route path="activity" element={<ClientActivity />} />
                   <Route

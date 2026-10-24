@@ -5,14 +5,14 @@ import { ApprovalCard } from "./ApprovalCard";
 import { useActionItems } from "@/hooks/useClientDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function ActionCenter() {
-  const { data, isLoading, isError, refetch } = useActionItems();
+export function ActionCenter({ projectId }: { projectId?: string }) {
+  const { data, isLoading, isError, refetch } = useActionItems(projectId);
 
   return (
     <section className="rounded-panel bg-card p-6 shadow-panel" aria-labelledby="action-center-heading">
       <div className="mb-4 flex items-center justify-between">
         <h2 id="action-center-heading" className="text-lg font-semibold">
-          Action Center
+          Ready for your review
         </h2>
       </div>
 

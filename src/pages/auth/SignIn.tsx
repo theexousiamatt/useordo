@@ -1,3 +1,4 @@
+import { authReturnPath, authPath, safeReturnPath } from "@/lib/authReturn";
 import { useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -20,7 +21,7 @@ export default function SignIn() {
   const navigate = useNavigate();
   const routerLocation = useLocation();
   const [params] = useSearchParams();
-  const { signIn: socialSignIn, pending: socialPending } = useSocialAuth();
+  const returnPath = authReturnPath(params);
 
   const inviteWorkspace = params.get("workspace");
   const [email, setEmail] = useState(params.get("email") || "");
@@ -39,8 +40,8 @@ export default function SignIn() {
   const redirectParam = params.get("redirect");
   const returnTo =
     (fromState?.pathname ? `${fromState.pathname}${fromState.search ?? ""}` : null) ??
-    (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//") ? redirectParam : null) ??
-    "/";
+    safeReturnPath(redirectParam, returnPath);
+  const { signIn: socialSignIn, pending: socialPending } = useSocialAuth(returnTo);
 
   if (loading) return null;
   if (user) return <Navigate to={returnTo} replace />;
@@ -70,7 +71,7 @@ export default function SignIn() {
   return (
     <AuthLayout
       panelTitle={inviteWorkspace ? `Join ${inviteWorkspace}` : "Welcome back"}
-      panelSubtitle="Log in to access your workspace, manage projects, and collaborate with your team."
+      panelSubtitle={returnTo.startsWith("/auth/invite?") ? "Sign in to open your invitation. You won’t need to create a workspace." : "Log in to access your workspace, manage projects, and collaborate with your team."}
     >
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-7">
@@ -91,7 +92,7 @@ export default function SignIn() {
         )}
 
         {needsVerification && (
-          <Link className="mb-5 block text-sm font-semibold text-accent hover:underline" to={`/auth/verify-email?email=${encodeURIComponent(email.trim())}`}>
+          <Link className="mb-5 block text-sm font-semibold text-accent hover:underline" to={authPath("/auth/verify-email", returnTo, email.trim())}>
             Request a new verification email
           </Link>
         )}
@@ -115,7 +116,7 @@ export default function SignIn() {
 
           <div className="flex items-center justify-between">
             <OrdoCheckbox checked={remember} onChange={setRemember} label="Remember me" />
-            <Link to="/auth/forgot-password" className="text-sm font-medium text-accent hover:underline">
+            <Link to={authPath("/auth/forgot-password", returnTo, email.trim())} className="text-sm font-medium text-accent hover:underline">
               Forgot password?
             </Link>
           </div>
@@ -140,7 +141,7 @@ export default function SignIn() {
 
         <p className="mt-7 text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
-          <Link to="/auth/sign-up" className="font-semibold text-foreground hover:underline">
+          <Link to={authPath("/auth/sign-up", returnTo, email.trim())} className="font-semibold text-foreground hover:underline">
             Sign up
           </Link>
         </p>

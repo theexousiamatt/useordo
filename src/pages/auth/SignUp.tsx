@@ -1,5 +1,6 @@
+import { authReturnPath, authPath } from "@/lib/authReturn";
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { buildAppUrl } from "@/lib/appUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,10 +21,13 @@ import type { AuthErrorField } from "@/components/auth";
 export default function SignUp() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const { signIn: socialSignIn, pending: socialPending } = useSocialAuth();
+  const [params] = useSearchParams();
+  const returnTo = authReturnPath(params);
+  const invited = returnTo.startsWith("/auth/invite?");
+  const { signIn: socialSignIn, pending: socialPending } = useSocialAuth(returnTo);
 
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(params.get("email") ?? "");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,7 +36,7 @@ export default function SignUp() {
   const [fieldError, setFieldError] = useState<AuthErrorField>(null);
 
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to={returnTo} replace />;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +63,7 @@ export default function SignUp() {
         email: normalizedEmail,
         password,
         options: {
-          emailRedirectTo: buildAppUrl("/auth/verify-email"),
+          emailRedirectTo: buildAppUrl(authPath("/auth/verify-email", returnTo)),
           data: { full_name: fullName.trim() },
         },
       });
@@ -75,7 +79,7 @@ export default function SignUp() {
         return;
       }
       if (data.session) {
-        navigate("/", { replace: true });
+        navigate(returnTo, { replace: true });
         return;
       }
       // Supabase can return an obfuscated user for repeat signup instead of an error.
@@ -83,7 +87,7 @@ export default function SignUp() {
         setExistingAccount(true);
         return;
       }
-      navigate(`/auth/verify-email?email=${encodeURIComponent(normalizedEmail)}`);
+      navigate(authPath("/auth/verify-email", returnTo, normalizedEmail));
     } catch (err) {
       setError(friendlyAuthErrorDetailed(err).message);
     } finally {
@@ -93,21 +97,21 @@ export default function SignUp() {
 
   return (
     <AuthLayout
-      panelTitle="Create your workspace"
-      panelSubtitle="Set up Ordo in minutes and start running projects, deliverables and client collaboration in one place."
+      panelTitle={invited ? "Join your invitation" : "Create your workspace"}
+      panelSubtitle={invited ? "Create your account to join the work shared with you. No agency setup is needed." : "Set up Ordo in minutes and start running projects, deliverables and client collaboration in one place."}
     >
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-7">
           <h2 className="text-2xl font-semibold tracking-tight">Create account</h2>
-          <p className="mt-1 text-muted-foreground">Start your free Ordo workspace.</p>
+          <p className="mt-1 text-muted-foreground">{invited ? "Your invitation is ready. Create an account to continue." : "Start your free Ordo workspace."}</p>
         </div>
 
         {existingAccount && (
           <OrdoAlert variant="info" className="mb-5" title="You already have an account">
             <span>This email is already registered. Sign in to continue. No new confirmation email was sent.</span>
             <span className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-semibold">
-              <Link className="underline underline-offset-4" to={`/auth?email=${encodeURIComponent(email.trim())}`}>Sign in</Link>
-              <Link className="underline underline-offset-4" to={`/auth/forgot-password?email=${encodeURIComponent(email.trim())}`}>Reset password</Link>
+              <Link className="underline underline-offset-4" to={authPath("/auth", returnTo, email.trim())}>Sign in</Link>
+              <Link className="underline underline-offset-4" to={authPath("/auth/forgot-password", returnTo, email.trim())}>Reset password</Link>
             </span>
           </OrdoAlert>
         )}
@@ -189,7 +193,7 @@ export default function SignUp() {
 
         <p className="mt-7 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to="/auth" className="font-semibold text-foreground hover:underline">
+          <Link to={authPath("/auth", returnTo, email.trim())} className="font-semibold text-foreground hover:underline">
             Sign in
           </Link>
         </p>

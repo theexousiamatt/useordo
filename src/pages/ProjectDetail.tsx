@@ -1,3 +1,6 @@
+import { InviteMemberDrawer } from "@/components/team/InviteMemberDrawer";
+import { useTeam } from "@/hooks/useTeam";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CalendarDays, MoreHorizontal } from "lucide-react";
@@ -51,6 +54,9 @@ export default function ProjectDetail() {
   const perms = useProjectPermissions(project);
   const archiveProject = useArchiveProject();
   const updateProject = useUpdateProject();
+  const { currentWorkspace, role } = useWorkspace();
+  const { inviteMembers, busy: inviteBusy } = useTeam();
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
@@ -146,6 +152,7 @@ export default function ProjectDetail() {
             </div>
             <Progress value={project.progress} className="h-2" />
           </div>
+          {(role === "owner" || role === "manager") && <Button variant="outline" onClick={() => setInviteOpen(true)}>Invite client</Button>}
           <ProjectOverflowMenu
             project={project as ProjectRow}
             perms={perms}
@@ -192,6 +199,9 @@ export default function ProjectDetail() {
         </TabsContent>
       </Tabs>
 
+      <InviteMemberDrawer open={inviteOpen} onOpenChange={setInviteOpen} initialRole="client" initialProjectId={id}
+        projects={[{ id: project.id, name: project.name }]} workspaceName={currentWorkspace?.name ?? "your agency"}
+        onInvite={inviteMembers} busy={inviteBusy} />
       <ProjectSettingsDrawer
         project={project as ProjectRow}
         open={settingsOpen}

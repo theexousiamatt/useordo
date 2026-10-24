@@ -1,5 +1,6 @@
+import { authReturnPath, authPath } from "@/lib/authReturn";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -13,6 +14,8 @@ import {
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const returnTo = authReturnPath(params);
   const [ready, setReady] = useState(false);
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -61,7 +64,7 @@ export default function ResetPassword() {
         setError(friendlyAuthError(error));
         return;
       }
-      navigate("/", { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (err) {
       setError(friendlyAuthError(err));
     } finally {
@@ -92,8 +95,8 @@ export default function ResetPassword() {
         ) : !ready ? (
           <div className="space-y-5">
             <OrdoAlert variant="error">{error || "This reset link is invalid, expired, or has already been used. Request a new link to continue."}</OrdoAlert>
-            <Link to="/auth/forgot-password" className="block font-semibold text-accent hover:underline">Request a new reset link</Link>
-            <Link to="/auth" className="block text-sm hover:underline">Back to sign in</Link>
+            <Link to={authPath("/auth/forgot-password", returnTo)} className="block font-semibold text-accent hover:underline">Request a new reset link</Link>
+            <Link to={authPath("/auth", returnTo)} className="block text-sm hover:underline">Back to sign in</Link>
           </div>
         ) : (
           <>

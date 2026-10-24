@@ -105,14 +105,14 @@ async function projectNameMap(
 }
 
 /** Tasks needing client attention (approvals / change requests). */
-export function useActionItems() {
+export function useActionItems(projectId?: string) {
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   return useQuery({
-    queryKey: ["client-actions", workspaceId],
+    queryKey: ["client-actions", workspaceId, projectId],
     enabled: !!workspaceId,
     queryFn: async (): Promise<ActionItem[]> => {
-      const { data, error } = await scopedSelect(
+      let query = scopedSelect(
         "deliverables",
         workspaceId,
         "id, title, status, project_id",
@@ -120,6 +120,8 @@ export function useActionItems() {
         .eq("status", "submitted")
         .eq("requires_approval", true)
         .order("created_at", { ascending: true });
+      if (projectId) query = query.eq("project_id", projectId);
+      const { data, error } = await query;
       if (error) throw error;
       const rows = data ?? [];
       const names = await projectNameMap(

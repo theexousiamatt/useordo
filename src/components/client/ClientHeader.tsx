@@ -33,7 +33,7 @@ export function ClientHeader({ title, subtitle }: ClientHeaderProps) {
           </Sheet>
 
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-semibold tracking-tight">{title}</h1>
+            <h1 className="break-words text-2xl font-semibold tracking-tight">{title}</h1>
             {subtitle && <p className="truncate text-sm text-muted-foreground">{subtitle}</p>}
           </div>
         </div>

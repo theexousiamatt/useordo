@@ -20,9 +20,18 @@ describe('onboarding invitation completion', () => {
   mock.invite.mockResolvedValue(success); show();
   fireEvent.click(screen.getByRole('button', { name: 'Enter Ordo' }));
   expect(await screen.findByText('Workspace opened')).toBeInTheDocument();
-  expect(mock.invite).toHaveBeenNthCalledWith(1, 'workspace', ['team@example.com'], 'member');
-  expect(mock.invite).toHaveBeenNthCalledWith(2, 'workspace', ['client@example.com'], 'client');
+  expect(mock.invite).toHaveBeenNthCalledWith(1, 'workspace', ['team@example.com'], 'member', undefined);
+  expect(mock.invite).toHaveBeenNthCalledWith(2, 'workspace', ['client@example.com'], 'client', { projectId: null });
   expect(localStorage.getItem('ordo:onboarding:test-user')).toBeNull();
+ });
+ it('lets an agency invite clients directly to its newly created first project', async () => {
+  const state=JSON.parse(localStorage.getItem('ordo:onboarding:test-user')!); state.projectId='ivy'; state.project.name='Ivy Website';
+  localStorage.setItem('ordo:onboarding:test-user',JSON.stringify(state));
+  mock.invite.mockResolvedValue(success);show();
+  expect(screen.getByRole('radio',{name:/Only Ivy Website/})).toBeChecked();
+  fireEvent.click(screen.getByRole('button',{name:'Enter Ordo'}));
+  expect(await screen.findByText('Workspace opened')).toBeInTheDocument();
+  expect(mock.invite).toHaveBeenNthCalledWith(2,'workspace',['client@example.com'],'client',{projectId:'ivy'});
  });
  it('preserves setup and gives retry after invitation creation fails', async () => {
   mock.invite.mockRejectedValue(new Error('Workspace access denied')); show();

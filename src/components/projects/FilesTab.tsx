@@ -20,7 +20,7 @@ function formatBytes(bytes: number | null) {
   return `${v.toFixed(v < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
-export function FilesTab({ projectId }: { projectId: string }) {
+export function FilesTab({ projectId, readOnly = false }: { projectId: string; readOnly?: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { files, loading, error, uploading, upload, download, remove, reload } =
     useProjectFiles(projectId);
@@ -35,17 +35,17 @@ export function FilesTab({ projectId }: { projectId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Files shared on this project. Only workspace members can access them.
+          Files shared on this project. Access is limited to people on this project.
         </p>
-        <input ref={inputRef} type="file" className="hidden" onChange={onPick} />
-        <Button onClick={() => inputRef.current?.click()} disabled={uploading}>
+        {!readOnly && <input ref={inputRef} type="file" className="hidden" onChange={onPick} />}
+        {!readOnly && <Button onClick={() => inputRef.current?.click()} disabled={uploading}>
           {uploading ? (
             <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
           ) : (
             <FileUp className="mr-1.5 h-4 w-4" />
           )}
           Upload file
-        </Button>
+        </Button>}
       </div>
 
       {loading ? (
@@ -56,9 +56,9 @@ export function FilesTab({ projectId }: { projectId: string }) {
         <EmptyState
           icon={FileIcon}
           title="No files yet"
-          description="Upload deliverables, briefs, and assets to keep everything in one place."
-          actionLabel="Upload a file"
-          onAction={() => inputRef.current?.click()}
+          description={readOnly ? "Files will appear here when your agency shares them." : "Upload deliverables, briefs, and assets to keep everything in one place."}
+          actionLabel={readOnly ? undefined : "Upload a file"}
+          onAction={readOnly ? undefined : () => inputRef.current?.click()}
         />
       ) : (
         <Card className="divide-y divide-border">
@@ -76,7 +76,7 @@ export function FilesTab({ projectId }: { projectId: string }) {
               <Button variant="ghost" size="icon" onClick={() => download(f)} aria-label="Download">
                 <Download className="h-4 w-4" />
               </Button>
-              <Button
+              {!readOnly && <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => remove(f)}
@@ -84,7 +84,7 @@ export function FilesTab({ projectId }: { projectId: string }) {
                 className="text-destructive hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4" />
-              </Button>
+              </Button>}
             </div>
           ))}
         </Card>

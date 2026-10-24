@@ -1,3 +1,4 @@
+import { InvitationInbox } from "@/components/auth/InvitationInbox";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { WorkspaceRecovery } from "@/components/states/WorkspaceRecovery";
 import { Outlet, Navigate, useLocation } from "react-router-dom";
@@ -33,7 +34,7 @@ function ClientShell() {
 export function ClientLayout() {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const { loading: workspaceLoading, resolved, error, workspaces } = useWorkspace();
+  const { loading: workspaceLoading, resolved, error, workspaces, role } = useWorkspace();
 
   if (loading || (user && workspaceLoading)) {
     return (
@@ -45,7 +46,9 @@ export function ClientLayout() {
   if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
 
   if (error || !resolved) return <WorkspaceRecovery />;
-  if (!workspaces.length) return <Navigate to="/onboarding" replace />;
+  if (!workspaces.length) return <InvitationInbox />;
+
+  if (role !== "client") return <Navigate to="/" replace />;
 
   return (
     <SidebarCollapseProvider>
