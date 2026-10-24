@@ -59,7 +59,7 @@ DO $$ DECLARE denied boolean:=false; BEGIN
  IF (SELECT count(*) FROM public.tasks)<>0 THEN RAISE EXCEPTION 'Client sees internal tasks'; END IF;
  IF (SELECT count(*) FROM public.files)<>1 THEN RAISE EXCEPTION 'File metadata scope leaked'; END IF;
  IF (SELECT count(*) FROM storage.objects)<>1 THEN RAISE EXCEPTION 'Storage scope leaked'; END IF;
- DELETE FROM storage.objects;
+ BEGIN DELETE FROM storage.objects; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  IF (SELECT count(*) FROM storage.objects)<>1 THEN RAISE EXCEPTION 'Client deleted shared storage'; END IF;
  DELETE FROM public.files;
  IF (SELECT count(*) FROM public.files)<>1 THEN RAISE EXCEPTION 'Client deleted shared files'; END IF;
