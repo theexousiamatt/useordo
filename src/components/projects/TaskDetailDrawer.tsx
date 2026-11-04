@@ -1,239 +1,280 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  AlignLeft,
-  MessageSquare,
-  History,
-  CheckSquare,
-  Send,
-  Trash2,
-  Loader2,
-  CalendarClock,
-  
-  CircleDot,
-  User as UserIcon,
+  AlignLeft, MessageSquare, History, Send, Trash2, Loader2,
+  CalendarDays, CircleDot, Users, Tag,
 } from "lucide-react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { OrdoTextarea } from "@/components/ordo/OrdoTextarea";
+import { InlineDatePicker, InlineLabelPicker, InlineMemberPicker } from "@/components/ordo";
+import { ErrorState } from "@/components/states/ErrorState";
 import { EmptyState } from "@/components/states/EmptyState";
-import { cn } from "@/lib/utils";
 import { dateShort, initials, timeAgo } from "@/lib/format";
 import { TASK_COLUMNS } from "@/lib/projectConstants";
 import { useAuth } from "@/hooks/useAuth";
 import type { TaskRow } from "@/hooks/useProjectData";
 import { useProjectActivity, useTaskAssignees } from "@/hooks/useProjectData";
-import { useProjectLabels, useTaskLabelMap } from "@/hooks/useLabels";
+import {
+  useProjectLabels, useTaskLabelMap, useSetTaskLabels, useCreateLabel,
+  useUpdateLabel, useDeleteLabel,
+} from "@/hooks/useLabels";
 import { LabelBadge } from "@/components/ordo/LabelBadge";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 import {
-  useTaskComments,
-  useAddTaskComment,
-  useDeleteTaskComment,
+  useTaskComments, useAddTaskComment, useDeleteTaskComment,
 } from "@/hooks/useTaskComments";
 import { TaskAttachmentsSection } from "@/components/projects/TaskAttachmentsSection";
 
-const STATUS_LABEL = Object.fromEntries(TASK_COLUMNS.map((c) => [c.id, c.title]));
+const STATUS_LABEL = Object.fromEntries(TASK_COLUMNS.map((column) => [column.id, column.title]));
 
 interface Props {
   task: TaskRow | null;
   members: ProjectMemberProfile[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Persist a description change (optimistic upstream). */
-  onSaveDescription: (id: string, description: string | null) => void;
+  onPatch: (id: string, patch: Partial<TaskRow>) => Promise<void>;
+  onSetAssignees: (taskId: string, userIds: string[]) => void;
+  canEdit: boolean;
+  onMoveStatus?: (task: TaskRow, status: TaskRow["status"]) => Promise<void>;
+  onUnsavedChange?: (state: { dirty: boolean; pending: boolean }) => void;
 }
 
-/**
- * TaskDetailDrawer — Level 2 deep-work workspace for a single task.
- * Reserved for detailed collaboration: description, comments, and activity.
- * Quick property edits (rename, labels, members, due, move) live inline on the
- * board — they are NOT duplicated here.
- */
-export function TaskDetailDrawer({ task, members, open, onOpenChange, onSaveDescription }: Props) {
+export function TaskDetailDrawer({ task, members, open, onOpenChange, onPatch, onSetAssignees, canEdit, onMoveStatus, onUnsavedChange }: Props) {
+  const [dirty, setDirty] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [closeNotice, setCloseNotice] = useState("");
+  useEffect(() => { setDirty(false); setPending(false); setCloseNotice(""); }, [task?.id, open]);
+  useEffect(() => { onUnsavedChange?.({ dirty, pending }); }, [dirty, pending, onUnsavedChange]);
+  useEffect(() => { if (!pending) setCloseNotice(""); }, [pending]);
+  const close = (next: boolean) => {
+    if (!next && pending) {
+      setCloseNotice("Please wait for your changes to finish saving.");
+      return;
+    }
+    if (!next && dirty && !window.confirm("Discard your unsaved task changes?")) return;
+    if (!next) setDirty(false);
+    onOpenChange(next);
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="client-os flex w-full flex-col gap-0 border-none bg-card p-0 shadow-hover sm:max-w-xl"
-      >
-        {task && <DrawerBody key={task.id} task={task} members={members} onSaveDescription={onSaveDescription} />}
+    <Sheet open={open} onOpenChange={close}>
+      <SheetContent side="right" aria-describedby={undefined} overlayClassName="bg-slate-950/30"
+        className="client-os flex w-full flex-col gap-0 border-l border-border !bg-card p-0 shadow-hover sm:max-w-[600px] data-[state=open]:duration-200 data-[state=closed]:duration-150">
+        {task && <DrawerBody key={task.id} task={task} members={members} onPatch={onPatch}
+          onSetAssignees={onSetAssignees} canEdit={canEdit} onDirtyChange={setDirty} onPendingChange={setPending} onMoveStatus={onMoveStatus} />}
+        {!task && <div className="space-y-4 p-6">
+          <SheetTitle className="pr-8">Task unavailable</SheetTitle>
+          <p className="text-sm text-muted-foreground">This task may have been removed or your access may have changed. Close this panel to return to the board.</p>
+          <Button variant="outline" onClick={() => close(false)}>Back to board</Button>
+        </div>}
+        {closeNotice && <p role="status" className="border-t border-border px-5 py-3 text-sm text-muted-foreground">{closeNotice}</p>}
       </SheetContent>
     </Sheet>
   );
 }
 
 function DrawerBody({
-  task,
-  members,
-  onSaveDescription,
+  task, members, onPatch, onSetAssignees, canEdit, onDirtyChange, onPendingChange, onMoveStatus,
 }: {
   task: TaskRow;
   members: ProjectMemberProfile[];
-  onSaveDescription: (id: string, description: string | null) => void;
+  onPatch: Props["onPatch"];
+  onSetAssignees: Props["onSetAssignees"];
+  canEdit: boolean;
+  onDirtyChange: (dirty: boolean) => void;
+  onPendingChange: (pending: boolean) => void;
+  onMoveStatus: Props["onMoveStatus"];
 }) {
+  const [titleDraft, setTitleDraft] = useState(task.title);
+  const [descriptionDraft, setDescriptionDraft] = useState(task.description ?? "");
+  const baseline = useRef({ title: task.title, description: task.description ?? "" });
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [error, setError] = useState("");
+  const [commentDraft, setCommentDraft] = useState("");
+  const [commentPending, setCommentPending] = useState(false);
+  const saving = useRef(false);
   const { data: assigneesMap } = useTaskAssignees(task.project_id);
   const assigneeIds = assigneesMap?.get(task.id) ?? (task.assignee_id ? [task.assignee_id] : []);
-  const assignees = assigneeIds
-    .map((id) => members.find((m) => m.user_id === id))
-    .filter(Boolean) as ProjectMemberProfile[];
-
+  const assignees = assigneeIds.map((id) => members.find((member) => member.user_id === id)).filter(Boolean) as ProjectMemberProfile[];
   const { data: projectLabels = [] } = useProjectLabels(task.project_id);
   const { data: labelMap } = useTaskLabelMap(task.project_id);
-  const taskLabels = (labelMap?.get(task.id) ?? [])
-    .map((id) => projectLabels.find((l) => l.id === id))
-    .filter((l): l is (typeof projectLabels)[number] => !!l);
+  const setLabels = useSetTaskLabels(task.project_id, task.workspace_id);
+  const createLabel = useCreateLabel(task.project_id, task.workspace_id);
+  const updateLabel = useUpdateLabel(task.project_id);
+  const deleteLabel = useDeleteLabel(task.project_id);
+  const labelIds = labelMap?.get(task.id) ?? [];
+  const taskLabels = labelIds.map((id) => projectLabels.find((label) => label.id === id))
+    .filter((label): label is (typeof projectLabels)[number] => !!label);
+
+  const titleDirty = titleDraft.trim() !== baseline.current.title;
+  const descriptionDirty = descriptionDraft.trim() !== baseline.current.description;
+  useEffect(() => {
+    onDirtyChange(titleDirty || descriptionDirty || !!commentDraft.trim());
+  }, [titleDirty, descriptionDirty, commentDraft, onDirtyChange, saveState]);
+  useEffect(() => { onPendingChange(saveState === "saving" || commentPending); }, [saveState, commentPending, onPendingChange]);
+  // Refresh clean fields after another editor changes them, without replacing a local draft.
+  useEffect(() => {
+    if (saving.current) return;
+    const nextDescription = task.description ?? "";
+    setTitleDraft((draft) => draft.trim() === baseline.current.title ? task.title : draft);
+    setDescriptionDraft((draft) => draft.trim() === baseline.current.description ? nextDescription : draft);
+    baseline.current = { title: task.title, description: nextDescription };
+  }, [task.title, task.description]);
+
+  const saveText = async (field: "title" | "description") => {
+    if (!canEdit || saving.current) return;
+    const value = (field === "title" ? titleDraft : descriptionDraft).trim();
+    if (field === "title" && !value) { setError("Task title is required."); return; }
+    if (value === baseline.current[field]) return;
+    saving.current = true;
+    setSaveState("saving");
+    setError("");
+    try {
+      await onPatch(task.id, { [field]: field === "description" ? value || null : value });
+      baseline.current[field] = value;
+      setSaveState("saved");
+    } catch {
+      setSaveState("failed");
+      setError("Changes could not be saved. Your text is still here; try again.");
+    } finally {
+      saving.current = false;
+    }
+  };
+  const saveMetadata = async (patch: Partial<TaskRow>) => {
+    if (!canEdit || saving.current) return;
+    saving.current = true;
+    setSaveState("saving");
+    setError("");
+    try {
+      if (patch.status && onMoveStatus) await onMoveStatus(task, patch.status);
+      else await onPatch(task.id, patch);
+      setSaveState("saved");
+    }
+    catch { setSaveState("failed"); setError("This change could not be saved. Try again."); }
+    finally { saving.current = false; }
+  };
 
   return (
-    <Tabs defaultValue="overview" className="flex h-full flex-col">
-      {/* Header */}
-      <div className="space-y-3 border-b border-border px-6 pb-0 pt-5">
-        <h2 className="text-xl font-semibold leading-tight tracking-tight text-foreground">
-          {task.title}
-        </h2>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <CircleDot className="h-3.5 w-3.5" />
-            {STATUS_LABEL[task.status]}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <UserIcon className="h-3.5 w-3.5" />
-            {assignees.length === 0
-              ? "Unassigned"
-              : assignees.length <= 2
-                ? assignees.map((a) => a.full_name ?? "Member").join(", ")
-                : `${assignees[0].full_name ?? "Member"} +${assignees.length - 1}`}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarClock className="h-3.5 w-3.5" />
-            {task.due_date ? dateShort(task.due_date) : "No due date"}
-          </span>
-        </div>
-        {taskLabels.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pb-1">
-            {taskLabels.map((l) => (
-              <LabelBadge key={l.id} name={l.name} color={l.color} />
-            ))}
+    <Tabs defaultValue="overview" className="flex h-full min-h-0 flex-col">
+      <div className="space-y-3 border-b border-border px-5 pb-0 pt-5 sm:px-7">
+        <SheetTitle className="pr-8 text-xl font-semibold tracking-tight">Task details</SheetTitle>
+        {canEdit ? <div>
+          <label htmlFor="task-title" className="sr-only">Task title</label>
+          <textarea rows={2} id="task-title" value={titleDraft} onChange={(event) => { setTitleDraft(event.target.value); setSaveState("idle"); }}
+            onBlur={() => { void saveText("title"); }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); void saveText("title"); }
+              if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setTitleDraft(baseline.current.title); setError(""); }
+            }}
+            className="min-h-12 max-h-32 w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-1 text-lg font-semibold leading-snug outline-none focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/20" />
+        </div> : <h3 className="break-words text-lg font-semibold">{task.title}</h3>}
+        <div className="grid grid-cols-2 gap-2 pb-1 text-sm sm:grid-cols-3">
+          <div className="min-w-0">
+            <span className="mb-1 block text-xs text-muted-foreground">Status</span>
+            {canEdit ? <select aria-label="Task status" value={task.status} disabled={saveState === "saving"}
+              onChange={(event) => { void saveMetadata({ status: event.target.value as TaskRow["status"] }); }}
+              className="h-10 w-full rounded-small border border-border bg-card px-2 text-sm">
+              {TASK_COLUMNS.map((column) => <option key={column.id} value={column.id}>{column.title}</option>)}
+            </select> : <span className="inline-flex items-center gap-1.5"><CircleDot className="h-4 w-4" />{STATUS_LABEL[task.status]}</span>}
           </div>
-        )}
-        <p className="text-[11px] text-muted-foreground/70">
-          Tip: rename, assign, relabel, reschedule and move from the board — no need to open here.
-        </p>
-        <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-none bg-transparent p-0">
+          <div className="min-w-0">
+            <span className="mb-1 block text-xs text-muted-foreground">Assignee</span>
+            {canEdit ? <Popover><PopoverTrigger asChild><button type="button" disabled={saveState === "saving"}
+              className="flex h-10 w-full items-center gap-2 truncate rounded-small border border-border px-2 text-left hover:bg-muted">
+              <Users className="h-4 w-4 shrink-0" /><span className="truncate">{assignees.length ? assignees.map((member) => member.full_name ?? "Member").join(", ") : "Unassigned"}</span>
+            </button></PopoverTrigger><PopoverContent className="client-os w-72 rounded-small p-0" align="start">
+              <InlineMemberPicker members={members} value={assigneeIds} onChange={(ids) => onSetAssignees(task.id, ids)} />
+            </PopoverContent></Popover> : <span>{assignees.map((member) => member.full_name ?? "Member").join(", ") || "Unassigned"}</span>}
+          </div>
+          <div className="min-w-0">
+            <span className="mb-1 block text-xs text-muted-foreground">Due date</span>
+            {canEdit ? <Popover><PopoverTrigger asChild><button type="button" disabled={saveState === "saving"}
+              className="flex h-10 w-full items-center gap-2 rounded-small border border-border px-2 text-left hover:bg-muted">
+              <CalendarDays className="h-4 w-4 shrink-0" />{task.due_date ? dateShort(task.due_date) : "No date"}
+            </button></PopoverTrigger><PopoverContent className="client-os w-auto rounded-small p-0" align="start">
+              <InlineDatePicker value={task.due_date} onChange={(value) => { void saveMetadata({ due_date: value }); }} />
+            </PopoverContent></Popover> : <span>{task.due_date ? dateShort(task.due_date) : "No date"}</span>}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pb-1">
+          {taskLabels.map((label) => <LabelBadge key={label.id} name={label.name} color={label.color} />)}
+          {canEdit && <Popover><PopoverTrigger asChild><Button type="button" size="sm" variant="outline"><Tag className="mr-1.5 h-3.5 w-3.5" />Labels</Button></PopoverTrigger>
+            <PopoverContent className="client-os w-72 rounded-small p-0" align="start">
+              <InlineLabelPicker labels={projectLabels} value={labelIds}
+                onToggle={(labelId) => setLabels.mutate({ taskId: task.id, labelIds: labelIds.includes(labelId) ? labelIds.filter((id) => id !== labelId) : [...labelIds, labelId] })}
+                onCreate={(name, color) => createLabel.mutate({ name, color })}
+                onRename={(id, name) => updateLabel.mutate({ id, name })}
+                onRecolor={(id, color) => updateLabel.mutate({ id, color })}
+                onDelete={(id) => deleteLabel.mutate(id)} />
+            </PopoverContent></Popover>}
+        </div>
+        <TabsList className="h-auto w-full justify-start gap-5 overflow-x-auto rounded-none border-none bg-transparent p-0">
           <DrawerTab value="overview" icon={AlignLeft} label="Overview" />
           <DrawerTab value="comments" icon={MessageSquare} label="Comments" />
           <DrawerTab value="activity" icon={History} label="Activity" />
         </TabsList>
       </div>
-
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto px-6 py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-7">
+        {(saveState !== "idle" || error) && <p role="status" className={`mb-4 text-xs ${error ? "text-destructive" : "text-muted-foreground"}`}>
+          {error || (saveState === "saving" ? "Saving changes…" : "Saved")}
+        </p>}
         <TabsContent value="overview" className="mt-0">
-          <OverviewTab task={task} onSaveDescription={onSaveDescription} />
+          <div className="space-y-6">
+            <section>
+              <label htmlFor="task-description" className="mb-2 block text-sm font-medium">Description</label>
+              {canEdit ? <>
+                <OrdoTextarea id="task-description" value={descriptionDraft}
+                  onChange={(event) => { setDescriptionDraft(event.target.value); setSaveState("idle"); }}
+                  placeholder="Add context or the outcome this task needs." rows={6} />
+                {descriptionDirty && <div className="mt-2 flex items-center gap-2">
+                  <Button size="sm" disabled={saveState === "saving"} onClick={() => { void saveText("description"); }}>Save description</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setDescriptionDraft(baseline.current.description)}>Discard</Button>
+                </div>}
+              </> : <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{task.description || "No description"}</p>}
+            </section>
+            <TaskAttachmentsSection taskId={task.id} projectId={task.project_id} readOnly={!canEdit} />
+          </div>
         </TabsContent>
-        <TabsContent value="comments" className="mt-0 h-full">
-          <CommentsTab task={task} />
-        </TabsContent>
-        <TabsContent value="activity" className="mt-0">
-          <ActivityTabPanel task={task} members={members} />
-        </TabsContent>
+        <TabsContent value="comments" className="mt-0 h-full"><CommentsTab task={task} canEdit={canEdit} draft={commentDraft} onDraftChange={setCommentDraft} onPendingChange={setCommentPending} /></TabsContent>
+        <TabsContent value="activity" className="mt-0"><ActivityTabPanel task={task} members={members} /></TabsContent>
       </div>
     </Tabs>
   );
 }
 
 function DrawerTab({ value, icon: Icon, label }: { value: string; icon: typeof AlignLeft; label: string }) {
-  return (
-    <TabsTrigger
-      value={value}
-      className="relative gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-1 pb-2.5 pt-1 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </TabsTrigger>
-  );
+  return <TabsTrigger value={value}
+    className="relative gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none">
+    <Icon className="h-4 w-4" />{label}
+  </TabsTrigger>;
 }
 
-function OverviewTab({
-  task,
-  onSaveDescription,
-}: {
-  task: TaskRow;
-  onSaveDescription: (id: string, description: string | null) => void;
+function CommentsTab({ task, canEdit, draft, onDraftChange, onPendingChange }: {
+  task: TaskRow; canEdit: boolean; draft: string; onDraftChange: (value: string) => void;
+  onPendingChange: (pending: boolean) => void;
 }) {
-  const [draft, setDraft] = useState(task.description ?? "");
-  const initial = useRef(task.description ?? "");
-
-  useEffect(() => {
-    setDraft(task.description ?? "");
-    initial.current = task.description ?? "";
-  }, [task.id, task.description]);
-
-  const commit = () => {
-    const next = draft.trim();
-    if (next === (initial.current ?? "").trim()) return;
-    initial.current = next;
-    onSaveDescription(task.id, next || null);
-  };
-
-  return (
-    <div className="space-y-6">
-      <section>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Description
-        </h3>
-        <OrdoTextarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          placeholder="Add a detailed description, context, acceptance criteria…"
-          rows={8}
-        />
-        <p className="mt-1.5 text-[11px] text-muted-foreground/70">Saves when you click away.</p>
-      </section>
-
-      <ReservedSection
-        icon={CheckSquare}
-        title="Checklist & subtasks"
-        note="Break this task into steps. Coming soon."
-      />
-      <TaskAttachmentsSection taskId={task.id} projectId={task.project_id} />
-    </div>
-  );
-}
-
-function ReservedSection({
-  icon: Icon,
-  title,
-  note,
-}: {
-  icon: typeof CheckSquare;
-  title: string;
-  note: string;
-}) {
-  return (
-    <section className="rounded-card border border-dashed border-border p-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <Icon className="h-4 w-4" />
-        {title}
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground/70">{note}</p>
-    </section>
-  );
-}
-
-function CommentsTab({ task }: { task: TaskRow }) {
   const { user } = useAuth();
-  const { data: comments, isLoading } = useTaskComments(task.id);
+  const { data: comments, isLoading, isError, refetch } = useTaskComments(task.id);
   const add = useAddTaskComment(task.id, task.project_id);
   const del = useDeleteTaskComment(task.id);
-  const [draft, setDraft] = useState("");
-
-  const submit = () => {
+  const [commentError, setCommentError] = useState("");
+  const sending = useRef(false);
+  const submit = async () => {
     const content = draft.trim();
-    if (!content) return;
-    add.mutate(content, { onSuccess: () => setDraft("") });
+    if (!canEdit || !content || sending.current) return;
+    sending.current = true;
+    onPendingChange(true);
+    setCommentError("");
+    try {
+      await add.mutateAsync(content);
+      onDraftChange("");
+    } catch {
+      setCommentError("Your comment could not be sent. It is still here; try again.");
+    } finally { sending.current = false; onPendingChange(false); }
   };
 
   return (
@@ -243,11 +284,11 @@ function CommentsTab({ task }: { task: TaskRow }) {
           <div className="flex justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : !comments?.length ? (
+        ) : isError ? <ErrorState title="Couldn’t load comments" onRetry={() => { void refetch(); }} /> : !comments?.length ? (
           <EmptyState
             icon={MessageSquare}
             title="No comments yet"
-            description="Start the discussion. Mention teammates and keep decisions in context."
+            description={canEdit ? "Start the discussion and keep decisions in context." : "Comments on this task will appear here."}
           />
         ) : (
           comments.map((c) => (
@@ -264,11 +305,16 @@ function CommentsTab({ task }: { task: TaskRow }) {
                     {c.author_name ?? "Member"}
                   </span>
                   <span className="text-[11px] text-muted-foreground">{timeAgo(c.created_at)}</span>
-                  {c.author_id === user?.id && (
+                  {canEdit && c.author_id === user?.id && (
                     <button
                       type="button"
-                      onClick={() => del.mutate(c.id)}
-                      className="ml-auto text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                      disabled={del.isPending}
+                      onClick={() => {
+                        if (!window.confirm("Delete this comment? This cannot be undone.")) return;
+                        setCommentError("");
+                        del.mutate(c.id, { onError: () => setCommentError("The comment could not be deleted. Try again.") });
+                      }}
+                      className="ml-auto rounded-small p-2 text-muted-foreground hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label="Delete comment"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -284,39 +330,42 @@ function CommentsTab({ task }: { task: TaskRow }) {
         )}
       </div>
 
-      <div className="sticky bottom-0 mt-4 border-t border-border bg-card pt-4">
+      {commentError && <p role="alert" className="mt-3 text-sm text-destructive">{commentError}</p>}
+      {canEdit && <div className="sticky bottom-0 mt-4 border-t border-border bg-card pt-4">
         <OrdoTextarea
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          aria-label="Comment"
+          disabled={add.isPending}
+          onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={(e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
               e.preventDefault();
-              submit();
+              void submit();
             }
           }}
           placeholder="Write a comment… (⌘↵ to send)"
           rows={3}
         />
         <div className="mt-2 flex justify-end">
-          <Button size="sm" onClick={submit} disabled={!draft.trim() || add.isPending}>
+          <Button size="sm" onClick={() => { void submit(); }} disabled={!draft.trim() || add.isPending}>
             {add.isPending ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-1 h-3.5 w-3.5" />}
             Comment
           </Button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
 
 function ActivityTabPanel({ task, members }: { task: TaskRow; members: ProjectMemberProfile[] }) {
-  const { data: activity, isLoading } = useProjectActivity(task.project_id, 50);
+  const { data: activity, isLoading, isError, refetch } = useProjectActivity(task.project_id, 50);
   const nameOf = (id: string | null) =>
     members.find((m) => m.user_id === id)?.full_name ?? "Someone";
 
-  // Project-level feed, filtered to entries referencing this task when possible.
+  // Project-level feed must not leak unrelated project activity into a task.
   const rows = (activity ?? []).filter((a) => {
     const meta = a.metadata as Record<string, unknown>;
-    return !meta?.task_id || meta.task_id === task.id;
+    return meta?.task_id === task.id || meta?.id === task.id;
   });
 
   if (isLoading) {
@@ -327,12 +376,14 @@ function ActivityTabPanel({ task, members }: { task: TaskRow; members: ProjectMe
     );
   }
 
+  if (isError) return <ErrorState title="Couldn’t load activity" onRetry={() => { void refetch(); }} />;
+
   if (!rows.length) {
     return (
       <EmptyState
         icon={History}
         title="No activity yet"
-        description="Changes to this task and project will appear here as a timeline."
+        description="Changes to this task will appear here when activity is recorded."
       />
     );
   }

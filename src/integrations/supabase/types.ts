@@ -1328,6 +1328,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      reorder_project_tasks: {
+        Args: { _project_id: string; _updates: Json }
+        Returns: undefined
+      }
       accept_workspace_invitation: {
         Args: { _token: string; _user_id: string }
         Returns: string

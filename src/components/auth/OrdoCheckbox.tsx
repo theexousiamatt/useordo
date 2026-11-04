@@ -11,7 +11,8 @@ interface OrdoCheckboxProps {
 
 /** Ordo OS styled checkbox with label. */
 export function OrdoCheckbox({ checked, onChange, label, id }: OrdoCheckboxProps) {
-  const cbId = id || React.useId();
+  const generatedId = React.useId();
+  const cbId = id || generatedId;
   return (
     <label htmlFor={cbId} className="flex cursor-pointer select-none items-center gap-2.5">
       <span className="relative inline-flex">

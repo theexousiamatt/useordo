@@ -156,6 +156,17 @@
   --radius-pill: 99px;
   --radius-small: 12px;
 
+  /* Project workspace: one quiet hierarchy from canvas to task. */
+  --board-canvas: 220 14% 97%;
+  --board-column: 216 18% 94%;
+  --board-card: 0 0% 100%;
+  --board-border: 216 15% 89%;
+  --board-border-strong: 215 13% 73%;
+  --board-card-radius: 14px;
+  --board-column-radius: 18px;
+  --board-card-shadow: 0 2px 8px -3px rgba(20, 31, 38, .09);
+  --board-card-hover-shadow: 0 10px 24px -10px rgba(20, 31, 38, .18);
+
   /* shadows */
   --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.03);
   --shadow-panel: 0 12px 36px -8px rgba(0, 0, 0, 0.04), 0 4px 16px -4px rgba(0, 0, 0, 0.02);
@@ -171,4 +182,14 @@
 
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+}
+
+.client-os ::selection { background: hsl(var(--primary)); color: white; }
+.client-os :focus-visible { outline-color: hsl(var(--ring)); }
+@media (prefers-reduced-motion: reduce) {
+  .client-os *, .client-os *::before, .client-os *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
 }

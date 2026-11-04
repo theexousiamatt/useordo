@@ -11,7 +11,8 @@ interface OrdoInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 /** Premium Ordo OS text input with label, error and shake-on-invalid treatment. */
 export const OrdoInput = React.forwardRef<HTMLInputElement, OrdoInputProps>(
   ({ label, error, hint, rightSlot, id, className, ...props }, ref) => {
-    const inputId = id || React.useId();
+    const generatedId = React.useId();
+    const inputId = id || generatedId;
     return (
       <div className="space-y-2">
         {label && (

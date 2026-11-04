@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "protectedProjectRefs": ["ilvqopsvyacegotplstw"],
+  "schemaMarker": {
+    "table": "public.foundation_environment",
+    "version": "ordo-foundation-v1"
+  },
+  "applicationTables": [
+    "public.profiles",
+    "public.organizations",
+    "public.organization_memberships",
+    "public.organization_capability_grants",
+    "public.client_organizations",
+    "public.client_contacts",
+    "public.client_access_grants",
+    "public.internal_initiatives",
+    "public.engagements",
+    "public.work_contexts",
+    "public.work_context_memberships",
+    "public.operational_contexts",
+    "public.projects",
+    "public.project_disciplines",
+    "public.boards",
+    "public.board_columns",
+    "public.tasks",
+    "public.task_assignees",
+    "public.milestones",
+    "public.assets",
+    "public.command_receipts",
+    "public.audit_events"
+  ],
+  "targets": {
+    "foundation-local": {
+      "environment": "development",
+      "kind": "local",
+      "projectRef": "local",
+      "supabaseUrl": "http://127.0.0.1:54321",
+      "dbHost": "127.0.0.1",
+      "dbPort": 54322,
+      "databaseName": "postgres",
+      "databaseUser": "postgres",
+      "workdir": "supabase/foundation"
+    }
+  }
+}

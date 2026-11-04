@@ -25,3 +25,9 @@ dist-ssr
 
 # Supabase CLI local connection state
 supabase/.temp/
+
+# Isolated Ordo foundation services and local connection details
+.foundation-runtime/
+dist-foundation/
+.env.foundation.local
+supabase/foundation/.temp/

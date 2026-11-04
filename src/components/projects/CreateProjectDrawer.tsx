@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Check, Loader2, Sparkles, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -50,6 +50,8 @@ export function CreateProjectDrawer({ open, onOpenChange, onCreated }: Props) {
   const [aiTimeline, setAiTimeline] = useState(true);
   const [planItems, setPlanItems] = useState<AiPlanItem[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [formError, setFormError] = useState("");
+  const submitting = useRef(false);
 
   const teamMembers = members.filter((m) => m.role !== "client");
   const clientMembers = members.filter((m) => m.role === "client");
@@ -100,10 +102,15 @@ export function CreateProjectDrawer({ open, onOpenChange, onCreated }: Props) {
     setAiMilestones(true);
     setAiTimeline(true);
     setPlanItems([]);
+    setFormError("");
   };
 
   const close = (o: boolean) => {
-    if (!o) reset();
+    if (!o && submitting.current) {
+      setFormError("Your project is still being created. Please wait a moment.");
+      return;
+    }
+    // Keep the draft when the sheet closes so an accidental dismissal is recoverable.
     onOpenChange(o);
   };
 
@@ -139,11 +146,19 @@ export function CreateProjectDrawer({ open, onOpenChange, onCreated }: Props) {
   };
 
   const handleSubmit = async () => {
+    if (submitting.current) return;
     if (!name.trim()) {
-      toast.error("Project name is required.");
+      setFormError("Project name is required.");
       setStep(0);
       return;
     }
+    if (startDate && dueDate && dueDate < startDate) {
+      setFormError("The due date must be on or after the start date.");
+      setStep(1);
+      return;
+    }
+    submitting.current = true;
+    setFormError("");
     try {
       const project = await createProject.mutateAsync({
         name: name.trim(),
@@ -161,8 +176,8 @@ export function CreateProjectDrawer({ open, onOpenChange, onCreated }: Props) {
       onOpenChange(false);
       onCreated?.(project.id);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create project.");
-    }
+      setFormError(err instanceof Error ? err.message : "Couldn’t create the project. Your draft is still here; try again.");
+    } finally { submitting.current = false; }
   };
 
   const isLast = step === STEPS.length - 1;
@@ -172,18 +187,24 @@ export function CreateProjectDrawer({ open, onOpenChange, onCreated }: Props) {
       open={open}
       onOpenChange={close}
       title="Create project"
-      description="Plan work, set a timeline, and bring your team together."
+      description="Start with a name. Add dates, people and a plan when you're ready."
       className="sm:max-w-xl"
       footer={
-        <div className="flex w-full items-center justify-between">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
           <Button
             variant="ghost"
             onClick={() => (step === 0 ? close(false) : setStep((s) => s - 1))}
             disabled={createProject.isPending}
           >
-            {step === 0 ? "Cancel" : "Back"}
+            {step === 0 ? "Close" : "Back"}
           </Button>
-          {isLast ? (
+          {step === 0 ? <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button variant="outline" onClick={() => setStep(1)} disabled={!canContinue || createProject.isPending}>Add details</Button>
+            <Button onClick={handleSubmit} disabled={!canContinue || createProject.isPending}>
+              {createProject.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Create project
+            </Button>
+          </div> : isLast ? (
             <Button onClick={handleSubmit} disabled={createProject.isPending}>
               {createProject.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Create project
@@ -196,7 +217,14 @@ export function CreateProjectDrawer({ open, onOpenChange, onCreated }: Props) {
         </div>
       }
     >
-      <Stepper step={step} onStep={setStep} canNavigate={name.trim().length > 0} />
+      <Stepper step={step} onStep={setStep} canNavigate={name.trim().length > 0 && !createProject.isPending} />
+      {formError && <p role="alert" className="mt-4 text-sm text-destructive">{formError}</p>}
+      {(name || description || planItems.length > 0) && <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span>Your draft stays here if you close.</span>
+        <Button type="button" variant="ghost" size="sm" disabled={createProject.isPending || generating} onClick={() => {
+          if (window.confirm("Discard this project draft?")) reset();
+        }}>Discard draft</Button>
+      </div>}
 
       <div className="mt-6">
         {step === 0 && (
@@ -205,7 +233,8 @@ export function CreateProjectDrawer({ open, onOpenChange, onCreated }: Props) {
               <OrdoInput
                 id="p-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); setFormError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void handleSubmit(); } }}
                 placeholder="Website redesign"
                 autoFocus
               />
@@ -362,6 +391,8 @@ function Stepper({
             key={label}
             type="button"
             onClick={() => (i === 0 || canNavigate ? onStep(i) : undefined)}
+            aria-current={active ? "step" : undefined}
+            disabled={i !== 0 && !canNavigate}
             className="group flex flex-1 flex-col gap-1.5 text-left"
           >
             <span
@@ -399,6 +430,7 @@ function PlanToggle({
     <button
       type="button"
       onClick={() => onChange(!checked)}
+      aria-pressed={checked}
       className={cn(
         "flex w-full items-center justify-between rounded-small border px-3.5 py-3 text-sm transition-colors",
         checked ? "border-primary/40 bg-primary-surface" : "border-border bg-card",

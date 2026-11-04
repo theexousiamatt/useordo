@@ -30,6 +30,9 @@ import ActivityPage from "@/pages/ActivityPage";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import { ClientLayout } from "@/components/client/ClientLayout";
+import { FOUNDATION_MODE } from "@/lib/foundationMode";
+
+const FoundationEntry = lazy(() => import("@/features/foundation/FoundationEntry"));
 
 const ClientProjectDetail = lazy(() => import("@/pages/ClientProjectDetail"));
 const ClientDashboard = lazy(() => import("@/pages/ClientDashboard"));
@@ -55,7 +58,22 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <WorkspaceProvider>
+          {FOUNDATION_MODE ? (
+            <Suspense fallback={<ClientFallback />}>
+              <FoundationEntry>
+                <Routes>
+                  <Route path="/auth" element={<SignIn />} />
+                  <Route path="/auth/sign-up" element={<SignUp />} />
+                  <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/auth/verify-email" element={<VerifyEmail />} />
+                  <Route path="/auth/locked" element={<AccountLocked />} />
+                  <Route path="/auth/session-expired" element={<SessionExpired />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="*" element={<FoundationWorkspaceRoute />} />
+                </Routes>
+              </FoundationEntry>
+            </Suspense>
+          ) : <WorkspaceProvider>
             <Suspense fallback={<ClientFallback />}>
               <Routes>
                 <Route path="/auth" element={<SignIn />} />
@@ -125,7 +143,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
-          </WorkspaceProvider>
+          </WorkspaceProvider>}
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
@@ -133,3 +151,8 @@ const App = () => (
 );
 
 export default App;
+
+const FoundationWorkspace = lazy(() => import("@/features/foundation").then((module) => ({ default: module.FoundationWorkspace })));
+function FoundationWorkspaceRoute() {
+  return <FoundationWorkspace />;
+}

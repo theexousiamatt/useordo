@@ -1,9 +1,6 @@
 import {
   UserPlus,
   ArrowRightLeft,
-  CircleDot,
-  Tag,
-  Archive,
   Trash2,
   X,
 } from "lucide-react";
@@ -15,9 +12,7 @@ import type { ProjectMemberProfile } from "@/hooks/useProjects";
 export interface BulkActionHandlers {
   onAssign: (userId: string | null) => void;
   onMove: (status: TaskStatus) => void;
-  onSetStatus: (status: TaskStatus) => void;
   onDelete: () => void;
-  onAction: (action: string) => void;
 }
 
 /**
@@ -76,7 +71,7 @@ export function OrdoBulkActionMenu({
     <div
       role="toolbar"
       aria-label={`${count} tasks selected`}
-      className="client-os fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-pill border border-border bg-card px-2 py-1.5 shadow-hover animate-in slide-in-from-bottom-4"
+      className="client-os fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100%_-_24px)] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-panel sm:flex-nowrap sm:rounded-pill border border-border bg-card px-2 py-1.5 shadow-hover animate-in slide-in-from-bottom-4"
     >
       <span className="ml-2 mr-1 rounded-pill bg-[hsl(178,100%,8%)] px-2.5 py-1 text-xs font-semibold text-white">
         {count} selected
@@ -84,17 +79,6 @@ export function OrdoBulkActionMenu({
 
       <OrdoOverflowMenu config={assignMenu} trigger={trigger(btnCls, <UserPlus className="h-4 w-4" />, "Assign")} />
       <OrdoOverflowMenu config={moveMenu} trigger={trigger(btnCls, <ArrowRightLeft className="h-4 w-4" />, "Move")} />
-      <OrdoOverflowMenu config={moveMenu} trigger={trigger(btnCls, <CircleDot className="h-4 w-4" />, "Status")} />
-      
-
-      <Button variant="ghost" size="sm" className={btnCls} onClick={() => handlers.onAction("Add label")}>
-        <Tag className="h-4 w-4" />
-        <span className="ml-1.5">Label</span>
-      </Button>
-      <Button variant="ghost" size="sm" className={btnCls} onClick={() => handlers.onAction("Archive")}>
-        <Archive className="h-4 w-4" />
-        <span className="ml-1.5">Archive</span>
-      </Button>
       <Button
         variant="ghost"
         size="sm"

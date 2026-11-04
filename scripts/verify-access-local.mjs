@@ -26,7 +26,7 @@ for (const file of readdirSync(dir).sort()) {
  catch(e) { console.error('Migration failed:', file, e.message); process.exit(1); }
 }
 console.log('Repository schema/access migrations applied to isolated PostgreSQL (queue transport extensions excluded).');
-for (const name of ['access-contract.sql','invitation-preparation.sql','scoped-invitations.sql']) {
+for (const name of ['access-contract.sql','invitation-preparation.sql','scoped-invitations.sql','atomic-task-order.sql']) {
  try { await db.exec('BEGIN;'); const rows=await db.exec(readFileSync(process.cwd()+'/supabase/tests/'+name,'utf8')); console.log(name,JSON.stringify(rows.at(-1)?.rows)); await db.exec('ROLLBACK;'); }
  catch(e) { console.error(name,e.message);process.exit(1); }
 }

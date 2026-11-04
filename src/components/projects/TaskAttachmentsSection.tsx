@@ -48,12 +48,14 @@ function iconFor(mime: string | null) {
 export function TaskAttachmentsSection({
   taskId,
   projectId,
+  readOnly = false,
 }: {
   taskId: string;
   projectId: string;
+  readOnly?: boolean;
 }) {
   const { user } = useAuth();
-  const { attachments, loading, error, uploading, upload, download, remove, getSignedUrl } =
+  const { attachments, loading, error, uploading, upload, download, remove, getSignedUrl, reload } =
     useTaskAttachments(taskId, projectId);
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<{ url: string; name: string; kind: MediaKind } | null>(
@@ -83,9 +85,10 @@ export function TaskAttachmentsSection({
 
   const uploadFiles = useCallback(
     (files: File[]) => {
+      if (readOnly) return;
       files.filter(Boolean).forEach((f) => upload(f));
     },
-    [upload],
+    [upload, readOnly],
   );
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,12 +97,14 @@ export function TaskAttachmentsSection({
   };
 
   const onDragEnter = (e: React.DragEvent) => {
+    if (readOnly) return;
     if (!Array.from(e.dataTransfer.types).includes("Files")) return;
     e.preventDefault();
     dragDepth.current += 1;
     setDragOver(true);
   };
   const onDragOver = (e: React.DragEvent) => {
+    if (readOnly) return;
     if (!Array.from(e.dataTransfer.types).includes("Files")) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
@@ -110,6 +115,7 @@ export function TaskAttachmentsSection({
     if (dragDepth.current === 0) setDragOver(false);
   };
   const onDrop = (e: React.DragEvent) => {
+    if (readOnly) return;
     e.preventDefault();
     dragDepth.current = 0;
     setDragOver(false);
@@ -120,7 +126,7 @@ export function TaskAttachmentsSection({
   // capture pasted files & images from the clipboard.
   useEffect(() => {
     const el = sectionRef.current;
-    if (!el) return;
+    if (!el || readOnly) return;
     const onPaste = (e: ClipboardEvent) => {
       const target = e.target as Node | null;
       const active = document.activeElement;
@@ -141,18 +147,19 @@ export function TaskAttachmentsSection({
     };
     el.addEventListener("paste", onPaste);
     return () => el.removeEventListener("paste", onPaste);
-  }, [uploadFiles]);
+  }, [uploadFiles, readOnly]);
 
   return (
     <section
       ref={sectionRef}
-      tabIndex={0}
+      tabIndex={readOnly ? undefined : 0}
+      aria-label="Task attachments"
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cn(
-        "relative rounded-card outline-none transition-colors",
+        "relative rounded-card outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         dragOver && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
       )}
     >
@@ -171,7 +178,7 @@ export function TaskAttachmentsSection({
             <span className="text-muted-foreground/70">({attachments.length})</span>
           )}
         </h3>
-        <Button
+        {!readOnly && <Button
           size="sm"
           variant="outline"
           onClick={() => inputRef.current?.click()}
@@ -183,8 +190,8 @@ export function TaskAttachmentsSection({
             <Upload className="mr-1 h-3.5 w-3.5" />
           )}
           Upload
-        </Button>
-        <input ref={inputRef} type="file" multiple className="hidden" onChange={onPick} />
+        </Button>}
+        {!readOnly && <input ref={inputRef} type="file" multiple className="hidden" onChange={onPick} />}
       </div>
 
       {loading ? (
@@ -192,10 +199,11 @@ export function TaskAttachmentsSection({
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : error ? (
-        <p className="rounded-card border border-dashed border-border p-4 text-xs text-muted-foreground">
-          Couldn't load attachments. Try again later.
-        </p>
-      ) : attachments.length === 0 ? (
+        <div role="alert" className="rounded-card border border-dashed border-border p-4 text-sm text-muted-foreground">
+          <p>Couldn’t load attachments.</p>
+          <Button size="sm" variant="outline" className="mt-2" onClick={() => { void reload(); }}>Try again</Button>
+        </div>
+      ) : attachments.length === 0 ? readOnly ? <p className="rounded-card border border-dashed border-border p-4 text-sm text-muted-foreground">No attachments yet.</p> : (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -214,9 +222,9 @@ export function TaskAttachmentsSection({
               key={a.id}
               attachment={a}
               previewUrl={previews[a.id]}
-              canDelete={a.uploaded_by === user?.id}
+              canDelete={!readOnly && a.uploaded_by === user?.id}
               onDownload={() => download(a)}
-              onRemove={() => remove(a)}
+              onRemove={() => { if (window.confirm(`Remove “${a.name}”? This cannot be undone.`)) void remove(a); }}
               onPreview={
                 previews[a.id]
                   ? () =>
@@ -288,7 +296,7 @@ function AttachmentRow({
           type="button"
           onClick={onPreview}
           className="relative h-10 w-10 shrink-0 overflow-hidden rounded-small bg-black/5 ring-1 ring-border transition-opacity hover:opacity-80"
-          aria-label={`Preview ${kind}`}
+          aria-label={`Preview ${attachment.name}`}
         >
           {kind === "image" && (
             <img src={previewUrl} alt={attachment.name} className="h-full w-full object-cover" />
@@ -327,8 +335,8 @@ function AttachmentRow({
         <button
           type="button"
           onClick={onDownload}
-          className="rounded-small p-1.5 text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground"
-          aria-label="Download attachment"
+          className="rounded-small p-2.5 text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground"
+          aria-label={`Download ${attachment.name}`}
         >
           <Download className="h-3.5 w-3.5" />
         </button>
@@ -337,10 +345,10 @@ function AttachmentRow({
             type="button"
             onClick={onRemove}
             className={cn(
-              "rounded-small p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive",
-              "opacity-0 group-hover:opacity-100 focus:opacity-100",
+              "rounded-small p-2.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive",
+              "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100",
             )}
-            aria-label="Remove attachment"
+            aria-label={`Remove ${attachment.name}`}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface InlineTaskTitleProps {
   value: string;
-  onSave: (next: string) => void;
+  onSave: (next: string) => void | Promise<void>;
   onCancel: () => void;
   /** Extra classes to match the static title typography exactly. */
   className?: string;
@@ -30,7 +30,8 @@ export function InlineTaskTitle({ value, onSave, onCancel, className }: InlineTa
   // window are spurious (menu close / re-render stealing focus) and must be
   // ignored so edit mode never exits before the user types.
   const focusedAt = useRef(0);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
   // Seed the editable text once (uncontrolled) so React never re-renders the
   // content underneath the caret and causes it to jump.
@@ -56,18 +57,22 @@ export function InlineTaskTitle({ value, onSave, onCancel, className }: InlineTa
 
   const read = () => (ref.current?.textContent ?? "").replace(/\s+/g, " ").trim();
 
-  const commit = () => {
+  const commit = async () => {
     if (committed.current) return;
     const next = read();
     if (!next) {
       // Empty is invalid — surface a hint and keep editing.
-      setError(true);
+      setError("Title cannot be empty.");
       ref.current?.focus();
       return;
     }
     committed.current = true;
-    if (next !== value) onSave(next);
-    else onCancel();
+    if (next === value) { onCancel(); return; }
+    setPending(true);
+    setError("");
+    try { await onSave(next); }
+    catch { committed.current = false; setError("Couldn’t save. Your title is still here; press Enter to retry."); }
+    finally { setPending(false); }
   };
 
   const cancel = () => {
@@ -83,13 +88,14 @@ export function InlineTaskTitle({ value, onSave, onCancel, className }: InlineTa
         role="textbox"
         aria-label="Task title"
         aria-multiline="false"
-        contentEditable
+        contentEditable={!pending}
+        aria-busy={pending}
         suppressContentEditableWarning
         spellCheck={false}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         onInput={() => {
-          if (error && read()) setError(false);
+          if (error && read()) setError("");
         }}
         onPaste={(e) => {
           // Force plain text and strip newlines to stay single-line.
@@ -99,9 +105,9 @@ export function InlineTaskTitle({ value, onSave, onCancel, className }: InlineTa
         }}
         onKeyDown={(e) => {
           e.stopPropagation();
-          if (e.key === "Enter") {
+          if (e.key === "Enter" && !e.nativeEvent.isComposing) {
             e.preventDefault();
-            commit();
+            void commit();
           } else if (e.key === "Escape") {
             e.preventDefault();
             cancel();
@@ -117,7 +123,7 @@ export function InlineTaskTitle({ value, onSave, onCancel, className }: InlineTa
           }
           // Intentional blur saves; an empty value cancels.
           if (!read()) cancel();
-          else commit();
+          else void commit();
         }}
         className={cn(
           "text-sm font-semibold leading-snug text-foreground outline-none",
@@ -125,9 +131,10 @@ export function InlineTaskTitle({ value, onSave, onCancel, className }: InlineTa
           className,
         )}
       />
+      {pending && <span role="status" className="block text-xs text-muted-foreground">Saving…</span>}
       {error && (
-        <span className="mt-1 block text-[11px] font-medium text-destructive">
-          Title can't be empty
+        <span role="alert" className="mt-1 block text-[11px] font-medium text-destructive">
+          {error}
         </span>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { GOOGLE_AUTH_ENABLED } from "@/lib/foundationMode";
 import { authReturnPath, authPath, safeReturnPath } from "@/lib/authReturn";
 import { useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -126,6 +127,7 @@ export default function SignIn() {
           </OrdoButton>
         </form>
 
+        {GOOGLE_AUTH_ENABLED && <>
         <div className="my-7 flex items-center gap-3 text-[13px] uppercase tracking-wide text-[hsl(var(--text-tertiary))]">
           <span className="h-px flex-1 bg-border" />
           Or continue with
@@ -138,6 +140,7 @@ export default function SignIn() {
           loading={socialPending === "google"}
           onClick={() => socialSignIn("google")}
         />
+        </>}
 
         <p className="mt-7 text-center text-sm text-muted-foreground">
           Don't have an account?{" "}

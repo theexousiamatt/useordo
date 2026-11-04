@@ -1,13 +1,15 @@
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, format, parseISO } from "date-fns";
 
 export const timeAgo = (d: string | Date) =>
   formatDistanceToNow(new Date(d), { addSuffix: true });
 
 export const dateShort = (d: string | Date | null | undefined) =>
-  d ? format(new Date(d), "MMM d, yyyy") : "—";
+  d ? format(typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) ? parseISO(d) : new Date(d), "MMM d, yyyy") : "—";
+
+export const localDateKey = (date = new Date()) => format(date, "yyyy-MM-dd");
 
 export const initials = (name?: string | null) => {
-  if (!name) return "?";
+  if (!name?.trim()) return "?";
   const parts = name.trim().split(/\s+/);
   return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
 };

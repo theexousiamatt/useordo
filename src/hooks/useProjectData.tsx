@@ -392,7 +392,7 @@ export function useCreateTask(projectId: string, workspaceId: string) {
   return useMutation({
     mutationFn: async (input: { title: string; status: TaskStatus }) => {
       const existing = qc.getQueryData<TaskRow[]>(["project-tasks", projectId]) ?? [];
-      const position = existing.filter((t) => t.status === input.status).length;
+      const position = Math.max(-1, ...existing.filter((t) => t.status === input.status).map((t) => t.position)) + 1;
       const { error } = await supabase.from("tasks").insert({
         workspace_id: workspaceId,
         project_id: projectId,
@@ -414,8 +414,9 @@ export function useUpdateTask(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...patch }: Partial<TaskRow> & { id: string }) => {
-      const { error } = await supabase.from("tasks").update(patch).eq("id", id);
+      const { data, error } = await supabase.from("tasks").update(patch).eq("id", id).eq("project_id", projectId).is("archived_at", null).select("id").maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error("This task is no longer available or your access has changed.");
     },
     // Optimistic UI: apply the patch to the cached board immediately.
     onMutate: async ({ id, ...patch }) => {
@@ -443,21 +444,22 @@ export function useUpdateTask(projectId: string) {
 export function useReorderTasks(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (updates: { id: string; status: TaskStatus; position: number }[]) => {
-      const results = await Promise.all(
-        updates.map((u) =>
-          supabase.from("tasks").update({ status: u.status, position: u.position }).eq("id", u.id),
-        ),
-      );
-      const failed = results.find((r) => r.error);
-      if (failed?.error) throw failed.error;
+    mutationFn: async (updates: { id: string; status: TaskStatus; position: number; expected_updated_at: string }[]) => {
+      const { error } = await supabase.rpc("reorder_project_tasks", { _project_id: projectId, _updates: updates });
+      if (!error) return;
+      // Never fall back to individual writes: a mid-move failure would leave
+      // only part of the board reordered. Deploy the matching migration first.
+      if (error.code === "PGRST202" || error.code === "42883") {
+        throw new Error("Task moves are temporarily unavailable. The workspace needs a database update; no changes were saved.");
+      }
+      throw error;
     },
-    onError: () => {
-      // Roll back to the server's truth.
-      qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
+    onError: async () => {
+      await qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
+      await qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
     },
   });
 }
@@ -480,7 +482,7 @@ export function useDuplicateTask(projectId: string, workspaceId: string) {
   return useMutation({
     mutationFn: async (task: TaskRow & { copyAssignee?: boolean }) => {
       const existing = qc.getQueryData<TaskRow[]>(["project-tasks", projectId]) ?? [];
-      const position = existing.filter((t) => t.status === task.status).length;
+      const position = Math.max(-1, ...existing.filter((t) => t.status === task.status).map((t) => t.position)) + 1;
       const { error } = await supabase.from("tasks").insert({
         workspace_id: workspaceId,
         project_id: projectId,
@@ -503,11 +505,15 @@ export function useArchiveTask(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const archivedAt = new Date().toISOString();
+      const { data, error } = await supabase
         .from("tasks")
-        .update({ archived_at: new Date().toISOString() })
-        .eq("id", id);
+        .update({ archived_at: archivedAt })
+        .eq("id", id)
+        .select("id, archived_at, updated_at")
+        .single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });

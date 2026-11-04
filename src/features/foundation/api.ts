@@ -1,0 +1,119 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import type { CreateFoundationProject, DisciplineKey, FoundationProject, ProjectParent, StudioOrganization } from "./types";
+
+type ProjectRecord = Omit<FoundationProject, "disciplines">;
+type Table<Row> = {
+  Row: { [Key in keyof Row]: Row[Key] };
+  Insert: { [Key in keyof Row]?: Row[Key] };
+  Update: { [Key in keyof Row]?: Row[Key] };
+  Relationships: [];
+};
+
+/** Canonical development schema; deliberately independent of legacy generated types. */
+export interface FoundationDatabase {
+  public: {
+    Tables: {
+      projects: Table<ProjectRecord>;
+      client_organizations: Table<ProjectParent>;
+      internal_initiatives: Table<ProjectParent>;
+      project_disciplines: Table<{ project_id: string; discipline_key: DisciplineKey; organization_id: string }>;
+    };
+    Views: Record<string, never>;
+    Functions: {
+      list_my_organizations: { Args: Record<string, never>; Returns: StudioOrganization[] };
+      create_organization: { Args: { _name: string; _slug: string; _request_id: string }; Returns: string };
+      create_client_organization: { Args: { _organization_id: string; _name: string; _request_id: string }; Returns: string };
+      create_internal_initiative: { Args: { _organization_id: string; _name: string; _request_id: string }; Returns: string };
+      create_project: {
+        Args: {
+          _organization_id: string; _name: string; _ownership: FoundationProject["ownership"];
+          _discipline_keys: DisciplineKey[]; _lifecycle: FoundationProject["lifecycle"];
+          _client_organization_id?: string | null; _internal_initiative_id?: string | null;
+          _engagement_id?: string | null; _description?: string | null;
+          _due_date?: string | null; _request_id: string;
+        };
+        Returns: string;
+      };
+    };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+}
+
+const client = supabase as unknown as SupabaseClient<FoundationDatabase>;
+const PROJECT_FIELDS = "id,organization_id,name,description,ownership,lifecycle,client_organization_id,internal_initiative_id,engagement_id,owner_id,due_date,created_at";
+
+function savedId(data: string | null): string {
+  if (!data) throw new Error("The save could not be confirmed. Your draft is still here; try again.");
+  return data;
+}
+
+async function withDisciplines(records: ProjectRecord[], organizationId: string): Promise<FoundationProject[]> {
+  if (!records.length) return [];
+  const { data, error } = await client.from("project_disciplines").select("project_id,discipline_key")
+    .eq("organization_id", organizationId).in("project_id", records.map((project) => project.id));
+  if (error) throw error;
+  return records.map((project) => ({
+    ...project,
+    disciplines: (data ?? []).filter((row) => row.project_id === project.id).map((row) => row.discipline_key),
+  }));
+}
+
+export const foundationApi = {
+  async listOrganizations(): Promise<StudioOrganization[]> {
+    const { data, error } = await client.rpc("list_my_organizations");
+    if (error) throw error;
+    return data ?? [];
+  },
+  async createOrganization(name: string, slug: string, requestId: string): Promise<string> {
+    const { data, error } = await client.rpc("create_organization", { _name: name, _slug: slug, _request_id: requestId });
+    if (error) throw error;
+    return savedId(data);
+  },
+  async listClients(organizationId: string): Promise<ProjectParent[]> {
+    const { data, error } = await client.from("client_organizations").select("id,organization_id,name")
+      .eq("organization_id", organizationId).order("name");
+    if (error) throw error;
+    return data ?? [];
+  },
+  async listInitiatives(organizationId: string): Promise<ProjectParent[]> {
+    const { data, error } = await client.from("internal_initiatives").select("id,organization_id,name")
+      .eq("organization_id", organizationId).order("name");
+    if (error) throw error;
+    return data ?? [];
+  },
+  async createClient(organizationId: string, name: string, requestId: string): Promise<string> {
+    const { data, error } = await client.rpc("create_client_organization", { _organization_id: organizationId, _name: name, _request_id: requestId });
+    if (error) throw error;
+    return savedId(data);
+  },
+  async createInitiative(organizationId: string, name: string, requestId: string): Promise<string> {
+    const { data, error } = await client.rpc("create_internal_initiative", { _organization_id: organizationId, _name: name, _request_id: requestId });
+    if (error) throw error;
+    return savedId(data);
+  },
+  async listProjects(organizationId: string): Promise<FoundationProject[]> {
+    const { data, error } = await client.from("projects").select(PROJECT_FIELDS)
+      .eq("organization_id", organizationId).order("created_at", { ascending: false });
+    if (error) throw error;
+    return withDisciplines(data ?? [], organizationId);
+  },
+  async getProject(organizationId: string, projectId: string): Promise<FoundationProject | null> {
+    const { data, error } = await client.from("projects").select(PROJECT_FIELDS)
+      .eq("organization_id", organizationId).eq("id", projectId).maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    return (await withDisciplines([data], organizationId))[0];
+  },
+  async createProject(input: CreateFoundationProject, requestId: string): Promise<string> {
+    const { data, error } = await client.rpc("create_project", {
+      _organization_id: input.organizationId, _name: input.name, _ownership: input.ownership,
+      _discipline_keys: input.disciplineKeys, _lifecycle: input.lifecycle,
+      _client_organization_id: input.clientOrganizationId, _internal_initiative_id: input.internalInitiativeId,
+      _description: input.description, _due_date: input.dueDate, _request_id: requestId,
+    });
+    if (error) throw error;
+    return savedId(data);
+  },
+};

@@ -33,6 +33,7 @@ export interface TaskMenuHandlers {
   /** Open the anchored due-date popover. */
   onEditDueDate: (task: TaskRow) => void;
   onMoveStatus: (task: TaskRow, status: TaskStatus) => void;
+  onMovePosition?: (task: TaskRow, edge: "top" | "bottom") => void;
   /** Move to another project (only shown when targets are provided). */
   onMoveProject?: (task: TaskRow, projectId: string) => void;
   onDuplicate: (task: TaskRow) => void;
@@ -56,15 +57,20 @@ export function buildTaskMenuConfig(
     onSelect: () => h.onMoveStatus(task, c.id),
   }));
 
+  const positionItems = h.onMovePosition ? [
+    { id: "move-top", label: "Top of this column", onSelect: () => h.onMovePosition?.(task, "top") },
+    { id: "move-bottom", label: "Bottom of this column", onSelect: () => h.onMovePosition?.(task, "bottom") },
+  ] : [];
+
   const moveItem = {
     id: "move-to",
     label: "Move to…",
     icon: ArrowRightLeft,
-    shortcut: "M",
     submenu:
       h.onMoveProject && moveTargets.length > 0
         ? [
             ...statusSub,
+            ...positionItems,
             {
               id: "move-project",
               label: "Another project",
@@ -76,7 +82,7 @@ export function buildTaskMenuConfig(
               })),
             },
           ]
-        : statusSub,
+        : [...statusSub, ...positionItems],
   };
 
   return [
@@ -108,12 +114,15 @@ export function OrdoCardContextMenu({
   handlers,
   moveTargets,
   children,
+  disabled = false,
 }: {
   task: TaskRow;
   handlers: TaskMenuHandlers;
   moveTargets?: TaskMoveTarget[];
   children: ReactNode;
+  disabled?: boolean;
 }) {
+  if (disabled) return <>{children}</>;
   return (
     <OrdoContextMenu config={buildTaskMenuConfig(task, handlers, moveTargets)}>{children}</OrdoContextMenu>
   );
