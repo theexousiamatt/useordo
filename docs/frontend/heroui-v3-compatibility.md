@@ -65,3 +65,7 @@ Before merging platform adoption: current app TypeScript and all 117+ tests; fou
 Estimated engineering effort after review (ranges, not delivery promises): platform/peer compatibility 1–3 days; tokens/theme/portal bridge and thin core controls 2–3 days; one real foundation pilot and regression qualification 2–4 days. Roughly **5–10 engineer-days** for an adoption-ready first slice, with Phase 2 families migrated incrementally as their features are built. A whole-app primitive replacement is separate scope, not assumed in this estimate.
 
 Rollback: during evaluation return to the original checkout; discard/revert only proof commits in the isolated worktree. Do not stash/reset/clean the current app. For a later merged adoption, keep platform, token bridge and feature-family changes in separate commits so their lockfiles/source can be reverted deliberately. Record checkpoint commit, worktree path, source manifest and verification results with the proof.
+
+## Completed proof
+
+See [proof results and handoff](heroui-v3-proof-results.md) for actual verification, the failed mixed-overlay gate, proposed contrast corrections, motion adapter and remaining adoption criteria. The proof is complete; full application adoption awaits review.

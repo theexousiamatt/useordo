@@ -10,6 +10,8 @@ Turn the verified canonical foundation into a usable studio production workspace
 
 This phase combines configurable boards from the original Phase 2 with the first operational part of the former Phase 3. Both internal and external projects use the same infrastructure. Include lightweight operational assignments without fake projects so Unified Tasks also accommodates studio work. Deliver the phase through small implementation increments, but do not declare it complete at the point where boards merely render.
 
+HeroUI v3 adoption has a prerequisite platform gate at **2.0**, before increments 2.1–2.5. The [compatibility audit](frontend/heroui-v3-compatibility.md) identifies the current React 18/Tailwind 3 application as incompatible with a drop-in installation. An isolated React 19/Tailwind 4 package proof is under evaluation in a separate worktree; it does not establish that the main application has been upgraded or authorize a broad primitive replacement. Review that evidence and the bounded adoption scope before changing the application's platform.
+
 Included:
 
 - Board/column configuration, ordering, duplication, archive/restore, safe removal and reusable private/studio board templates.
@@ -31,7 +33,7 @@ Not included in this increment: cross-project/context task transfers; secondary 
 | Applied Phase 1 migration/checksum ledger and private Storage policy | Add forward canonical migrations. Do not edit the applied baseline, reset production, or replay historical legacy migrations. |
 | Foundation organization selection, Auth/cache isolation and environment gate | Extract a shared canonical workspace context/layout. Add routes for real production views without mounting legacy WorkspaceProvider or task repositories. Include work_context_id in project read types. |
 | ProjectBoard, OrdoTaskCard, task drawer and Ordo menus/form controls | Reuse composition, appearance, drafts, selection, drop indicators and error patterns. Extract presentation contracts from legacy TaskRow, fixed TASK_COLUMNS and embedded data hooks. |
-| Existing dnd-kit, React Query, date-fns and test tooling | Reuse installed dependencies. No third-party board UI kit, new state framework or ranking service. |
+| Existing dnd-kit, React Query, date-fns and test tooling | Retain the domain/query/date tooling and verify it against the platform selected at 2.0. HeroUI supplies reusable controls, not a board implementation. No third-party board UI kit, new state framework or ranking service. |
 | boardOrder, boardFilters, taskDueDates, useLocalDateKey and existing tests | Preserve useful behavior and assertions. Ordering uses actual board/column IDs; deadline matching uses canonical category through one shared adapter, not editable column names. |
 
 The current schema does not yet provide task writes, board configuration commands, board ACLs, templates or concurrency revisions. Its task/column foreign key also requires a deliberate migration for atomic remapping of a populated column's category. This includes replacing immediate RESTRICT update behavior with a deferrable NO ACTION relationship and deferring its validation only inside the remap transaction. PostgreSQL documents that distinction in its [foreign-key constraint reference](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-FK). Existing task-assignee validation checks studio membership but must additionally check eligible context/board access.
@@ -177,20 +179,36 @@ Keyboard users can create/configure/move/assign/archive/restore without a pointe
 
 ## 6. Implementation sequence and reviewable checkpoints
 
+### 2.0 — HeroUI compatibility and control foundation
+
+Review the isolated proof against the [HeroUI v3 compatibility audit](frontend/heroui-v3-compatibility.md) before beginning the main-app platform upgrade. The reviewed scope must identify the React/DOM/type and Tailwind/style-engine changes, incompatible peer-package decisions, browser support and the first control families. A package demo alone is insufficient, and whole-application primitive replacement is separate scope. Retain the existing Ordo composition, feature controllers, permissions, request IDs and persistence logic.
+
+For an approved adoption slice:
+
+- Pin the tested HeroUI React/styles, React/DOM/types, Tailwind/plugin and affected peer versions in the lockfile. Record the official v3 [agent guide](https://github.com/heroui-inc/heroui/blob/v3/skills/heroui-react/SKILL.md) and component documentation used, including retrieval date and source revision where available. Follow the current v3 compound/control APIs; this application is not a HeroUI v2 migration. Resolve peers normally rather than using force or legacy-peer-deps.
+- Establish namespaced Ordo full-color tokens and an explicit adapter for incumbent HSL consumers, HeroUI components and portal roots. Preserve Auth/root and light workspace themes, typography, spacing, dimensions, focus treatments and reduced motion. Do not mount two Tailwind resets in one document.
+- Prove the core button, text/password/textarea, selection and drawer/dialog contracts before building production feature screens. Preserve single-submit behavior, controlled IDs/values, labels/errors/refs, disabled/pending states, failed drafts, request-ID reuse and dirty/pending dismissal guards. Test a HeroUI selector inside a retained Radix sheet for focus containment/return, Escape, outside click, portal colors and scroll lock. Verify menu interaction and dnd-kit pointer/keyboard transforms together.
+- Run application TypeScript, touched-file lint, the current frontend regressions, foundation safety/SQL checks and both builds. Recheck real isolated sign-in → authorized studio → client/internal creation → saved overview after reload/fresh sign-in, account switching/client denial, and retained deadline/drawer behavior. Capture desktop/mobile and supported-theme evidence. A synthetic package proof cannot replace these main-application checks.
+- Preserve the current dirty source checkout and index through a reviewed checkpoint/worktree, as specified in the audit. Keep platform/dependency changes, the token/theme bridge and each feature/control family in separate commits. Record exact checkpoint and tested revisions; rollback reverts only the adoption commits with their matching lockfile/source, without stash/reset/clean of existing work.
+
+Complete and review this gate before progressing to 2.1–2.5. It adds a UI-platform prerequisite; every business-integrity criterion below remains required.
+
 | Increment | Tasks | Exit check |
 |---|---|---|
+| 2.0 HeroUI platform and controls | Review the isolated React 19/Tailwind 4 proof; approve a bounded adoption slice; establish compatible peers, Ordo tokens/portal theme, core controls and overlay/drag behavior with pinned versions | The reviewed main-app adoption passes platform/control, real foundation and retained interaction regressions, both builds and a recorded rollback plan before 2.1–2.5 begin. No whole-app primitive migration is assumed. |
 | 2.1 Schema and command contract | Forward migrations; revisions/order/category invariants; scoped board/task reads; team eligibility; receipt/history changes; local bootstrap/gate/allowlist upgrade | Empty bootstrap and v1→v2 development upgrade pass; rollback/idempotency/role tests prove invariants before UI writes are enabled. |
 | 2.2 Board configuration | Canonical board repository/controller; blank/template/duplicate flows; columns, access, archive/restore and safe removal previews | A PM configures three different Lora boards and survives reload; removal/recovery preserves every task. |
 | 2.3 Canonical task work | Shared editor/detail route; CRUD/assignment/priority/date/category semantics; team selection; task archive/restore/history | A PM assigns Devine and Lora work to the same creative; changes persist and do not call legacy hooks. |
 | 2.4 Movement and unified work | Actual drag/drop and non-drag movement; Board/List; shared filters/counts/pagination; My Tasks; lightweight operations | One task ID appears consistently across its home board, project list, drawer and deadline views. |
 | 2.5 Qualification | Simultaneous editors, fault injection, permission revocation, archive/delete/recovery, responsive/keyboard/touch checks; focused lint/types/builds/CI | Every acceptance criterion below passes with recorded evidence. No decorative or Coming Soon controls. |
 
-Keep each increment testable. All increments form one Phase 2 approval; no production cutover or unrelated rewrite is included.
+Keep each increment testable. The Phase 2 proposal includes the 2.0 prerequisite and increments 2.1–2.5. Main-app platform adoption proceeds only after review of the isolated proof and its bounded migration scope; approval does not imply replacing every existing primitive. No production cutover or unrelated rewrite is included.
 
 ## 7. Acceptance criteria
 
 | ID | Required result |
 |---|---|
+| P2.0 HeroUI integration gate | A reviewed, pinned compatible platform and bounded core-control adoption preserve Ordo tokens/themes and real Phase 1/Auth/task interactions; nested overlays, keyboard/pointer behavior, drafts/retry and pending guards pass. Current automated checks and both builds pass with desktop/mobile evidence and separate platform/token/feature rollback commits. The isolated proof alone does not satisfy this criterion. |
 | P2.1 Configuration | Create/rename/reorder multiple boards and custom columns; changes survive reload and fresh sign-in. Blank states have functional setup actions. |
 | P2.2 Independent columns | Two differently named columns sharing review remain distinct. Renaming/reordering never changes task identity or completion. Populated category remapping updates all affected tasks atomically with explicit impact confirmation. |
 | P2.3 Templates/duplication | Duplicate/save/apply configuration with fresh IDs and zero copied tasks, assignees, grants or private references. Private/studio template access and immutable versions work; existing boards are not silently updated. |
@@ -210,6 +228,7 @@ Keep each increment testable. All increments form one Phase 2 approval; no produ
 
 | Layer | Evidence |
 |---|---|
+| HeroUI/platform prerequisite | Reviewed isolated proof plus the 2.0 main-app gate: pinned normal peer resolution, official v3 documentation, token/portal comparison, core form/event/overlay contracts, retained task/dnd-kit behavior, real foundation journeys, all current frontend regressions and both builds. Record supported browsers/themes, unexercised cases and checkpoint/rollback revisions. |
 | Pure/unit | Column/category identity, generalized ordering/anchors, completion/reopening, draft/request-ID behavior, date boundaries and combined filters. Adapt existing meaningful deadline/order tests; do not duplicate implementation assertions. |
 | Canonical SQL | Fresh chain twice; v1 forward upgrade without resetting fixture data; RLS/ACL and tenant/context/column constraints; all command success/denial, idempotency, stale revisions, failed reassignment, archival/deletion, assignment eligibility and rollback of history/receipts/revisions. Reset allowlist and marker guards include new tables/version. |
 | Real local Supabase | Real Auth sessions and REST/RPC calls as the full role matrix; direct writes denied; private board task/assignee/history/count queries and deep IDs; revoked access without token refresh; task-linked Storage download/new signed URL denial with a prior positive control. Never substitute PGlite stubs for these checks. |
@@ -222,4 +241,4 @@ Known Phase 1 repository-wide lint and dependency findings remain tracked in pha
 
 ## Approval requested
 
-Approve the complete Phase 2 scope, operational rules, forward database changes, acceptance criteria and verification plan above. The proposed defaults include configuration templates, restricted board access, same-context moves, explicit reassignment before deletion, retained configuration recovery, and basic projectless operational assignments. Approval authorizes implementation and testing only against the isolated verified development foundation. It does not authorize resetting/deploying production, editing its migration ledger, deleting live users/files, or implementing the deferred modules.
+Approve the complete Phase 2 scope, including the reviewed 2.0 compatibility prerequisite, operational rules, forward database changes, acceptance criteria and verification plan above. The proposed defaults include configuration templates, restricted board access, same-context moves, explicit reassignment before deletion, retained configuration recovery, and basic projectless operational assignments. The isolated HeroUI proof remains evidence for review; a broad main-app migration or whole-application primitive replacement is not implicitly authorized. Approval authorizes the explicitly reviewed development implementation and testing only against the isolated verified foundation. It does not authorize resetting/deploying production, editing its migration ledger, deleting live users/files, or implementing the deferred modules.
