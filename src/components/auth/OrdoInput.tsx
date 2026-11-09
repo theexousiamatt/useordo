@@ -28,7 +28,7 @@ export const OrdoInput = React.forwardRef<HTMLInputElement, OrdoInputProps>(
             className={cn(
               "w-full rounded-small border bg-card px-4 py-3.5 text-[15px] text-foreground transition-all",
               "placeholder:text-[hsl(var(--text-tertiary))]",
-              "focus:outline-none focus:ring-4",
+              "focus:outline-hidden focus:ring-4",
               error
                 ? "border-destructive bg-destructive/5 focus:ring-destructive/10 animate-[shake_0.4s_linear]"
                 : "border-border focus:border-accent focus:ring-accent/10",

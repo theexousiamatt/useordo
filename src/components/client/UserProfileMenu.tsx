@@ -22,7 +22,7 @@ export function UserProfileMenu({ settingsPath = "/client/settings" }: { setting
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Account menu"
-        className="flex items-center gap-3 rounded-pill bg-card py-1.5 pl-1.5 pr-4 shadow-panel outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex items-center gap-3 rounded-pill bg-card py-1.5 pl-1.5 pr-4 shadow-panel outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Avatar className="h-8 w-8">
           <AvatarFallback className="bg-secondary text-xs text-foreground">{initials(name)}</AvatarFallback>

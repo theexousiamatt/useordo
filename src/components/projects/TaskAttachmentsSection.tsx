@@ -159,7 +159,7 @@ export function TaskAttachmentsSection({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cn(
-        "relative rounded-card outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "relative rounded-card outline-hidden transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         dragOver && "ring-2 ring-primary/40 ring-offset-2 ring-offset-background",
       )}
     >

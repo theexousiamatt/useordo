@@ -20,7 +20,7 @@ export function WorkspaceTypeCard({ option, selected, onSelect }: WorkspaceTypeC
       aria-pressed={selected}
       className={cn(
         "group relative flex flex-col gap-3 rounded-card border p-4 text-left transition-all",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
         selected
           ? "border-foreground bg-secondary shadow-subtle"
           : "border-border hover:-translate-y-0.5 hover:bg-secondary/60 hover:shadow-subtle",

@@ -38,7 +38,7 @@ export function ProjectOverviewCard({ project, onOpen }: ProjectOverviewCardProp
     <button
       type="button"
       onClick={() => onOpen?.(project.id)}
-      className="flex flex-col gap-4 rounded-card bg-card p-6 text-left shadow-panel transition-all hover:-translate-y-0.5 hover:shadow-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex flex-col gap-4 rounded-card bg-card p-6 text-left shadow-panel transition-all hover:-translate-y-0.5 hover:shadow-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

@@ -84,7 +84,7 @@ export function InlineMemberPicker({ members, value, onChange }: InlineMemberPic
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search members…"
-          className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
+          className="w-full bg-transparent text-sm outline-hidden placeholder:text-muted-foreground/70"
         />
       </div>
 

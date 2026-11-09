@@ -125,7 +125,7 @@ export default function Tasks() {
             <label htmlFor="tasks-due-filter" className="sr-only">Filter by due date</label>
             <select id="tasks-due-filter" value={due}
               onChange={(event) => setDue(event.target.value as TaskDueFilter)}
-              className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-none">
+              className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring sm:flex-none">
               <option value="all">Any due date</option>
               <option value="overdue">Overdue</option>
               <option value="today">Due today</option>
@@ -177,7 +177,7 @@ export default function Tasks() {
               <Card className="divide-y divide-border">{group.tasks.map((task) => (
                 <button key={task.id} type="button"
                   onClick={() => navigate("/projects/" + task.project_id + "?task=" + encodeURIComponent(task.id))}
-                  className="flex w-full items-center gap-3 rounded-md p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                  className="flex w-full items-center gap-3 rounded-md p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{task.title}</p>
                     <p className="truncate text-xs text-muted-foreground">{query.data?.projectNames[task.project_id] ?? "Project"}</p>

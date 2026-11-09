@@ -28,7 +28,7 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
       "flex items-center rounded-small py-2.5 text-sm font-medium transition-colors",
       collapsed ? "justify-center px-2.5" : "px-3",
       "text-white/65 hover:bg-white/[0.08] hover:text-white/90",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
+      "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white/30",
       active && "bg-white/[0.12] text-white hover:text-white",
     );
 
@@ -102,7 +102,7 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         className={cn(
-          "mt-3 hidden items-center rounded-small py-2.5 text-sm font-medium text-white/65 transition-colors hover:bg-white/[0.08] hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 lg:flex",
+          "mt-3 hidden items-center rounded-small py-2.5 text-sm font-medium text-white/65 transition-colors hover:bg-white/[0.08] hover:text-white/90 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white/30 lg:flex",
           collapsed ? "justify-center px-2.5" : "px-3",
         )}
       >

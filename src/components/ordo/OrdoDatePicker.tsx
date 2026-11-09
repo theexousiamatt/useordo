@@ -30,7 +30,7 @@ export function OrdoDatePicker({
           type="button"
           className={cn(
             "flex h-11 w-full items-center gap-2.5 rounded-small border border-border bg-card px-3.5 text-left text-sm shadow-subtle transition-colors",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 data-[state=open]:border-primary/40",
+            "focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30 data-[state=open]:border-primary/40",
             !value && "text-muted-foreground/70",
             className,
           )}

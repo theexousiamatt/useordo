@@ -80,23 +80,21 @@ export function InlineDatePicker({ value, onChange }: InlineDatePickerProps) {
               initialFocus
               className={cn("p-3 pointer-events-auto")}
               classNames={{
-                caption: "flex justify-center items-center relative pt-1 pb-2 px-9",
+                month_caption: "flex justify-center items-center relative pt-1 pb-2 px-9",
                 caption_label: "text-sm font-semibold text-foreground",
                 nav: "flex items-center",
-                nav_button:
-                  "h-7 w-7 inline-flex items-center justify-center rounded-small border border-border bg-card text-muted-foreground opacity-100 shadow-subtle transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40",
-                nav_button_previous: "absolute left-1",
-                nav_button_next: "absolute right-1",
-                head_cell:
+                button_previous: "h-7 w-7 inline-flex items-center justify-center rounded-small border border-border bg-card text-muted-foreground opacity-100 shadow-subtle transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40 absolute left-1 top-0",
+                button_next: "h-7 w-7 inline-flex items-center justify-center rounded-small border border-border bg-card text-muted-foreground opacity-100 shadow-subtle transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40 absolute right-1 top-0",
+                weekday:
                   "text-muted-foreground rounded-md w-9 font-medium text-[0.72rem] uppercase tracking-wide",
-                cell: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-                day: "h-9 w-9 p-0 font-normal rounded-small inline-flex items-center justify-center transition-colors hover:bg-secondary hover:text-foreground aria-selected:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-                day_selected:
-                  "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                day_today:
+                day: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                day_button: "h-9 w-9 p-0 font-normal rounded-small inline-flex items-center justify-center transition-colors hover:bg-secondary hover:text-foreground aria-selected:opacity-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/40",
+                selected:
+                  "[&>button]:bg-primary [&>button]:text-primary-foreground",
+                today:
                   "bg-secondary font-semibold text-foreground ring-1 ring-inset ring-primary/40",
-                day_outside: "text-muted-foreground/50",
-                day_disabled: "text-muted-foreground opacity-40",
+                outside: "text-muted-foreground/50",
+                disabled: "text-muted-foreground opacity-40",
               }}
             />
           </div>

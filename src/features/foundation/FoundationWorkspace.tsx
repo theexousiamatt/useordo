@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { foundationApi } from "./api";
 import { canCreateProjects, canManageStudio, DISCIPLINES, LIFECYCLES, type CreateFoundationProject, type DisciplineKey, type FoundationProject, type ProjectLifecycle, type ProjectOwnership, type ProjectParent, type StudioOrganization } from "./types";
 
-const selectClass = "h-11 w-full min-w-0 rounded-small border border-border bg-card px-3.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30";
+const selectClass = "h-11 w-full min-w-0 rounded-small border border-border bg-card px-3.5 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30";
 const keys = {
   organizations: (accountId: string) => ["foundation", accountId, "organizations"] as const,
   projects: (accountId: string, organizationId: string) => ["foundation", accountId, organizationId, "projects"] as const,
@@ -31,7 +31,7 @@ function message(error: unknown, fallback: string): string {
 
 /** A failed request can be retried safely; an edited draft receives a new command ID. */
 function useRequestId() {
-  const request = useRef<{ fingerprint: string; id: string }>();
+  const request = useRef<{ fingerprint: string; id: string } | undefined>(undefined);
   return (input: unknown) => {
     const fingerprint = JSON.stringify(input);
     if (request.current?.fingerprint !== fingerprint) request.current = { fingerprint, id: crypto.randomUUID() };
@@ -194,7 +194,7 @@ function ProjectList({ accountId, organization }: { accountId: string; organizat
       <select id="foundation-project-ownership" className={cn(selectClass, "w-auto")} value={ownership} onChange={(event) => setOwnership(event.target.value as "all" | ProjectOwnership)}><option value="all">All projects</option><option value="client">Client projects</option><option value="internal">Internal projects</option></select>
     </div>
     {projects.isPending ? <Loading>Loading projects…</Loading> : projects.isError ? <ErrorState title="Couldn’t load projects" description="Your work could not be loaded. Try again to see the projects available to you." onRetry={() => void projects.refetch()} /> : filtered.length ? <div className="divide-y divide-border overflow-hidden rounded-panel bg-card">
-      {filtered.map((project) => <Link key={project.id} to={`/projects/${project.id}`} className="group flex min-w-0 items-center justify-between gap-4 px-5 py-5 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6">
+      {filtered.map((project) => <Link key={project.id} to={`/projects/${project.id}`} className="group flex min-w-0 items-center justify-between gap-4 px-5 py-5 transition-colors hover:bg-secondary/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6">
         <div className="min-w-0"><div className="flex flex-wrap items-center gap-x-3 gap-y-1"><h2 className="break-words text-base font-semibold">{project.name}</h2><OwnershipBadge ownership={project.ownership} /></div><div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"><span>{LIFECYCLES.find((item) => item.key === project.lifecycle)?.label}</span>{project.disciplines.length > 0 && <span>{disciplineNames(project).join(" · ")}</span>}{project.due_date && <span>Due {dateShort(project.due_date)}</span>}</div></div>
         <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
       </Link>)}

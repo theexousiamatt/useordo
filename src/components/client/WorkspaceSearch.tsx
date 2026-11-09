@@ -12,7 +12,7 @@ export function WorkspaceSearch({ placeholder = "Search projects, files…" }: W
         type="search"
         aria-label="Search workspace"
         placeholder={placeholder}
-        className="ml-2.5 w-full border-none bg-transparent text-sm text-foreground outline-none placeholder:text-[hsl(var(--text-tertiary))]"
+        className="ml-2.5 w-full border-none bg-transparent text-sm text-foreground outline-hidden placeholder:text-[hsl(var(--text-tertiary))]"
       />
     </div>
   );

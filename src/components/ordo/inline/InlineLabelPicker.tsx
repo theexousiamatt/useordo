@@ -71,7 +71,7 @@ export function InlineLabelPicker({
             }
           }}
           placeholder="Search or create label…"
-          className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
+          className="w-full bg-transparent text-sm outline-hidden placeholder:text-muted-foreground/70"
         />
       </div>
 
@@ -180,7 +180,7 @@ function LabelEditRow({
             }
             if (e.key === "Escape") onDone();
           }}
-          className="w-full rounded-small border border-border bg-card px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-ring"
+          className="w-full rounded-small border border-border bg-card px-2 py-1 text-sm outline-hidden focus:ring-1 focus:ring-ring"
         />
         <button
           type="button"

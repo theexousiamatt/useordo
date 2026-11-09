@@ -23,7 +23,7 @@ export function AppHeader() {
       <OrdoLogo tone="light" className="h-6 md:hidden" />
       <div className="flex-1" />
       <DropdownMenu>
-        <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Account menu">
+        <DropdownMenuTrigger className="rounded-full outline-hidden focus-visible:ring-2 focus-visible:ring-ring" aria-label="Account menu">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-secondary text-xs">{initials(name)}</AvatarFallback>
           </Avatar>

@@ -18,7 +18,7 @@ export function NotificationButton() {
     <DropdownMenu onOpenChange={(open) => open && markAllRead()}>
       <DropdownMenuTrigger
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-panel outline-none transition-transform hover:-translate-y-0.5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        className="relative flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-panel outline-hidden transition-transform hover:-translate-y-0.5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Bell className="h-5 w-5" aria-hidden="true" />
         {unreadCount > 0 && (

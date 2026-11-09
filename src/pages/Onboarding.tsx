@@ -232,8 +232,8 @@ export default function Onboarding() {
     </Button>
   );
 
-  let body: JSX.Element;
-  let footer: JSX.Element;
+  let body: React.ReactElement;
+  let footer: React.ReactElement;
 
   switch (step) {
     case 1:
@@ -416,8 +416,8 @@ export default function Onboarding() {
         <CompletionScreen workspaceName={name || "Your workspace"} />
         {clients.length > 0 && <fieldset disabled={busy || !!inviteSummary} className="space-y-3 rounded-card bg-background p-5">
           <legend className="px-1 text-sm font-semibold">Client invitation access</legend>
-          {state.projectId && <label className="flex items-start gap-3 text-sm"><input type="radio" name="onboarding-client-scope" checked={state.clientInviteScope === "project"} onChange={() => patch({ clientInviteScope: "project" })} className="mt-1 accent-[hsl(var(--foreground))]" /><span>Only {project.name}<span className="block text-xs text-muted-foreground">Clients land directly in this project.</span></span></label>}
-          <label className="flex items-start gap-3 text-sm"><input type="radio" name="onboarding-client-scope" checked={!state.projectId || state.clientInviteScope === "workspace"} onChange={() => patch({ clientInviteScope: "workspace" })} className="mt-1 accent-[hsl(var(--foreground))]" /><span>Client workspace<span className="block text-xs text-muted-foreground">Share projects individually after they join. Other projects stay private.</span></span></label>
+          {state.projectId && <label className="flex items-start gap-3 text-sm"><input type="radio" name="onboarding-client-scope" checked={state.clientInviteScope === "project"} onChange={() => patch({ clientInviteScope: "project" })} className="mt-1 accent-[hsl(var(--legacy-foreground))]" /><span>Only {project.name}<span className="block text-xs text-muted-foreground">Clients land directly in this project.</span></span></label>}
+          <label className="flex items-start gap-3 text-sm"><input type="radio" name="onboarding-client-scope" checked={!state.projectId || state.clientInviteScope === "workspace"} onChange={() => patch({ clientInviteScope: "workspace" })} className="mt-1 accent-[hsl(var(--legacy-foreground))]" /><span>Client workspace<span className="block text-xs text-muted-foreground">Share projects individually after they join. Other projects stay private.</span></span></label>
         </fieldset>}
         {inviteError && <OrdoAlert variant="error">{inviteError} Your workspace is saved; you can retry.</OrdoAlert>}
         {inviteSummary && inviteSummary.emailUnconfirmed > 0 && <div role="status" className="space-y-4">

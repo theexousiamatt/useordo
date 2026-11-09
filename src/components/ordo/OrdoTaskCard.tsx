@@ -41,7 +41,7 @@ export interface OrdoTaskCardProps {
   dragHandleProps?: Record<string, unknown>;
   actions?: ReactNode;
   titleButtonProps?: ButtonHTMLAttributes<HTMLButtonElement> & { "data-task-open"?: boolean };
-  /** Render in the drag overlay (slight tilt + stronger shadow). */
+  /** Render in the drag overlay (slight tilt + stronger shadow-sm). */
   overlay?: boolean;
   className?: string;
 }
@@ -91,7 +91,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
         onKeyDown={handleKeyDown}
         aria-label={onOpen ? `Open task: ${title}` : undefined}
         className={cn(
-          "group rounded-[var(--board-card-radius)] border border-[hsl(var(--board-border))] bg-[hsl(var(--board-card))] p-4 shadow-[var(--board-card-shadow)] outline-none",
+          "group rounded-[var(--board-card-radius)] border border-[hsl(var(--board-border))] bg-[hsl(var(--board-card))] p-4 shadow-[var(--board-card-shadow)] outline-hidden",
           interactive &&
             "cursor-pointer transition-[box-shadow,border-color] duration-150 hover:border-[hsl(var(--board-border-strong))] hover:shadow-[var(--board-card-hover-shadow)] focus-visible:ring-2 focus-visible:ring-ring",
           overlay && "shadow-[var(--board-card-hover-shadow)]",
@@ -104,7 +104,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
           <div className="flex items-start gap-1">
             <div className="min-w-0 flex-1 break-words text-[14px] font-semibold leading-snug text-foreground">
               {titleEditor ?? <h4>{(titleButtonProps ? <button {...titleButtonProps} type="button"
-                className="block min-h-9 w-full rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                className="block min-h-9 w-full rounded-sm text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
                 <span className="line-clamp-3">{title}</span>
               </button> : <span className="line-clamp-3">{title}</span>)}</h4>}
             </div>

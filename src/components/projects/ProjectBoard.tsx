@@ -1210,7 +1210,7 @@ function SortableTask({
               onCardClick(e, task);
             }}
             className={cn(
-              "group/card relative rounded-card outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
+              "group/card relative rounded-card outline-hidden transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
               isDragging && "opacity-40",
               selected && "ring-2 ring-primary ring-offset-2",
               dropPosition === "before" && "before:absolute before:-top-1 before:inset-x-2 before:h-0.5 before:rounded-full before:bg-primary",

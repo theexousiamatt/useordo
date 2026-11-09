@@ -193,7 +193,7 @@ export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, on
           {role === "client" && <fieldset className="space-y-3 pt-4">
             <legend className="text-sm font-semibold">Where should they join?</legend>
             <label className="flex items-start gap-3 rounded-small border border-border p-3">
-              <input type="radio" name="invitation-scope" checked={scope === "project"} onChange={() => setScope("project")} className="mt-1 accent-[hsl(var(--foreground))]" />
+              <input type="radio" name="invitation-scope" checked={scope === "project"} onChange={() => setScope("project")} className="mt-1 accent-[hsl(var(--legacy-foreground))]" />
               <span><span className="block text-sm font-medium">A project</span><span className="text-xs text-muted-foreground">Only this project and its shared files, updates and approvals.</span></span>
             </label>
             {scope === "project" && <div className="space-y-2">
@@ -206,7 +206,7 @@ export function InviteMemberDrawer({ open, onOpenChange, workspaceName, busy, on
               {!projectsLoading && !projectsError && !projects.length && <p className="text-sm text-muted-foreground">Create a project first, or choose workspace access below.</p>}
             </div>}
             <label className="flex items-start gap-3 rounded-small border border-border p-3">
-              <input type="radio" name="invitation-scope" checked={scope === "workspace"} onChange={() => setScope("workspace")} className="mt-1 accent-[hsl(var(--foreground))]" />
+              <input type="radio" name="invitation-scope" checked={scope === "workspace"} onChange={() => setScope("workspace")} className="mt-1 accent-[hsl(var(--legacy-foreground))]" />
               <span><span className="block text-sm font-medium">Client workspace</span><span className="text-xs text-muted-foreground">Join the agency's client portal. Projects must still be shared individually.</span></span>
             </label>
           </fieldset>}

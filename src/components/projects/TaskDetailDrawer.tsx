@@ -170,7 +170,7 @@ function DrawerBody({
               if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); void saveText("title"); }
               if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setTitleDraft(baseline.current.title); setError(""); }
             }}
-            className="min-h-12 max-h-32 w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-1 text-lg font-semibold leading-snug outline-none focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/20" />
+            className="min-h-12 max-h-32 w-full resize-none rounded-md border border-transparent bg-transparent px-1 py-1 text-lg font-semibold leading-snug outline-hidden focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-ring/20" />
         </div> : <h3 className="break-words text-lg font-semibold">{task.title}</h3>}
         <div className="grid grid-cols-2 gap-2 pb-1 text-sm sm:grid-cols-3">
           <div className="min-w-0">

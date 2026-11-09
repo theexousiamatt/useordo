@@ -127,7 +127,7 @@ export function DuplicateProjectDialog({ open, onOpenChange, project, onDuplicat
   const [advanced, setAdvanced] = useState<Advanced>(advancedForMode("structure"));
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
-  const stepTimer = useRef<ReturnType<typeof setInterval>>();
+  const stepTimer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   // Reset when (re)opened.
   useEffect(() => {

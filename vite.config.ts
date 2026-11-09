@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { assertFoundationEnvironment, type FoundationEnvironment } from "./src/lib/foundationEnvironment";
@@ -19,7 +20,7 @@ export default defineConfig(({ mode }) => {
       overlay: false,
     },
   },
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   build: mode === "foundation" ? { outDir: "dist-foundation" } : undefined,
   resolve: {
     alias: {

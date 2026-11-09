@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  darkMode: ["class"],
+  darkMode: "class",
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
@@ -14,11 +14,11 @@ export default {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
+        border: "hsl(var(--legacy-border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        background: "hsl(var(--legacy-background))",
+        foreground: "hsl(var(--legacy-foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -42,20 +42,20 @@ export default {
           foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
+          DEFAULT: "hsl(var(--legacy-muted))",
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "hsl(var(--legacy-accent))",
+          foreground: "hsl(var(--legacy-accent-foreground))",
         },
         success: {
-          DEFAULT: "hsl(var(--success))",
-          foreground: "hsl(var(--success-foreground))",
+          DEFAULT: "hsl(var(--legacy-success))",
+          foreground: "hsl(var(--legacy-success-foreground))",
         },
         warning: {
-          DEFAULT: "hsl(var(--warning))",
-          foreground: "hsl(var(--warning-foreground))",
+          DEFAULT: "hsl(var(--legacy-warning))",
+          foreground: "hsl(var(--legacy-warning-foreground))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -77,9 +77,9 @@ export default {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "var(--legacy-radius)",
+        md: "calc(var(--legacy-radius) - 2px)",
+        sm: "calc(var(--legacy-radius) - 4px)",
         panel: "var(--radius-panel)",
         card: "var(--radius-card)",
         pill: "var(--radius-pill)",

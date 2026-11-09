@@ -24,7 +24,7 @@ export const OrdoCard = forwardRef<HTMLDivElement, OrdoCardProps>(
         variant === "panel" ? "rounded-panel" : "rounded-card",
         !flush && "p-6",
         interactive &&
-          "cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-hover focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
         className,
       )}
       {...props}

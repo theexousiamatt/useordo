@@ -11,9 +11,9 @@ export function CompletionScreen({ workspaceName }: CompletionScreenProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
       <div className="relative flex h-20 w-20 items-center justify-center">
-        <span className="absolute inset-0 animate-ping rounded-full bg-[hsl(var(--success)/0.2)]" />
-        <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[hsl(var(--success)/0.12)]">
-          <CheckCircle2 className="h-10 w-10 text-[hsl(var(--success))]" />
+        <span className="absolute inset-0 animate-ping rounded-full bg-[hsl(var(--legacy-success)/0.2)]" />
+        <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[hsl(var(--legacy-success)/0.12)]">
+          <CheckCircle2 className="h-10 w-10 text-[hsl(var(--legacy-success))]" />
         </span>
       </div>
       <div className="space-y-2">

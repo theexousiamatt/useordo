@@ -24,7 +24,7 @@ export function FeaturePreviewCard({ badge, title, description, preview, classNa
       </div>
       <div className="space-y-3">
         {badge && (
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-pill bg-[hsl(var(--accent)/0.12)] px-3 py-1.5 text-xs font-semibold text-[hsl(var(--accent))]">
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-pill bg-[hsl(var(--legacy-accent)/0.12)] px-3 py-1.5 text-xs font-semibold text-[hsl(var(--legacy-accent))]">
             {badge.icon && <badge.icon className="h-3.5 w-3.5" />}
             {badge.label}
           </span>
@@ -40,12 +40,12 @@ export function FeaturePreviewCard({ badge, title, description, preview, classNa
 export function MockupPreview({ rows = 3 }: { rows?: number }) {
   return (
     <div className="w-full max-w-[320px] rounded-card bg-card p-5 shadow-panel">
-      <div className="mb-4 h-4 w-3/5 rounded bg-secondary" />
+      <div className="mb-4 h-4 w-3/5 rounded-sm bg-secondary" />
       <div className="flex flex-col gap-2.5">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 rounded-small bg-secondary px-3 py-3">
             <span className="h-6 w-6 shrink-0 rounded-full bg-border" />
-            <span className="h-2.5 flex-1 rounded bg-border" />
+            <span className="h-2.5 flex-1 rounded-sm bg-border" />
           </div>
         ))}
       </div>

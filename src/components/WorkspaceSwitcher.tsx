@@ -22,7 +22,7 @@ export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left outline-none transition-colors hover:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-white/30"
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left outline-hidden transition-colors hover:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-white/30"
         aria-label="Switch workspace"
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15 text-sm font-semibold text-white">
@@ -48,7 +48,7 @@ export function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }
             onClick={() => { selectWorkspace(w.id); navigate(w.role === "client" ? "/client" : "/"); }}
             className="gap-2"
           >
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-muted text-xs font-medium">
+            <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-muted text-xs font-medium">
               {w.name.charAt(0).toUpperCase()}
             </div>
             <span className="flex-1 truncate">{w.name}</span>

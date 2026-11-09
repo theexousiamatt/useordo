@@ -126,7 +126,7 @@ export function InlineTaskTitle({ value, onSave, onCancel, className }: InlineTa
           else void commit();
         }}
         className={cn(
-          "text-sm font-semibold leading-snug text-foreground outline-none",
+          "text-sm font-semibold leading-snug text-foreground outline-hidden",
           "cursor-text whitespace-pre-wrap break-words",
           className,
         )}

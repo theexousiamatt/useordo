@@ -1,14 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss" source(".");
+@config "../tailwind.config.ts";
+
+/* Tailwind 3 compatibility: preserve shipped default borders and container sizing. */
+@layer base {
+  *, ::before, ::after, ::backdrop, ::file-selector-button { border-color: hsl(var(--legacy-border)); }
+}
+@utility container { margin-inline: auto; padding-inline: 2rem; @media (width >= 1400px) { max-width: 1400px; } }
 
 /* Client OS — Midnight Indigo design system. All colors HSL. */
 
 @layer base {
   :root {
     /* Surfaces */
-    --background: 240 60% 6%;            /* #0a0a1a */
-    --foreground: 220 25% 92%;
+    --legacy-background: 240 60% 6%;            /* #0a0a1a */
+    --legacy-foreground: 220 25% 92%;
 
     --card: 240 50% 11%;                 /* #141432 */
     --card-foreground: 220 25% 94%;
@@ -24,26 +29,26 @@
     --secondary: 240 51% 24%;            /* #1e1e5a */
     --secondary-foreground: 220 25% 94%;
 
-    --muted: 240 30% 16%;
+    --legacy-muted: 240 30% 16%;
     --muted-foreground: 220 15% 65%;
 
-    --accent: 243 75% 59%;
-    --accent-foreground: 240 60% 6%;
+    --legacy-accent: 243 75% 59%;
+    --legacy-accent-foreground: 240 60% 6%;
 
     --destructive: 0 72% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 65% 45%;
-    --success-foreground: 240 60% 6%;
+    --legacy-success: 152 65% 45%;
+    --legacy-success-foreground: 240 60% 6%;
 
-    --warning: 38 92% 60%;
-    --warning-foreground: 240 60% 6%;
+    --legacy-warning: 38 92% 60%;
+    --legacy-warning-foreground: 240 60% 6%;
 
-    --border: 240 35% 20%;
+    --legacy-border: 240 35% 20%;
     --input: 240 35% 20%;
     --ring: 243 75% 59%;
 
-    --radius: 0.75rem;
+    --legacy-radius: 0.75rem;
 
     /* Sidebar */
     --sidebar-background: 240 55% 8%;
@@ -96,8 +101,8 @@
    (dark Midnight Indigo) app is untouched. All colors HSL.
    ============================================================ */
 .client-os {
-  --background: 220 16% 95%;          /* #F0F2F5 app bg */
-  --foreground: 210 8% 11%;           /* #1A1D1F primary text */
+  --legacy-background: 220 16% 95%;          /* #F0F2F5 app bg */
+  --legacy-foreground: 210 8% 11%;           /* #1A1D1F primary text */
 
   --card: 0 0% 100%;                  /* #FFFFFF panels */
   --card-foreground: 210 8% 11%;
@@ -117,22 +122,22 @@
   --secondary: 220 14% 96%;           /* hover/active surface */
   --secondary-foreground: 210 8% 11%;
 
-  --muted: 220 14% 96%;
+  --legacy-muted: 220 14% 96%;
   --muted-foreground: 213 6% 47%;     /* #6F767E secondary text */
 
-  --accent: 178 100% 8%;             /* brand accent (focus, active) */
-  --accent-foreground: 0 0% 100%;
+  --legacy-accent: 178 100% 8%;             /* brand accent (focus, active) */
+  --legacy-accent-foreground: 0 0% 100%;
 
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --success: 160 84% 39%;
-  --success-foreground: 0 0% 100%;
+  --legacy-success: 160 84% 39%;
+  --legacy-success-foreground: 0 0% 100%;
 
-  --warning: 32 95% 44%;
-  --warning-foreground: 0 0% 100%;
+  --legacy-warning: 32 95% 44%;
+  --legacy-warning-foreground: 0 0% 100%;
 
-  --border: 0 0% 94%;                 /* #EFEFEF */
+  --legacy-border: 0 0% 94%;                 /* #EFEFEF */
   --input: 0 0% 94%;
   --ring: 178 100% 8%;               /* brand focus ring */
 
@@ -180,8 +185,8 @@
   --badge-red-bg: 0 86% 94%;
   --badge-red-text: 0 72% 51%;
 
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background-color: hsl(var(--legacy-background));
+  color: hsl(var(--legacy-foreground));
 }
 
 .client-os ::selection { background: hsl(var(--primary)); color: white; }

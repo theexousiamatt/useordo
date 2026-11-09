@@ -53,7 +53,7 @@ export function OrdoMultiSelect({
           type="button"
           className={cn(
             "flex min-h-11 w-full items-center justify-between gap-2 rounded-small border border-border bg-card px-3.5 py-2 text-left text-sm shadow-subtle transition-colors",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+            "focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30",
             open && "border-primary/40",
             className,
           )}
