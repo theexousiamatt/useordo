@@ -15,7 +15,7 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
-    ...(FOUNDATION_MODE ? { storageKey: 'ordo:foundation:local:auth' } : {}),
+    ...(FOUNDATION_MODE ? { storageKey: `ordo:foundation:${import.meta.env.VITE_ORDO_ENVIRONMENT}:${import.meta.env.VITE_ORDO_ENVIRONMENT === 'development' ? 'local' : import.meta.env.VITE_ORDO_TARGET_REF}:auth` } : {}),
     persistSession: true,
     autoRefreshToken: true,
   }
