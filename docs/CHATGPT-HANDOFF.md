@@ -116,6 +116,16 @@ Additional local preservation beside both checkouts: `ordo-pre-handoff.bundle` (
 
 Author is confirmed repository-local `Matt <matt@inspirarestudio.com>`; global Git configuration was not changed. No force-push or merge into main/static was performed.
 
+## Production release continuation — 10 November 2026 (subsequent session)
+
+**Deployment remains blocked; no database/project/Hostinger mutations were made.** The connected Supabase account lists only `cjyhayrxadyadaqdrlot` in organization `ajhycehqpsnxuvqzzrij` (EU West). This is not the legacy production project `ilvqopsvyacegotplstw` and was not repurposed. A separate Ordo-owned project has **not** been created: organization selection and cost clearance are pending. The legacy project remains untouched. No synthetic accounts were uploaded.
+
+**Repository-side source work committed on `codex/heroui-v3-proof`:** explicit hosted build modes `foundation-staging` and `foundation-production`, pinned hosted project reference and API origin, exact application hostname, segregated browser auth storage keys, and hosted `foundation_environment_info` response comparison before canonical business access. The dedicated local mode and target-reset safety CLI remain unchanged. New sample environment files contain no actual Supabase endpoint or key. Hosted environment tests were added. The canonical release candidate script `scripts/prepare-hostinger-canonical.sh` runs build/test checks and artifact string scanning, **but never publishes**. The existing Hostinger script now requires explicit `--legacy` to prevent an accidental wrong-app deployment.
+
+**Verification limits:** No project provisioning, migration application, remote Auth configuration, private Storage inspection, lockfile dependency remediation, fresh install, TypeScript/test/audit execution or hosted acceptance tests were completed in this connector-only session. Source edits are committed but **not runtime-verified**. Do not claim production-safe release readiness on this basis. In particular, the environment comparison does not replace actual target ownership verification, migration verification, hosted tenancy tests or backup/restore drills.
+
+**Next blocked action:** identify and confirm the Supabase organization designated for the new Ordo project, obtain zero-cost confirmation or approval for nonzero charges, create a fresh project, then verify its ID and ownership. Apply the five canonical migrations exclusively to that verified empty target, initialize the correct hosted marker (not synthetic users), review Auth redirect allowlist, RLS, storage and execution permissions. Resolve runtime dependency advisories with a tested lockfile update, execute regression and hosted staging tests, independently verify rollback/restore, and only then authorize the artifact cutover. The live URL and static artifact branch must remain unchanged until all gates pass.
+
 ## Next actions for ChatGPT
 
 1. Read this handoff and the actual safety-gate files, then resolve hosted canonical deployment/cutover and production-project access; do not repeat the broad architecture audit or continue feature work first.
