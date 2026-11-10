@@ -18,8 +18,9 @@ it("retains a failed task draft and retries with the same command ID and multipl
  fireEvent.click(await screen.findByRole("checkbox",{name:"Designer"}));fireEvent.click(screen.getByRole("checkbox",{name:"Writer"}));
  fireEvent.click(screen.getByRole("button",{name:"Save task"}));expect(await screen.findByRole("alert")).toHaveTextContent("Connection lost");
  expect(screen.getByRole("textbox",{name:/Task title/})).toHaveValue("Brand narrative");
+ expect(screen.getByRole("textbox",{name:/Task title/})).toBeDisabled();
  await waitFor(()=>expect(screen.getByRole("button",{name:"Save task"})).not.toHaveAttribute("aria-disabled","true"));
- fireEvent.click(screen.getByRole("button",{name:"Save task"}));await waitFor(()=>expect(onSaved).toHaveBeenCalledWith("saved-task"));
+ fireEvent.click(screen.getByRole("button",{name:"Save task"}));await waitFor(()=>expect(onSaved).toHaveBeenCalledWith("saved-task","board-a"));
  const calls=vi.mocked(foundationApi.saveProductionItem).mock.calls;expect(calls).toHaveLength(2);expect(calls[0][6]).toBe(calls[1][6]);
  expect(calls[0][5]).toMatchObject({description:"Write the positioning.",assignees:["person-a","person-b"],column_id:"column-a"});
 });
@@ -27,5 +28,5 @@ it("blocks pending dismissal and duplicate saves",async()=>{
  let finish!:(id:string)=>void;vi.mocked(foundationApi.saveProductionItem).mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));const {onClose,onSaved}=show();
  await screen.findByRole("checkbox",{name:"Designer"});fireEvent.change(screen.getByRole("textbox",{name:/Task title/}),{target:{value:"Draft"}});
  fireEvent.click(screen.getByRole("button",{name:"Save task"}));fireEvent.click(screen.getByRole("button",{name:"Save task"}));fireEvent.click(screen.getByRole("button",{name:"Close"}));
- expect(foundationApi.saveProductionItem).toHaveBeenCalledOnce();expect(onClose).not.toHaveBeenCalled();await act(async()=>{finish("task");});expect(onSaved).toHaveBeenCalledWith("task");
+ expect(foundationApi.saveProductionItem).toHaveBeenCalledOnce();expect(onClose).not.toHaveBeenCalled();await act(async()=>{finish("task");});expect(onSaved).toHaveBeenCalledWith("task","board-a");
 });

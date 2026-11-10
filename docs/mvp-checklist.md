@@ -13,8 +13,8 @@ Priority changed by the user on 10 November 2026. This supersedes nonessential P
 
 ## Shortest safe route
 
-- [ ] Increment 2: authorized create/edit board and column commands, create/edit task, priority/date and multiple assignments. Add transactional ordering and revision/concurrency guards. Prove permission denial and retry behavior before UI writes.
-- [ ] Increment 3: same-task drag/menu movement within/across home boards, persisted order and reload. Archive/restore; prevent task loss on board/column removal. Safe archive can precede a destructive-removal UI; never silently cascade tasks.
+- [x] Increment 2: authorized create/edit board and column commands, create/edit task, priority/date and multiple assignments. Add transactional ordering and revision/concurrency guards. Prove permission denial and retry behavior before UI writes.
+- [x] Increment 3: same-task drag/menu movement within/across home boards, persisted order and reload. Archive/restore; prevent task loss on board/column removal. Safe archive can precede a destructive-removal UI; never silently cascade tasks.
 - [ ] Increment 4: canonical My Tasks across projects, Due Today/This Week/Overdue/Upcoming and date/project/priority filters using existing date-only semantics. Include open tasks from archived boards.
 - [ ] Increment 5: basic client sign-in/project visibility, explicitly published submissions/links, feedback and version-specific approval. One owner may review and approve. Preserve published work on project archive.
 - [ ] MVP release gate: broaden regression/browser/device checks; verify client isolation through API/RLS/storage as well as UI; verify persistence/recovery and production configuration. Obtain deployment approval.
@@ -29,4 +29,4 @@ Source: `src/features/foundation/ProductionWorkspace.tsx`, canonical reader in `
 
 Verification: 15 focused workspace tests passed (`npx vitest run src/features/foundation/ProductionWorkspace.test.tsx src/features/foundation/FoundationWorkspace.test.tsx`); typecheck, focused ESLint and diff whitespace checks passed. New tests cover correct home-board rendering and failed/denied-read recovery. Existing SQL/RLS is unchanged; prior isolation verification remains applicable, but this is not new end-to-end mutation or browser certification.
 
-Next action: implement the small authorized write-command batch and its tenant/assignment/concurrency integrity tests. Do not repeat the architecture audit or resume cosmetic work. Keep later UI work on canonical readers/commands; never feed canonical IDs into legacy hooks.
+Increments 2 and 3 are implemented: see [write verification](mvp-increment-2.md) and [movement/recovery verification](mvp-increment-3.md). Safe archive is provided; permanent deletion and board/column reordering remain deferred. Next action: Increment 4 canonical My Tasks/deadlines. Do not repeat the architecture audit or resume cosmetic work. Keep later UI work on canonical readers/commands; never feed canonical IDs into legacy hooks.

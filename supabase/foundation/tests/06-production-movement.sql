@@ -1,0 +1,28 @@
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
+DO $$ DECLARE org uuid:='20000000-0000-4000-8000-000000000001';p uuid;b uuid;c uuid;other_b uuid;other_c uuid;t uuid;t2 uuid;request uuid:=gen_random_uuid();rev integer; BEGIN
+ SELECT id INTO p FROM public.projects WHERE organization_id=org ORDER BY id LIMIT 1;
+ b:=public.save_production_item(org,p,'board',NULL,NULL,'{"name":"Move source"}',gen_random_uuid());SELECT id INTO c FROM public.board_columns WHERE board_id=b;
+ other_b:=public.save_production_item(org,p,'board',NULL,NULL,'{"name":"Move destination"}',gen_random_uuid());SELECT id INTO other_c FROM public.board_columns WHERE board_id=other_b;
+ t:=public.save_production_item(org,p,'task',NULL,NULL,jsonb_build_object('title','One record','priority','normal','column_id',c,'assignees',jsonb_build_array(auth.uid())),gen_random_uuid());
+ t2:=public.save_production_item(org,p,'task',NULL,NULL,jsonb_build_object('title','Destination first','priority','normal','column_id',other_c,'assignees',jsonb_build_array(auth.uid())),gen_random_uuid());
+ PERFORM public.change_production_item(org,p,'move_task',t,0,other_c,t2,request);
+ PERFORM public.change_production_item(org,p,'move_task',t,0,other_c,t2,request);
+ PERFORM foundation_test.assert((SELECT board_id=other_b AND column_id=other_c AND position=0 FROM public.tasks WHERE id=t),'same record moved before destination');
+ PERFORM foundation_test.assert((SELECT position=1 FROM public.tasks WHERE id=t2),'destination order persisted');
+ PERFORM foundation_test.assert((SELECT count(*) FROM public.task_assignees WHERE task_id=t)=1,'movement retains assignments');
+ PERFORM foundation_test.expect_error(format('SELECT public.change_production_item(%L,%L,''move_task'',%L,1,%L,NULL,gen_random_uuid())',org,p,t,'61000000-0000-4000-8000-000000000003'),'42501','cross-context destination denied');
+ PERFORM public.change_production_item(org,p,'archive_board',other_b,0,NULL,NULL,gen_random_uuid());
+ PERFORM foundation_test.assert((SELECT count(*) FROM public.tasks WHERE board_id=other_b)=2,'archiving board preserves every task');
+ PERFORM foundation_test.assert((SELECT archived_at IS NULL FROM public.tasks WHERE id=t),'board archive does not archive task');
+ PERFORM public.change_production_item(org,p,'restore_board',other_b,1,NULL,NULL,gen_random_uuid());
+ SELECT revision INTO rev FROM public.tasks WHERE id=t;
+ PERFORM public.change_production_item(org,p,'archive_task',t,rev,NULL,NULL,gen_random_uuid());
+ PERFORM public.change_production_item(org,p,'restore_task',t,rev+1,NULL,NULL,gen_random_uuid());
+ PERFORM foundation_test.assert((SELECT archived_at IS NULL AND board_id=other_b FROM public.tasks WHERE id=t),'restore preserves task identity/home');
+ PERFORM foundation_test.expect_error(format('SELECT public.change_production_item(%L,%L,''move_task'',%L,0,%L,NULL,gen_random_uuid())',org,p,t,c),'40001','stale movement rejected');
+END $$;
+SELECT set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000007',true);
+SELECT foundation_test.expect_error($q$SELECT public.change_production_item('20000000-0000-4000-8000-000000000001','50000000-0000-4000-8000-000000000002','archive_board','60000000-0000-4000-8000-000000000002',0,NULL,NULL,gen_random_uuid())$q$,'42501','client cannot archive internal production');
+RESET ROLE;
+SELECT 'movement ordering, retry, archive/restore and task preservation passed' AS verification;

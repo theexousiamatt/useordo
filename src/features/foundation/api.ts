@@ -29,6 +29,7 @@ export interface FoundationDatabase {
     };
     Views: Record<string, never>;
     Functions: {
+      change_production_item: {Args:{_organization_id:string;_project_id:string;_action:string;_id:string;_expected_revision:number;_column_id:string|null;_before_id:string|null;_request_id:string};Returns:string};
       save_production_item: {Args:{_organization_id:string;_project_id:string;_kind:string;_id:string|null;_expected_revision:number|null;_values:Record<string,unknown>;_request_id:string};Returns:string};
       list_production_assignees: {Args:{_organization_id:string;_project_id:string};Returns:{id:string;name:string}[]};
       production_permissions: {Args:{_organization_id:string;_project_id:string};Returns:{can_write:boolean;can_configure:boolean}[]};
@@ -72,6 +73,9 @@ async function withDisciplines(records: ProjectRecord[], organizationId: string)
 }
 
 export const foundationApi = {
+  async changeProductionItem(organizationId:string,projectId:string,action:string,id:string,revision:number,columnId:string|null,beforeId:string|null,requestId:string) {
+    const {data,error}=await client.rpc("change_production_item",{_organization_id:organizationId,_project_id:projectId,_action:action,_id:id,_expected_revision:revision,_column_id:columnId,_before_id:beforeId,_request_id:requestId});if(error)throw error;return savedId(data);
+  },
   async saveProductionItem(organizationId:string,projectId:string,kind:string,id:string|null,revision:number|null,values:Record<string,unknown>,requestId:string) {
     const {data,error}=await client.rpc("save_production_item",{_organization_id:organizationId,_project_id:projectId,_kind:kind,_id:id,_expected_revision:revision,_values:values,_request_id:requestId});
     if(error) throw error; return savedId(data);
@@ -86,9 +90,9 @@ export const foundationApi = {
     if (!project.data) throw new Error("Project unavailable in this studio.");
     const contextId=project.data.work_context_id;
     const [boards,columns,tasks,assignments,permissions]=await Promise.all([
-      client.from("boards").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).is("archived_at",null).order("position").order("id"),
+      client.from("boards").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
       client.from("board_columns").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
-      client.from("tasks").select("id,organization_id,work_context_id,board_id,column_id,title,description,revision,priority,due_date,position,archived_at").eq("organization_id",organizationId).eq("work_context_id",contextId).is("archived_at",null).order("position").order("id"),
+      client.from("tasks").select("id,organization_id,work_context_id,board_id,column_id,title,description,revision,priority,due_date,position,archived_at").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
       client.from("task_assignees").select("organization_id,work_context_id,task_id,user_id").eq("organization_id",organizationId).eq("work_context_id",contextId),
       client.rpc("production_permissions",{_organization_id:organizationId,_project_id:projectId}),
     ]);
