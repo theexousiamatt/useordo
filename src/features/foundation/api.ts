@@ -4,7 +4,12 @@ import type { CreateFoundationProject, DisciplineKey, FoundationProject, Project
 
 export interface ProductionBoard { id:string; organization_id:string; work_context_id:string; name:string; position:number; archived_at:string|null; revision:number }
 export interface ProductionColumn { id:string; organization_id:string; work_context_id:string; board_id:string; name:string; category:string; position:number; revision:number }
-export interface ProductionTask { id:string; organization_id:string; work_context_id:string; board_id:string|null; column_id:string|null; title:string; description:string|null; priority:string; due_date:string|null; position:number; archived_at:string|null; revision:number }
+export interface ProductionTask { id:string; organization_id:string; work_context_id:string; board_id:string|null; column_id:string|null; title:string; description:string|null; category:string; priority:string; due_date:string|null; position:number; archived_at:string|null; revision:number }
+
+export interface UnifiedTask extends ProductionTask {
+ context_kind:"project"|"operational";context_name:string;project_id:string|null;ownership:"client"|"internal"|null;initiative_name:string|null;
+ board_name:string|null;board_archived:boolean;context_archived:boolean;can_write:boolean;assignees:{id:string;name:string}[];
+}
 
 type ProjectRecord = Omit<FoundationProject, "disciplines">;
 type Table<Row> = {
@@ -29,6 +34,9 @@ export interface FoundationDatabase {
     };
     Views: Record<string, never>;
     Functions: {
+      list_unified_tasks:{Args:{_organization_id:string};Returns:UnifiedTask[]};
+      list_context_assignees:{Args:{_organization_id:string;_context_id:string};Returns:{id:string;name:string}[]};
+      save_operational_task:{Args:{_organization_id:string;_context_id:string;_task_id:string;_expected_revision:number;_values:Record<string,unknown>;_request_id:string};Returns:string};
       change_production_item: {Args:{_organization_id:string;_project_id:string;_action:string;_id:string;_expected_revision:number;_column_id:string|null;_before_id:string|null;_request_id:string};Returns:string};
       save_production_item: {Args:{_organization_id:string;_project_id:string;_kind:string;_id:string|null;_expected_revision:number|null;_values:Record<string,unknown>;_request_id:string};Returns:string};
       list_production_assignees: {Args:{_organization_id:string;_project_id:string};Returns:{id:string;name:string}[]};
@@ -73,6 +81,21 @@ async function withDisciplines(records: ProjectRecord[], organizationId: string)
 }
 
 export const foundationApi = {
+  async listUnifiedTasks(organizationId:string) {
+    const {data,error}=await client.rpc("list_unified_tasks",{_organization_id:organizationId});if(error)throw error;return data ?? [];
+  },
+  async listContextAssignees(organizationId:string,contextId:string) {
+    const {data,error}=await client.rpc("list_context_assignees",{_organization_id:organizationId,_context_id:contextId});if(error)throw error;return data ?? [];
+  },
+  async saveOperationalTask(organizationId:string,contextId:string,taskId:string,revision:number,values:Record<string,unknown>,requestId:string) {
+    const {data,error}=await client.rpc("save_operational_task",{_organization_id:organizationId,_context_id:contextId,_task_id:taskId,_expected_revision:revision,_values:values,_request_id:requestId});if(error)throw error;return savedId(data);
+  },
+  async getTaskContext(organizationId:string,contextId:string) {
+    const [boards,columns]=await Promise.all([
+      client.from("boards").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
+      client.from("board_columns").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
+    ]);if(boards.error)throw boards.error;if(columns.error)throw columns.error;return {boards:boards.data ?? [],columns:columns.data ?? []};
+  },
   async changeProductionItem(organizationId:string,projectId:string,action:string,id:string,revision:number,columnId:string|null,beforeId:string|null,requestId:string) {
     const {data,error}=await client.rpc("change_production_item",{_organization_id:organizationId,_project_id:projectId,_action:action,_id:id,_expected_revision:revision,_column_id:columnId,_before_id:beforeId,_request_id:requestId});if(error)throw error;return savedId(data);
   },
@@ -92,7 +115,7 @@ export const foundationApi = {
     const [boards,columns,tasks,assignments,permissions]=await Promise.all([
       client.from("boards").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
       client.from("board_columns").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
-      client.from("tasks").select("id,organization_id,work_context_id,board_id,column_id,title,description,revision,priority,due_date,position,archived_at").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
+      client.from("tasks").select("id,organization_id,work_context_id,board_id,column_id,title,description,category,revision,priority,due_date,position,archived_at").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
       client.from("task_assignees").select("organization_id,work_context_id,task_id,user_id").eq("organization_id",organizationId).eq("work_context_id",contextId),
       client.rpc("production_permissions",{_organization_id:organizationId,_project_id:projectId}),
     ]);

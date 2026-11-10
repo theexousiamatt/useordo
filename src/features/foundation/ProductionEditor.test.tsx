@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import ProductionEditor from "./ProductionEditor";
 import { foundationApi } from "./api";
-vi.mock("./api",()=>({foundationApi:{saveProductionItem:vi.fn(),listProductionAssignees:vi.fn()}}));
+vi.mock("./api",()=>({foundationApi:{saveProductionItem:vi.fn(),listProductionAssignees:vi.fn(),saveOperationalTask:vi.fn(),listContextAssignees:vi.fn()}}));
 afterEach(()=>{cleanup();vi.resetAllMocks();});
 function show() {
  vi.mocked(foundationApi.listProductionAssignees).mockResolvedValue([{id:"person-a",name:"Designer"},{id:"person-b",name:"Writer"}]);
@@ -29,4 +29,11 @@ it("blocks pending dismissal and duplicate saves",async()=>{
  await screen.findByRole("checkbox",{name:"Designer"});fireEvent.change(screen.getByRole("textbox",{name:/Task title/}),{target:{value:"Draft"}});
  fireEvent.click(screen.getByRole("button",{name:"Save task"}));fireEvent.click(screen.getByRole("button",{name:"Save task"}));fireEvent.click(screen.getByRole("button",{name:"Close"}));
  expect(foundationApi.saveProductionItem).toHaveBeenCalledOnce();expect(onClose).not.toHaveBeenCalled();await act(async()=>{finish("task");});expect(onSaved).toHaveBeenCalledWith("task","board-a");
+});
+
+it("edits an unboarded operational task through its context command without a fake project",async()=>{
+ vi.mocked(foundationApi.listContextAssignees).mockResolvedValue([{id:"me",name:"Designer"}]);vi.mocked(foundationApi.saveOperationalTask).mockResolvedValue("ops-task");const saved=vi.fn();
+ render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}})}><ProductionEditor accountId="me" organizationId="studio" projectId="" workContextId="ops-context" edit={{kind:"task",boardId:"",item:{id:"ops-task",title:"Publish content",category:"in_progress",revision:0,board_id:null,column_id:null} as never,assignees:["me"]}} boards={[]} columns={[]} onSaved={saved} onClose={vi.fn()}/></QueryClientProvider>);
+ await screen.findByRole("checkbox",{name:"Designer"});fireEvent.change(screen.getByLabelText("Due date"),{target:{value:"2026-12-01"}});fireEvent.click(screen.getByRole("button",{name:"Save task"}));
+ await waitFor(()=>expect(saved).toHaveBeenCalled());expect(foundationApi.saveOperationalTask).toHaveBeenCalledWith("studio","ops-context","ops-task",0,expect.objectContaining({column_id:null,category:"in_progress",due_date:"2026-12-01",assignees:["me"]}),expect.any(String));expect(foundationApi.saveProductionItem).not.toHaveBeenCalled();
 });

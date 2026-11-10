@@ -7,6 +7,7 @@ import { OrdoLogo } from "@/components/brand/OrdoLogo";
 import { Button } from "@/components/ui/button";
 import { OrdoField } from "@/components/ordo/OrdoField";
 import { OrdoInput } from "@/components/ordo/OrdoInput";
+const UnifiedTasks = lazy(() => import("./UnifiedTasks"));
 const ProductionWorkspace = lazy(() => import("./ProductionWorkspace"));
 const ProjectCreateDialog = lazy(() => import("./ProjectCreateDialog"));
 import { ErrorState } from "@/components/states/ErrorState";
@@ -113,12 +114,14 @@ function FoundationAccount({ accountId, email, signOut }: { accountId: string; e
       </section> : <>
         <nav className="mb-7 flex flex-wrap items-center justify-between gap-3" aria-label="Workspace navigation">
           <Link to="/projects" className="inline-flex items-center gap-2 text-sm font-semibold text-primary underline-offset-4 hover:underline"><FolderKanban className="h-4 w-4" aria-hidden="true" />Projects</Link>
+          <Link to="/tasks" className="text-sm font-semibold text-primary underline-offset-4 hover:underline">My Tasks</Link>
           {canManageStudio(selected.role, selected.capabilities) && <Button variant="ghost" size="sm" aria-expanded={creatingStudio} onClick={() => setCreatingStudio((value) => !value)}>{creatingStudio ? <X className="mr-1.5 h-4 w-4" /> : <Plus className="mr-1.5 h-4 w-4" />}{creatingStudio ? "Close studio setup" : "Create another studio"}</Button>}
         </nav>
         {creatingStudio && <section className="mb-8 max-w-2xl"><CreateStudioForm onCreated={studioCreated} /></section>}
         <Routes>
           <Route path="/" element={<ProjectList key={selected.id} accountId={accountId} organization={selected} />} />
           <Route path="/projects" element={<ProjectList key={selected.id} accountId={accountId} organization={selected} />} />
+          <Route path="/tasks" element={<Suspense fallback={<Loading>Loading your tasks…</Loading>}><UnifiedTasks key={selected.id} accountId={accountId} organizationId={selected.id}/></Suspense>} />
           <Route path="/projects/:id" element={<ProjectOverview key={selected.id} accountId={accountId} organization={selected} />} />
           <Route path="*" element={<Navigate to="/projects" replace />} />
         </Routes>

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { foundationApi, type ProductionTask } from "./api";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -7,10 +7,12 @@ import type { ProductionEdit } from "./ProductionEditor";
 import { Button } from "@/components/ui/button";
 import { ProductionDragTask, ProductionDropColumn } from "./ProductionDrag";
 import { productionCollision, productionKeyboard, productionDropBefore } from "./productionDragSensors";
+import { invalidateTaskViews } from "./taskViewCache";
 import { dateShort } from "@/lib/format";
 const ProductionEditor=lazy(()=>import("./ProductionEditor"));
 type Action={action:string;id:string;revision:number;columnId:string|null;beforeId:string|null;requestId:string};
 export default function ProductionWorkspace({accountId,organizationId,projectId}: {accountId:string;organizationId:string;projectId:string}) {
+  const queryClient=useQueryClient();
   const [selectedId,setSelectedId]=useState("");const [edit,setEdit]=useState<ProductionEdit|null>(null);
   const [showArchived,setShowArchived]=useState(false),[showArchivedTasks,setShowArchivedTasks]=useState(false);
   const [saving,setSaving]=useState(false),[failure,setFailure]=useState<{command:Action;message:string}|null>(null),[notice,setNotice]=useState("");
@@ -18,7 +20,7 @@ export default function ProductionWorkspace({accountId,organizationId,projectId}
   const workspace=useQuery({queryKey:["foundation",accountId,organizationId,"production",projectId],queryFn:()=>foundationApi.getProductionWorkspace(organizationId,projectId)});
   const sensors=useSensors(useSensor(PointerSensor,{activationConstraint:{distance:8}}),useSensor(KeyboardSensor,{coordinateGetter:productionKeyboard}));
   useEffect(()=>{if(focusTask.current){root.current?.querySelector<HTMLButtonElement>(`[data-task-handle="${focusTask.current}"]`)?.focus();focusTask.current=null;}},[workspace.data]);
-  const command=async(input:Action)=>{if(busy.current)return;busy.current=true;setSaving(true);setFailure(null);setNotice("");try{await foundationApi.changeProductionItem(organizationId,projectId,input.action,input.id,input.revision,input.columnId,input.beforeId,input.requestId);focusTask.current=input.action==="move_task" ? input.id : null;setNotice("Changes saved.");await workspace.refetch();}catch(error){setFailure({command:input,message:typeof error==="object" && error && "message" in error ? String(error.message) : "Save could not be confirmed. Retry safely or reload saved work."});}finally{busy.current=false;setSaving(false);}};
+  const command=async(input:Action)=>{if(busy.current)return;busy.current=true;setSaving(true);setFailure(null);setNotice("");try{await foundationApi.changeProductionItem(organizationId,projectId,input.action,input.id,input.revision,input.columnId,input.beforeId,input.requestId);focusTask.current=input.action==="move_task" ? input.id : null;setNotice("Changes saved.");await invalidateTaskViews(queryClient,accountId,organizationId);}catch(error){setFailure({command:input,message:typeof error==="object" && error && "message" in error ? String(error.message) : "Save could not be confirmed. Retry safely or reload saved work."});}finally{busy.current=false;setSaving(false);}};
   const act=(action:string,id:string,revision:number,columnId:string|null=null,beforeId:string|null=null)=>void command({action,id,revision,columnId,beforeId,requestId:crypto.randomUUID()});
   if (workspace.isPending) return <p role="status">Loading production workspace…</p>;
   if (workspace.isError) return <ErrorState title="Couldn’t load production workspace" description="Your saved work could not be loaded." onRetry={()=>void workspace.refetch()} />;
@@ -49,6 +51,6 @@ export default function ProductionWorkspace({accountId,organizationId,projectId}
         </ProductionDropColumn>;})}
       </div></DndContext>
     </>}
-    {edit && <Suspense fallback={<p role="status">Opening editor…</p>}><ProductionEditor edit={edit} organizationId={organizationId} projectId={projectId} accountId={accountId} boards={data.boards.filter(b=>!b.archived_at)} columns={data.columns} onClose={()=>{setEdit(null);void workspace.refetch();}} onSaved={(id,destinationBoard)=>{if(edit.kind==="board")setSelectedId(id);if(destinationBoard){setSelectedId(destinationBoard);setShowArchivedTasks(false);}setEdit(null);setNotice("Changes saved.");void workspace.refetch();}} /></Suspense>}
+    {edit && <Suspense fallback={<p role="status">Opening editor…</p>}><ProductionEditor edit={edit} organizationId={organizationId} projectId={projectId} accountId={accountId} boards={data.boards.filter(b=>!b.archived_at)} columns={data.columns} onClose={()=>{setEdit(null);void invalidateTaskViews(queryClient,accountId,organizationId);}} onSaved={(id,destinationBoard)=>{if(edit.kind==="board")setSelectedId(id);if(destinationBoard){setSelectedId(destinationBoard);setShowArchivedTasks(false);}setEdit(null);setNotice("Changes saved.");void invalidateTaskViews(queryClient,accountId,organizationId);}} /></Suspense>}
   </section>;
 }
