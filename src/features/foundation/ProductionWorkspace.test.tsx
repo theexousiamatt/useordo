@@ -14,7 +14,7 @@ it("shows persisted tasks only in their authoritative home board and column",asy
   expect(foundationApi.getProductionWorkspace).toHaveBeenCalledWith("studio-a","project-a");
 });
 it("reports a denied or failed read and retries without presenting empty success",async()=>{
-  vi.mocked(foundationApi.getProductionWorkspace).mockRejectedValueOnce(new Error("denied")).mockResolvedValueOnce({boards:[],columns:[],tasks:[]});show();
+  vi.mocked(foundationApi.getProductionWorkspace).mockRejectedValueOnce(new Error("denied")).mockResolvedValueOnce({boards:[],columns:[],tasks:[],assignments:[],permissions:{can_write:false,can_configure:false}});show();
   expect(await screen.findByRole("heading",{name:"Couldn’t load production workspace"})).toBeInTheDocument();expect(screen.queryByText("No active boards in this project.")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button",{name:"Try again"}));expect(await screen.findByText("No active boards in this project.")).toBeInTheDocument();
 });

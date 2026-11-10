@@ -2,9 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { CreateFoundationProject, DisciplineKey, FoundationProject, ProjectParent, StudioOrganization } from "./types";
 
-export interface ProductionBoard { id:string; organization_id:string; work_context_id:string; name:string; position:number; archived_at:string|null }
-export interface ProductionColumn { id:string; organization_id:string; work_context_id:string; board_id:string; name:string; category:string; position:number }
-export interface ProductionTask { id:string; organization_id:string; work_context_id:string; board_id:string|null; column_id:string|null; title:string; priority:string; due_date:string|null; position:number; archived_at:string|null }
+export interface ProductionBoard { id:string; organization_id:string; work_context_id:string; name:string; position:number; archived_at:string|null; revision:number }
+export interface ProductionColumn { id:string; organization_id:string; work_context_id:string; board_id:string; name:string; category:string; position:number; revision:number }
+export interface ProductionTask { id:string; organization_id:string; work_context_id:string; board_id:string|null; column_id:string|null; title:string; description:string|null; priority:string; due_date:string|null; position:number; archived_at:string|null; revision:number }
 
 type ProjectRecord = Omit<FoundationProject, "disciplines">;
 type Table<Row> = {
@@ -22,12 +22,16 @@ export interface FoundationDatabase {
       boards: Table<ProductionBoard>;
       board_columns: Table<ProductionColumn>;
       tasks: Table<ProductionTask>;
+      task_assignees: Table<{organization_id:string;work_context_id:string;task_id:string;user_id:string}>;
       client_organizations: Table<ProjectParent>;
       internal_initiatives: Table<ProjectParent>;
       project_disciplines: Table<{ project_id: string; discipline_key: DisciplineKey; organization_id: string }>;
     };
     Views: Record<string, never>;
     Functions: {
+      save_production_item: {Args:{_organization_id:string;_project_id:string;_kind:string;_id:string|null;_expected_revision:number|null;_values:Record<string,unknown>;_request_id:string};Returns:string};
+      list_production_assignees: {Args:{_organization_id:string;_project_id:string};Returns:{id:string;name:string}[]};
+      production_permissions: {Args:{_organization_id:string;_project_id:string};Returns:{can_write:boolean;can_configure:boolean}[]};
       list_my_organizations: { Args: Record<string, never>; Returns: StudioOrganization[] };
       create_organization: { Args: { _name: string; _slug: string; _request_id: string }; Returns: string };
       create_client_organization: { Args: { _organization_id: string; _name: string; _request_id: string }; Returns: string };
@@ -68,19 +72,28 @@ async function withDisciplines(records: ProjectRecord[], organizationId: string)
 }
 
 export const foundationApi = {
+  async saveProductionItem(organizationId:string,projectId:string,kind:string,id:string|null,revision:number|null,values:Record<string,unknown>,requestId:string) {
+    const {data,error}=await client.rpc("save_production_item",{_organization_id:organizationId,_project_id:projectId,_kind:kind,_id:id,_expected_revision:revision,_values:values,_request_id:requestId});
+    if(error) throw error; return savedId(data);
+  },
+  async listProductionAssignees(organizationId:string,projectId:string) {
+    const {data,error}=await client.rpc("list_production_assignees",{_organization_id:organizationId,_project_id:projectId});if(error) throw error;return data ?? [];
+  },
   async getProductionWorkspace(organizationId:string, projectId:string) {
     // Resolve context through the authorized project; never accept a context from the URL.
     const project = await client.from("projects").select("work_context_id").eq("organization_id",organizationId).eq("id",projectId).maybeSingle();
     if (project.error) throw project.error;
     if (!project.data) throw new Error("Project unavailable in this studio.");
     const contextId=project.data.work_context_id;
-    const [boards,columns,tasks]=await Promise.all([
+    const [boards,columns,tasks,assignments,permissions]=await Promise.all([
       client.from("boards").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).is("archived_at",null).order("position").order("id"),
       client.from("board_columns").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
-      client.from("tasks").select("id,organization_id,work_context_id,board_id,column_id,title,priority,due_date,position,archived_at").eq("organization_id",organizationId).eq("work_context_id",contextId).is("archived_at",null).order("position").order("id"),
+      client.from("tasks").select("id,organization_id,work_context_id,board_id,column_id,title,description,revision,priority,due_date,position,archived_at").eq("organization_id",organizationId).eq("work_context_id",contextId).is("archived_at",null).order("position").order("id"),
+      client.from("task_assignees").select("organization_id,work_context_id,task_id,user_id").eq("organization_id",organizationId).eq("work_context_id",contextId),
+      client.rpc("production_permissions",{_organization_id:organizationId,_project_id:projectId}),
     ]);
-    for (const result of [boards,columns,tasks]) if (result.error) throw result.error;
-    return {boards:boards.data ?? [],columns:columns.data ?? [],tasks:tasks.data ?? []};
+    for (const result of [boards,columns,tasks,assignments,permissions]) if (result.error) throw result.error;
+    return {boards:boards.data ?? [],columns:columns.data ?? [],tasks:tasks.data ?? [],assignments:assignments.data ?? [],permissions:permissions.data?.[0] ?? {can_write:false,can_configure:false}};
   },
   async listOrganizations(): Promise<StudioOrganization[]> {
     const { data, error } = await client.rpc("list_my_organizations");
