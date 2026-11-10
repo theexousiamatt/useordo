@@ -2,6 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { CreateFoundationProject, DisciplineKey, FoundationProject, ProjectParent, StudioOrganization } from "./types";
 
+export interface ProductionBoard { id:string; organization_id:string; work_context_id:string; name:string; position:number; archived_at:string|null }
+export interface ProductionColumn { id:string; organization_id:string; work_context_id:string; board_id:string; name:string; category:string; position:number }
+export interface ProductionTask { id:string; organization_id:string; work_context_id:string; board_id:string|null; column_id:string|null; title:string; priority:string; due_date:string|null; position:number; archived_at:string|null }
+
 type ProjectRecord = Omit<FoundationProject, "disciplines">;
 type Table<Row> = {
   Row: { [Key in keyof Row]: Row[Key] };
@@ -14,7 +18,10 @@ type Table<Row> = {
 export interface FoundationDatabase {
   public: {
     Tables: {
-      projects: Table<ProjectRecord>;
+      projects: Table<ProjectRecord & {work_context_id:string}>;
+      boards: Table<ProductionBoard>;
+      board_columns: Table<ProductionColumn>;
+      tasks: Table<ProductionTask>;
       client_organizations: Table<ProjectParent>;
       internal_initiatives: Table<ProjectParent>;
       project_disciplines: Table<{ project_id: string; discipline_key: DisciplineKey; organization_id: string }>;
@@ -61,6 +68,20 @@ async function withDisciplines(records: ProjectRecord[], organizationId: string)
 }
 
 export const foundationApi = {
+  async getProductionWorkspace(organizationId:string, projectId:string) {
+    // Resolve context through the authorized project; never accept a context from the URL.
+    const project = await client.from("projects").select("work_context_id").eq("organization_id",organizationId).eq("id",projectId).maybeSingle();
+    if (project.error) throw project.error;
+    if (!project.data) throw new Error("Project unavailable in this studio.");
+    const contextId=project.data.work_context_id;
+    const [boards,columns,tasks]=await Promise.all([
+      client.from("boards").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).is("archived_at",null).order("position").order("id"),
+      client.from("board_columns").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
+      client.from("tasks").select("id,organization_id,work_context_id,board_id,column_id,title,priority,due_date,position,archived_at").eq("organization_id",organizationId).eq("work_context_id",contextId).is("archived_at",null).order("position").order("id"),
+    ]);
+    for (const result of [boards,columns,tasks]) if (result.error) throw result.error;
+    return {boards:boards.data ?? [],columns:columns.data ?? [],tasks:tasks.data ?? []};
+  },
   async listOrganizations(): Promise<StudioOrganization[]> {
     const { data, error } = await client.rpc("list_my_organizations");
     if (error) throw error;

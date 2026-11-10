@@ -7,6 +7,7 @@ import { OrdoLogo } from "@/components/brand/OrdoLogo";
 import { Button } from "@/components/ui/button";
 import { OrdoField } from "@/components/ordo/OrdoField";
 import { OrdoInput } from "@/components/ordo/OrdoInput";
+const ProductionWorkspace = lazy(() => import("./ProductionWorkspace"));
 const ProjectCreateDialog = lazy(() => import("./ProjectCreateDialog"));
 import { ErrorState } from "@/components/states/ErrorState";
 import { dateShort } from "@/lib/format";
@@ -204,6 +205,7 @@ function OwnershipBadge({ ownership }: { ownership: ProjectOwnership }) {
 function ProjectOverview({ accountId, organization }: { accountId: string; organization: StudioOrganization }) {
   const { id = "" } = useParams();
   const location = useLocation();
+  const [productionOpen,setProductionOpen] = useState(false);
   const project = useQuery({ queryKey: keys.project(accountId, organization.id, id), queryFn: () => foundationApi.getProject(organization.id, id), retry: 1 });
   const clients = useQuery({ queryKey: keys.clients(accountId, organization.id), queryFn: () => foundationApi.listClients(organization.id), retry: 1 });
   const initiatives = useQuery({ queryKey: keys.initiatives(accountId, organization.id), queryFn: () => foundationApi.listInitiatives(organization.id), retry: 1 });
@@ -220,6 +222,8 @@ function ProjectOverview({ accountId, organization }: { accountId: string; organ
     {back}
     {location.state?.created && <p role="status" className="mb-5 inline-flex items-center gap-2 rounded-small bg-secondary px-4 py-3 text-sm text-secondary-foreground"><CheckCircle2 className="h-4 w-4" aria-hidden="true" />Project created and saved.</p>}
     <div className="mb-7 space-y-3"><div className="flex flex-wrap items-center gap-3"><h1 className="break-words text-3xl font-semibold tracking-[-.025em]">{saved.name}</h1><OwnershipBadge ownership={saved.ownership} /></div>{saved.description && <p className="max-w-prose whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">{saved.description}</p>}</div>
+    <Button className="mb-5" aria-expanded={productionOpen} onClick={() => setProductionOpen(value => !value)}>{productionOpen ? "Close production board" : "Open production board"}</Button>
+    {productionOpen && <Suspense fallback={<Loading>Loading production workspace…</Loading>}><ProductionWorkspace accountId={accountId} organizationId={organization.id} projectId={saved.id} /></Suspense>}
     <section className="rounded-panel bg-card p-5 sm:p-7" aria-labelledby="foundation-overview-title">
       <h2 id="foundation-overview-title" className="mb-6 text-lg font-semibold">Project overview</h2>
       <dl className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
