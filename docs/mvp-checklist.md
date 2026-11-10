@@ -1,6 +1,6 @@
 # Ordo MVP execution checklist
 
-Priority changed by the user on 10 November 2026. This supersedes nonessential Phase 2 polish and the requirement to pause before starting core production work. Preserve the working Phase 2.0 branch. No production deployment is authorized.
+Priority changed by the user on 10 November 2026. This supersedes nonessential Phase 2 polish and the requirement to pause before starting core production work. Preserve the working Phase 2.0 branch. Deployment was subsequently authorized subject to safety checks on 10 November 2026; the release is blocked. See [CHATGPT-HANDOFF.md](CHATGPT-HANDOFF.md) for current release status.
 
 ## Working
 
