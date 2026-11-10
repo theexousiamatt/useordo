@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Legacy artifact publisher only. Never use this script to ship the canonical foundation.
+if [[ $# -ne 1 || "$1" != "--legacy" ]]; then
+  echo "Refusing implicit publishing. This script builds the legacy app only; pass --legacy explicitly." >&2
+  echo "For canonical preparation use scripts/prepare-hostinger-canonical.sh (build only, no publishing)." >&2
+  exit 2
+fi
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 npm run build
