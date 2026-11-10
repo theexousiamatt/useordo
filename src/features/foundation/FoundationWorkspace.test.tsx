@@ -39,7 +39,12 @@ function show(path = "/projects") {
 
 async function openCreate() {
   fireEvent.click(await screen.findByRole("button", { name: "New project" }));
-  await screen.findByRole("textbox", { name: /^Project name/ });
+  await screen.findByRole("textbox", { name: /^Project name/ }, {timeout:5000});
+}
+
+async function choose(label: string, option: string) {
+  fireEvent.click(screen.getByRole("button", {name:new RegExp(label)}));
+  fireEvent.click(await screen.findByRole("option", {name:option}));
 }
 
 beforeEach(() => {
@@ -105,8 +110,9 @@ describe("foundation workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add details" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Branding" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Software" }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Lifecycle" }), { target: { value: "continuous" } });
+    await choose("Lifecycle", "Continuous");
     fireEvent.change(screen.getByRole("textbox", { name: "Description" }), { target: { value: "Our own evolving product." } });
+    expect(screen.getByLabelText("Due date")).toHaveAttribute("type","date");
     fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-12-01" } });
     fireEvent.click(screen.getByRole("button", { name: "Create project" }));
     expect(await screen.findByRole("heading", { name: "Lora" })).toBeInTheDocument();
@@ -126,13 +132,13 @@ describe("foundation workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add client business" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Business name" }), { target: { value: "Devine Apartments" } });
     fireEvent.click(screen.getByRole("button", { name: "Save client business" }));
-    await waitFor(() => expect(screen.getByRole("combobox", { name: /Client business/ })).toHaveValue("client-business"));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Client business/ })).toHaveTextContent("Devine Apartments"));
     expect(api.createClient).toHaveBeenCalledWith(orgA.id, "Devine Apartments", expect.any(String));
     expect(screen.queryByRole("textbox", { name: /email|password/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Add details" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Web" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Growth" }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Lifecycle" }), { target: { value: "recurring" } });
+    await choose("Lifecycle", "Recurring");
     fireEvent.click(screen.getByRole("button", { name: "Create project" }));
     expect(await screen.findByRole("heading", { name: "Devine campaign" })).toBeInTheDocument();
     expect(api.createProject).toHaveBeenCalledWith(expect.objectContaining({ ownership: "client", clientOrganizationId: "client-business", internalInitiativeId: null, disciplineKeys: ["web", "growth"], lifecycle: "recurring" }), expect.any(String));
@@ -156,16 +162,17 @@ describe("foundation workspace", () => {
 
   it("saves an optional internal initiative and lets an admin create operational work", async () => {
     organizations = [{ ...orgA, role: "admin" }];
-    show(); await openCreate();
-    expect(screen.getByRole("button", { name: "Create another studio" })).toBeInTheDocument();
+    show();
+    expect(await screen.findByRole("button", { name: "Create another studio" })).toBeInTheDocument();
+    await openCreate();
     fireEvent.click(screen.getByRole("radio", { name: "Internal project" }));
     fireEvent.change(screen.getByRole("textbox", { name: /^Project name/ }), { target: { value: "Studio standards" } });
     fireEvent.click(screen.getByRole("button", { name: "Add initiative" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Initiative name" }), { target: { value: "Studio systems" } });
     fireEvent.click(screen.getByRole("button", { name: "Save initiative" }));
-    await waitFor(() => expect(screen.getByRole("combobox", { name: "Internal initiative" })).toHaveValue("initiative"));
+    await waitFor(() => expect(screen.getByRole("button", { name: /Internal initiative/ })).toHaveTextContent("Studio systems"));
     fireEvent.click(screen.getByRole("button", { name: "Add details" }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Lifecycle" }), { target: { value: "operational" } });
+    await choose("Lifecycle", "Operational");
     fireEvent.click(screen.getByRole("button", { name: "Create project" }));
     expect(await screen.findByRole("heading", { name: "Studio standards" })).toBeInTheDocument();
     expect(screen.getByText("Studio systems")).toBeInTheDocument();
@@ -189,7 +196,7 @@ describe("foundation workspace", () => {
     expect(localStorage.getItem("ordo:foundation:organization:account-a")).toBe(orgB.id);
     expect(localStorage.getItem("ordo:foundation:organization:account-b")).toBe(orgA.id);
     expect(screen.queryByRole("button", { name: "New project" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Create another studio" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create another studio", hidden:true })).not.toBeInTheDocument();
     expect(view.queryClient.getQueryData(["foundation", "account-b", orgA.id, "projects"])).toEqual(projects);
   });
 
@@ -197,7 +204,7 @@ describe("foundation workspace", () => {
     organizations = [{ ...orgA, role: "member", capabilities: ["projects.create"] }];
     show();
     await openCreate();
-    expect(screen.queryByRole("button", { name: "Create another studio" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create another studio", hidden:true })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "Internal project" }));
     fireEvent.change(screen.getByRole("textbox", { name: /^Project name/ }), { target: { value: "Assigned initiative" } });
     fireEvent.click(screen.getByRole("button", { name: "Create project" }));
@@ -244,4 +251,34 @@ describe("foundation workspace", () => {
     expect(api.createOrganization).toHaveBeenCalledWith("Inspirare Studio", "inspirare-studio", expect.any(String));
     expect(api.listProjects).toHaveBeenLastCalledWith("new-studio");
   });
+  it("keeps a dirty project draft until explicit discard", async () => {
+    show(); await openCreate();
+    fireEvent.change(screen.getByRole("textbox", {name:/^Project name/}), {target:{value:"Keep this draft"}});
+    fireEvent.click(screen.getByRole("button", {name:"Close project form"}));
+    expect(await screen.findByRole("alert")).toHaveTextContent("unsaved changes");
+    fireEvent.click(screen.getByRole("button", {name:"Keep editing"}));
+    expect(screen.getByRole("textbox", {name:/^Project name/})).toHaveValue("Keep this draft");
+    fireEvent.click(screen.getByRole("button", {name:"Close project form"}));
+    fireEvent.click(screen.getByRole("button", {name:"Discard draft"}));
+    await waitFor(() => expect(screen.queryByRole("textbox", {name:/^Project name/})).not.toBeInTheDocument());
+    expect(api.createProject).not.toHaveBeenCalled();
+  });
+
+  it("prevents dismissal and duplicate submission during a project save", async () => {
+    let finish!: (id: string) => void;
+    api.createProject.mockImplementationOnce(() => new Promise(resolve => { finish=resolve; }));
+    show(); await openCreate();
+    fireEvent.click(screen.getByRole("radio", {name:"Internal project"}));
+    fireEvent.change(screen.getByRole("textbox", {name:/^Project name/}), {target:{value:"Pending project"}});
+    fireEvent.click(screen.getByRole("button", {name:"Create project"}));
+    await waitFor(() => expect(screen.getByRole("button", {name:"Close project form"})).toBeDisabled());
+    expect(screen.getByRole("button", {name:"Create project"})).toHaveAttribute("aria-disabled","true");
+    fireEvent.click(screen.getByRole("button", {name:"Create project"}));
+    expect(api.createProject).toHaveBeenCalledOnce();
+    expect(screen.getByRole("textbox", {name:/^Project name/})).toHaveValue("Pending project");
+    projects.push(project({id:"pending-project",name:"Pending project"}));
+    await act(async () => { finish("pending-project"); });
+    expect(await screen.findByRole("heading", {name:"Pending project"})).toBeInTheDocument();
+  });
+
 });

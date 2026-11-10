@@ -1,3 +1,4 @@
+import { BOARD_POINTER_OPTIONS, boardKeyboardCoordinates } from "@/lib/boardSensors";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
@@ -15,7 +16,6 @@ import {
 import {
   SortableContext,
   useSortable,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -368,8 +368,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   );
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(PointerSensor, BOARD_POINTER_OPTIONS),
+    useSensor(KeyboardSensor, { coordinateGetter: boardKeyboardCoordinates }),
   );
 
   const filtering = hasBoardFilters(filters);
@@ -986,7 +986,7 @@ function Column({
   onComposeHandled: () => void;
   dropTarget: { id: string; after: boolean } | null;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
+  const { setNodeRef, isOver } = useDroppable({ id, data: { empty: tasks.length === 0 } });
   const [composing, setComposing] = useState(false);
   const [value, setValue] = useState("");
   const [error, setError] = useState("");

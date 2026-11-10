@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, CheckCircle2, FolderKanban, Loader2, LogOut, Plus, Search, X } from "lucide-react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -7,21 +7,15 @@ import { OrdoLogo } from "@/components/brand/OrdoLogo";
 import { Button } from "@/components/ui/button";
 import { OrdoField } from "@/components/ordo/OrdoField";
 import { OrdoInput } from "@/components/ordo/OrdoInput";
-import { OrdoTextarea } from "@/components/ordo/OrdoTextarea";
+const ProjectCreateDialog = lazy(() => import("./ProjectCreateDialog"));
 import { ErrorState } from "@/components/states/ErrorState";
 import { dateShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { foundationApi } from "./api";
-import { canCreateProjects, canManageStudio, DISCIPLINES, LIFECYCLES, type CreateFoundationProject, type DisciplineKey, type FoundationProject, type ProjectLifecycle, type ProjectOwnership, type ProjectParent, type StudioOrganization } from "./types";
+import { canCreateProjects, canManageStudio, DISCIPLINES, LIFECYCLES, type FoundationProject, type ProjectOwnership, type StudioOrganization } from "./types";
 
 const selectClass = "h-11 w-full min-w-0 rounded-small border border-border bg-card px-3.5 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/30";
-const keys = {
-  organizations: (accountId: string) => ["foundation", accountId, "organizations"] as const,
-  projects: (accountId: string, organizationId: string) => ["foundation", accountId, organizationId, "projects"] as const,
-  project: (accountId: string, organizationId: string, projectId: string) => ["foundation", accountId, organizationId, "project", projectId] as const,
-  clients: (accountId: string, organizationId: string) => ["foundation", accountId, organizationId, "clients"] as const,
-  initiatives: (accountId: string, organizationId: string) => ["foundation", accountId, organizationId, "initiatives"] as const,
-};
+import { keys } from "./queryKeys";
 
 function message(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message;
@@ -29,15 +23,7 @@ function message(error: unknown, fallback: string): string {
   return fallback;
 }
 
-/** A failed request can be retried safely; an edited draft receives a new command ID. */
-function useRequestId() {
-  const request = useRef<{ fingerprint: string; id: string } | undefined>(undefined);
-  return (input: unknown) => {
-    const fingerprint = JSON.stringify(input);
-    if (request.current?.fingerprint !== fingerprint) request.current = { fingerprint, id: crypto.randomUUID() };
-    return request.current.id;
-  };
-}
+import { useRequestId } from "./useRequestId";
 
 function readSelectedOrganization(accountId: string) {
   try { return localStorage.getItem(`ordo:foundation:organization:${accountId}`) ?? ""; }
@@ -187,7 +173,7 @@ function ProjectList({ accountId, organization }: { accountId: string; organizat
       <div><h1 className="text-3xl font-semibold tracking-[-.025em]">Projects</h1><p className="mt-2 text-sm text-muted-foreground">{canCreate ? "A place for client work and the work you do for your studio." : "The projects shared with you in this studio."}</p></div>
       {canCreate && <Button onClick={() => setShowCreate((value) => !value)} aria-expanded={showCreate} aria-controls="foundation-project-create"><Plus className="mr-1.5 h-4 w-4" />New project</Button>}
     </div>
-    {canCreate && <div id="foundation-project-create" hidden={!showCreate} className="mb-8"><ProjectCreateForm accountId={accountId} organizationId={organization.id} onClose={() => setShowCreate(false)} onCreated={(id) => navigate(`/projects/${id}`, { state: { created: true } })} /></div>}
+    {canCreate && showCreate && <Suspense fallback={<Loading>Opening project setup…</Loading>}><ProjectCreateDialog accountId={accountId} organizationId={organization.id} onClose={() => setShowCreate(false)} onCreated={(id) => navigate(`/projects/${id}`, { state: { created: true } })} /></Suspense>}
     <div className="mb-4 flex flex-wrap items-center gap-3">
       <div className="relative min-w-0 flex-1 sm:max-w-sm"><Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" /><OrdoInput aria-label="Search projects" placeholder="Search projects" className="pl-10" value={search} onChange={(event) => setSearch(event.target.value)} /></div>
       <label htmlFor="foundation-project-ownership" className="sr-only">Filter projects by ownership</label>
@@ -206,98 +192,6 @@ function ProjectList({ accountId, organization }: { accountId: string; organizat
   </div>;
 }
 
-function ProjectCreateForm({ accountId, organizationId, onClose, onCreated }: { accountId: string; organizationId: string; onClose: () => void; onCreated: (id: string) => void }) {
-  const queryClient = useQueryClient();
-  const clients = useQuery({ queryKey: keys.clients(accountId, organizationId), queryFn: () => foundationApi.listClients(organizationId), retry: 1 });
-  const initiatives = useQuery({ queryKey: keys.initiatives(accountId, organizationId), queryFn: () => foundationApi.listInitiatives(organizationId), retry: 1 });
-  const [name, setName] = useState("");
-  const [ownership, setOwnership] = useState<ProjectOwnership>("client");
-  const [clientId, setClientId] = useState("");
-  const [initiativeId, setInitiativeId] = useState("");
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [disciplines, setDisciplines] = useState<DisciplineKey[]>([]);
-  const [lifecycle, setLifecycle] = useState<ProjectLifecycle>("fixed_scope");
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [newParent, setNewParent] = useState(false);
-  const [parentName, setParentName] = useState("");
-  const [parentError, setParentError] = useState("");
-  const [error, setError] = useState("");
-  const requestId = useRequestId();
-  const parentRequestId = useRequestId();
-  const submitting = useRef(false);
-  const savingParent = useRef(false);
-  const create = useMutation({ mutationFn: ({ input, id }: { input: CreateFoundationProject; id: string }) => foundationApi.createProject(input, id) });
-  const createParent = useMutation({ mutationFn: ({ kind, name, id }: { kind: ProjectOwnership; name: string; id: string }) => kind === "client" ? foundationApi.createClient(organizationId, name, id) : foundationApi.createInitiative(organizationId, name, id) });
-  const parentQuery = ownership === "client" ? clients : initiatives;
-  const pending = create.isPending || createParent.isPending;
-
-  const saveParent = async () => {
-    if (savingParent.current || !parentName.trim()) return;
-    savingParent.current = true; setParentError("");
-    const input = { kind: ownership, name: parentName.trim() };
-    try {
-      const id = await createParent.mutateAsync({ ...input, id: parentRequestId({ organizationId, ...input }) });
-      const queryKey = ownership === "client" ? keys.clients(accountId, organizationId) : keys.initiatives(accountId, organizationId);
-      queryClient.setQueryData<ProjectParent[]>(queryKey, (current) => [...(current ?? []).filter((item) => item.id !== id), { id, organization_id: organizationId, name: input.name }]);
-      if (ownership === "client") setClientId(id); else setInitiativeId(id);
-      setNewParent(false); setParentName("");
-      void queryClient.invalidateQueries({ queryKey });
-    } catch (failure) { setParentError(message(failure, "Couldn’t save this name. Your details are still here; try again.")); }
-    finally { savingParent.current = false; }
-  };
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (submitting.current || pending) return;
-    if (!name.trim()) { setError("Give your project a name."); return; }
-    if (ownership === "client" && !clientId) { setError("Choose or add the client business for this project."); return; }
-    if (newParent && parentName.trim()) { setError(`Save the ${ownership === "client" ? "client business" : "initiative"} first, or cancel adding it.`); return; }
-    const input: CreateFoundationProject = {
-      organizationId, name: name.trim(), ownership, disciplineKeys: disciplines, lifecycle,
-      clientOrganizationId: ownership === "client" ? clientId : null,
-      internalInitiativeId: ownership === "internal" ? initiativeId || null : null,
-      description: description.trim() || null, dueDate: dueDate || null,
-    };
-    submitting.current = true; setError("");
-    try {
-      const id = await create.mutateAsync({ input, id: requestId(input) });
-      void queryClient.invalidateQueries({ queryKey: keys.projects(accountId, organizationId) });
-      onCreated(id);
-    } catch (failure) { setError(message(failure, "Couldn’t create the project. Your draft is still here; try again.")); }
-    finally { submitting.current = false; }
-  };
-
-  return <form onSubmit={(event) => void submit(event)} className="max-w-3xl space-y-6 rounded-panel bg-card p-5 sm:p-7">
-    <div className="flex items-start justify-between gap-3"><div><h2 className="text-xl font-semibold tracking-tight">New project</h2><p className="mt-1.5 text-sm text-muted-foreground">Start with the essentials. Add more detail when you need it.</p></div><Button type="button" variant="ghost" size="icon" aria-label="Close project form" disabled={pending} onClick={onClose}><X className="h-4 w-4" /></Button></div>
-    <fieldset disabled={pending} className="space-y-5">
-      <fieldset><legend className="mb-2 text-sm font-medium">Who is this work for?</legend><div className="flex flex-wrap gap-3">
-        {(["client", "internal"] as const).map((kind) => <label key={kind} className={cn("flex cursor-pointer items-center gap-3 rounded-small border px-4 py-3 text-sm", ownership === kind ? "border-primary/40 bg-secondary" : "border-border")}><input type="radio" name="foundation-ownership" value={kind} checked={ownership === kind} onChange={() => { setOwnership(kind); setNewParent(false); setParentName(""); setParentError(""); setError(""); }} className="h-4 w-4 accent-primary" />{kind === "client" ? "Client project" : "Internal project"}</label>)}
-      </div></fieldset>
-      <OrdoField label="Project name" htmlFor="foundation-project-name" required><OrdoInput id="foundation-project-name" value={name} required maxLength={200} placeholder={ownership === "internal" ? "Lora" : "Devine website"} onChange={(event) => setName(event.target.value)} /></OrdoField>
-      <div className="space-y-3">
-        <OrdoField label={ownership === "client" ? "Client business" : "Internal initiative"} htmlFor="foundation-project-parent" required={ownership === "client"} hint={ownership === "client" ? "A business record, independent of any person’s login or invitation." : "Optional. Group related internal work under an initiative."}>
-          {parentQuery.isPending ? <p role="status" className="text-sm text-muted-foreground">Loading {ownership === "client" ? "client businesses" : "initiatives"}…</p> : parentQuery.isError ? <div role="alert" className="flex flex-wrap items-center gap-3 text-sm"><span className="text-destructive">Couldn’t load {ownership === "client" ? "client businesses" : "initiatives"}.</span><Button type="button" variant="outline" size="sm" onClick={() => void parentQuery.refetch()}>Try again</Button></div> : <select id="foundation-project-parent" className={selectClass} value={ownership === "client" ? clientId : initiativeId} onChange={(event) => ownership === "client" ? setClientId(event.target.value) : setInitiativeId(event.target.value)}>
-            <option value="">{ownership === "client" ? "Choose a client business" : "No initiative"}</option>{parentQuery.data?.map((parent) => <option key={parent.id} value={parent.id}>{parent.name}</option>)}
-          </select>}
-        </OrdoField>
-        {!newParent ? <Button type="button" variant="outline" size="sm" onClick={() => { setNewParent(true); setParentError(""); }}><Plus className="mr-1.5 h-4 w-4" />{ownership === "client" ? "Add client business" : "Add initiative"}</Button> : <div className="space-y-3 rounded-small bg-secondary/60 p-4">
-          <OrdoField label={ownership === "client" ? "Business name" : "Initiative name"} htmlFor="foundation-parent-name"><OrdoInput id="foundation-parent-name" value={parentName} maxLength={200} onChange={(event) => setParentName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void saveParent(); } }} /></OrdoField>
-          {parentError && <p role="alert" className="text-sm text-destructive">{parentError}</p>}
-          <div className="flex flex-wrap gap-2"><Button type="button" size="sm" disabled={!parentName.trim() || pending} onClick={() => void saveParent()}>{createParent.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}{ownership === "client" ? "Save client business" : "Save initiative"}</Button><Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => { setNewParent(false); setParentError(""); }}>Cancel</Button></div>
-        </div>}
-      </div>
-      {detailsOpen && <div id="foundation-project-details" className="space-y-5 border-t border-border pt-6">
-        <fieldset><legend className="text-sm font-medium">Disciplines</legend><p className="mb-3 mt-1 text-xs text-muted-foreground">Choose any that apply. A project can span several disciplines.</p><div className="flex flex-wrap gap-2">{DISCIPLINES.map((discipline) => <label key={discipline.key} className={cn("inline-flex cursor-pointer items-center gap-2 rounded-small border px-3 py-2.5 text-sm", disciplines.includes(discipline.key) ? "border-primary/40 bg-secondary" : "border-border")}><input type="checkbox" className="h-4 w-4 accent-primary" checked={disciplines.includes(discipline.key)} onChange={(event) => setDisciplines((current) => event.target.checked ? [...current, discipline.key] : current.filter((key) => key !== discipline.key))} />{discipline.label}</label>)}</div></fieldset>
-        <OrdoField label="Lifecycle" htmlFor="foundation-lifecycle" hint={LIFECYCLES.find((item) => item.key === lifecycle)?.description}><select id="foundation-lifecycle" className={selectClass} value={lifecycle} onChange={(event) => setLifecycle(event.target.value as ProjectLifecycle)}>{LIFECYCLES.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}</select></OrdoField>
-        <OrdoField label="Description" htmlFor="foundation-project-description"><OrdoTextarea id="foundation-project-description" value={description} maxLength={5000} placeholder="What are you setting out to do?" onChange={(event) => setDescription(event.target.value)} /></OrdoField>
-        <OrdoField label="Due date" htmlFor="foundation-project-due"><OrdoInput id="foundation-project-due" type="date" value={dueDate} className="max-w-xs" onChange={(event) => setDueDate(event.target.value)} /></OrdoField>
-      </div>}
-    </fieldset>
-    {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5"><Button type="button" variant="ghost" disabled={pending} aria-expanded={detailsOpen} aria-controls="foundation-project-details" onClick={() => setDetailsOpen((value) => !value)}>{detailsOpen ? "Hide details" : "Add details"}</Button><Button type="submit" disabled={pending || (ownership === "client" && parentQuery.isPending)}>{create.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Create project</Button></div>
-  </form>;
-}
 
 function disciplineNames(project: FoundationProject) {
   return DISCIPLINES.filter((discipline) => project.disciplines.includes(discipline.key)).map((discipline) => discipline.label);

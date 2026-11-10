@@ -1,0 +1,130 @@
+@reference "../index.css";
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/themes/shared/theme.css";
+@import "@heroui/styles/base/overlay-motion.css";
+@import "@heroui/styles/themes/default/variables.css";
+@import "@heroui/styles/components/close-button.css" layer(components);
+@import "@heroui/styles/components/description.css" layer(components);
+@import "@heroui/styles/components/error-message.css" layer(components);
+@import "@heroui/styles/components/field-error.css" layer(components);
+@import "@heroui/styles/components/label.css" layer(components);
+@import "@heroui/styles/components/button.css" layer(components);
+@import "@heroui/styles/components/input.css" layer(components);
+@import "@heroui/styles/components/textarea.css" layer(components);
+@import "@heroui/styles/components/textfield.css" layer(components);
+@import "@heroui/styles/components/list-box.css" layer(components);
+@import "@heroui/styles/components/select.css" layer(components);
+@import "@heroui/styles/components/drawer.css" layer(components);
+@import "@heroui/styles/components/spinner.css" layer(components);
+
+@custom-variant motion-reduce { @media (prefers-reduced-motion: reduce) { @slot; } }
+.ordo-ui {
+  color-scheme: light;
+  --ordo-color-canvas: hsl(220 16% 95%);
+  --ordo-color-surface: hsl(0 0% 100%);
+  --ordo-color-text: hsl(210 8% 11%);
+  --ordo-color-text-muted: hsl(213 6% 42%);
+  --ordo-color-action: hsl(178 100% 8%);
+  --ordo-color-action-hover: hsl(178 100% 12%);
+  --ordo-color-on-action: white;
+  --ordo-color-surface-subtle: hsl(180 30% 96%);
+  --ordo-color-border: hsl(216 15% 89%);
+  --ordo-color-field-border: hsl(213 6% 47%);
+  --ordo-color-board-column: hsl(216 18% 94%);
+  --ordo-color-danger: hsl(0 72% 43%);
+  --ordo-color-danger-surface: hsl(0 86% 97%);
+  --ordo-color-warning: hsl(32 95% 34%);
+  --ordo-color-warning-surface: hsl(45 93% 89%);
+  --ordo-space-2: 8px;
+  --ordo-space-3: 12px;
+  --ordo-space-4: 16px;
+  --ordo-space-5: 20px;
+  --ordo-space-6: 24px;
+  --ordo-space-8: 32px;
+  --ordo-space-control-gap: var(--ordo-space-2);
+  --ordo-space-section: var(--ordo-space-6);
+  --ordo-space-panel: var(--ordo-space-6);
+  --ordo-space-task: var(--ordo-space-4);
+  --ordo-type-body: 14px;
+  --ordo-type-meta: 12px;
+  --ordo-type-heading: 30px;
+  --ordo-weight-body: 400;
+  --ordo-weight-label: 500;
+  --ordo-weight-heading: 600;
+  --ordo-font: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --ordo-radius-control: 12px;
+  --ordo-radius-task: 14px;
+  --ordo-radius-column: 18px;
+  --ordo-radius-card: 20px;
+  --ordo-radius-panel: 28px;
+  --ordo-shadow-task: 0 2px 8px -3px rgba(20,31,38,.09);
+  --ordo-shadow-overlay: 0 16px 40px -8px rgba(0,0,0,.06);
+  --ordo-motion-fast: 150ms;
+  --ordo-motion-enter: 200ms;
+  --ordo-motion-exit: 150ms;
+  --ordo-ease: cubic-bezier(.16,1,.3,1);
+
+  /* Explicit HeroUI adapter: semantic roles, not matching names by accident. */
+  --background: var(--ordo-color-canvas);
+  --foreground: var(--ordo-color-text);
+  --surface: var(--ordo-color-surface);
+  --surface-foreground: var(--ordo-color-text);
+  --overlay: var(--ordo-color-surface);
+  --overlay-foreground: var(--ordo-color-text);
+  --muted: var(--ordo-color-text-muted);
+  --default: var(--ordo-color-surface-subtle);
+  --default-foreground: var(--ordo-color-text);
+  --accent: var(--ordo-color-action);
+  --accent-foreground: var(--ordo-color-on-action);
+  --accent-soft: var(--ordo-color-surface-subtle);
+  --accent-soft-foreground: var(--ordo-color-text);
+  --field-background: var(--ordo-color-surface);
+  --field-foreground: var(--ordo-color-text);
+  --field-placeholder: var(--ordo-color-text-muted);
+  --field-border: var(--ordo-color-field-border);
+  --field-border-width: 1px;
+  --field-radius: var(--ordo-radius-control);
+  --border: var(--ordo-color-border);
+  --separator: var(--ordo-color-border);
+  --focus: var(--ordo-color-action);
+  --danger: var(--ordo-color-danger);
+  --danger-foreground: white;
+  --radius: var(--ordo-radius-control);
+  --surface-shadow: var(--ordo-shadow-task);
+  --overlay-shadow: var(--ordo-shadow-overlay);
+  --field-shadow: none;
+  --font-sans: var(--ordo-font);
+}
+/* Experimental mapping uses the existing dark surface family, with Ordo green. */
+
+.ordo-ui { font-family:var(--ordo-font); color:var(--ordo-color-text); color-scheme:light; --z-index-overlay:100000; }
+.ordo-ui .ordo-button {display:inline-flex;flex-direction:row;align-items:center;justify-content:center;height:40px;border-radius:var(--ordo-radius-control);padding-inline:16px;font-size:14px;font-weight:600;gap:8px;box-shadow:none;}
+.ordo-ui .ordo-button--primary {background:var(--ordo-color-action);color:var(--ordo-color-on-action);}
+.ordo-ui .ordo-button--ghost {background:transparent;color:var(--ordo-color-text);}
+.ordo-ui .ordo-button--outline {background:var(--ordo-color-surface);color:var(--ordo-color-text);border:1px solid var(--ordo-color-field-border);}
+.ordo-ui .ordo-button:hover {filter:brightness(.96);}
+.ordo-ui .ordo-button:focus-visible {outline:2px solid var(--ordo-color-action);outline-offset:2px;}
+.ordo-ui .ordo-button[data-disabled=true],.ordo-ui .ordo-button[aria-disabled=true] {opacity:.5;cursor:not-allowed;}
+.ordo-ui .ordo-field {display:flex;flex-direction:column;gap:8px;width:100%;}
+.ordo-ui .label {color:var(--ordo-color-text);font-size:14px;font-weight:500;}
+.ordo-ui .description {color:var(--ordo-color-text-muted);font-size:12px;line-height:1.5;}
+.ordo-ui .field-error {color:var(--ordo-color-danger);font-size:13px;}
+.ordo-ui .input,.ordo-ui .textarea,.ordo-ui .select__trigger {width:100%;min-height:44px;border-radius:var(--ordo-radius-control);border:1px solid var(--ordo-color-field-border);background:var(--ordo-color-surface);color:var(--ordo-color-text);font:inherit;font-size:14px;padding:10px 14px;box-shadow:none;}
+.ordo-ui .input:focus,.ordo-ui .textarea:focus,.ordo-ui .select__trigger:focus-visible {outline:2px solid var(--ordo-color-action);outline-offset:2px;}
+.ordo-ui .select__trigger {justify-content:space-between;}
+.ordo-ui.select__popover,.ordo-ui .select__popover {background:var(--ordo-color-surface);color:var(--ordo-color-text);border:1px solid var(--ordo-color-border);border-radius:var(--ordo-radius-control);box-shadow:var(--ordo-shadow-overlay);padding:6px;max-width:calc(100vw - 32px);}
+.ordo-ui .list-box {padding:0;max-height:280px;overflow-y:auto;}
+.ordo-ui .list-box-item {min-height:40px;padding:10px 12px;border-radius:8px;color:var(--ordo-color-text);font-size:14px;}
+.ordo-ui .list-box-item[data-focused=true],.ordo-ui .list-box-item[data-selected=true] {background:var(--ordo-color-surface-subtle);}
+.ordo-ui.drawer__backdrop {background:rgb(3 24 27 / .28);backdrop-filter:none;}
+.ordo-ui .drawer__dialog {width:min(100vw,640px);max-width:none;background:var(--ordo-color-surface);border-radius:0;padding:0;}
+.ordo-ui .project-create-form {display:flex;flex-direction:column;max-height:100dvh;height:100%;min-height:0;}
+.ordo-ui .drawer__header {display:flex;flex-direction:row;align-items:flex-start;justify-content:space-between;gap:16px;padding:24px;border-bottom:1px solid var(--ordo-color-border);}
+.ordo-ui .drawer__heading {font-size:20px;line-height:1.3;font-weight:600;letter-spacing:-.02em;}
+.ordo-ui .drawer__body {display:flex;flex-direction:column;gap:20px;overflow-y:auto;flex:1;padding:24px;}
+.ordo-ui .drawer__footer {display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:20px 24px;border-top:1px solid var(--ordo-color-border);}
+.ordo-ui fieldset {min-width:0;}
+@media(max-width:640px) {.ordo-ui .drawer__header,.ordo-ui .drawer__body {padding:20px;}.ordo-ui .drawer__footer {padding:16px 20px;}.ordo-ui .drawer__dialog {width:100vw;}}
+@media(prefers-reduced-motion:reduce) {.ordo-ui *,.ordo-ui *::before,.ordo-ui *::after {animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important;}}
+
+.ordo-ui .ordo-button > span {display:inline-flex;align-items:center;gap:8px;}

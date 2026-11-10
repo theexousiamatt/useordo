@@ -8,8 +8,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
-import { WorkspaceProvider } from "@/hooks/useWorkspace";
-import AppLayout from "@/components/AppLayout";
+const WorkspaceProvider = lazy(() => import("@/hooks/useWorkspace").then(module => ({default:module.WorkspaceProvider})));
+const AppLayout = lazy(() => import("@/components/AppLayout"));
 import SignIn from "@/pages/auth/SignIn";
 import SignUp from "@/pages/auth/SignUp";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
@@ -19,16 +19,16 @@ import AccountLocked from "@/pages/auth/AccountLocked";
 import SessionExpired from "@/pages/auth/SessionExpired";
 import ResetPassword from "@/pages/ResetPassword";
 import Unsubscribe from "@/pages/Unsubscribe";
-import Onboarding from "@/pages/Onboarding";
-import Dashboard from "@/pages/Dashboard";
-import Projects from "@/pages/Projects";
-import ProjectDetail from "@/pages/ProjectDetail";
-import Tasks from "@/pages/Tasks";
-import Clients from "@/pages/Clients";
-import Team from "@/pages/Team";
-import ActivityPage from "@/pages/ActivityPage";
-import Settings from "@/pages/Settings";
-import NotFound from "@/pages/NotFound";
+const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Projects = lazy(() => import("@/pages/Projects"));
+const ProjectDetail = lazy(() => import("@/pages/ProjectDetail"));
+const Tasks = lazy(() => import("@/pages/Tasks"));
+const Clients = lazy(() => import("@/pages/Clients"));
+const Team = lazy(() => import("@/pages/Team"));
+const ActivityPage = lazy(() => import("@/pages/ActivityPage"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
 import { ClientLayout } from "@/components/client/ClientLayout";
 import { FOUNDATION_MODE } from "@/lib/foundationMode";
 
@@ -73,8 +73,7 @@ const App = () => (
                 </Routes>
               </FoundationEntry>
             </Suspense>
-          ) : <WorkspaceProvider>
-            <Suspense fallback={<ClientFallback />}>
+          ) : <Suspense fallback={<ClientFallback />}><WorkspaceProvider>
               <Routes>
                 <Route path="/auth" element={<SignIn />} />
                 <Route path="/auth/sign-up" element={<SignUp />} />
@@ -142,8 +141,7 @@ const App = () => (
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </Suspense>
-          </WorkspaceProvider>}
+          </WorkspaceProvider></Suspense>}
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

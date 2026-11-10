@@ -78,6 +78,7 @@ describe("task detail recovery", () => {
     fireEvent.click(screen.getByRole("button", { name: "Comment" }));
     await screen.findByText(/Your comment could not be sent/);
     expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("Please review version two.");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Comment" })).not.toBeDisabled());
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(window.confirm).toHaveBeenCalled();
   });

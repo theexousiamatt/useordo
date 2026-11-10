@@ -1,0 +1,694 @@
+{
+  "before": {
+    "dist": {
+      "ClientComingSoon-DxT0j7gH.js": {
+        "bytes": 298,
+        "gzip": 225
+      },
+      "ClientProjects-Cs5aRzoJ.js": {
+        "bytes": 797,
+        "gzip": 493
+      },
+      "ClientDashboard-mgxoN2WA.js": {
+        "bytes": 1272,
+        "gzip": 713
+      },
+      "ClientHeader-KOOuFEG_.js": {
+        "bytes": 1255,
+        "gzip": 572
+      },
+      "ClientActivity-YxrkU69Z.js": {
+        "bytes": 281,
+        "gzip": 233
+      },
+      "ClientApprovals-Bb3nS72R.js": {
+        "bytes": 257,
+        "gzip": 221
+      },
+      "FoundationEntry-pMpm1wiY.js": {
+        "bytes": 1196,
+        "gzip": 701
+      },
+      "index-DJ7DyeJf.css": {
+        "bytes": 93802,
+        "gzip": 16282
+      },
+      "index-yW66Ma3O.js": {
+        "bytes": 1087505,
+        "gzip": 312050
+      },
+      "index-BU-XFtes.js": {
+        "bytes": 26891,
+        "gzip": 7782
+      },
+      "ClientProjectDetail-Bo6xogv-.js": {
+        "bytes": 3935,
+        "gzip": 1492
+      }
+    },
+    "dist-foundation": {
+      "ClientDashboard--ZjqGFBC.js": {
+        "bytes": 1272,
+        "gzip": 714
+      },
+      "index-CncB5aqQ.js": {
+        "bytes": 26891,
+        "gzip": 7782
+      },
+      "ClientHeader-CQ58hm8V.js": {
+        "bytes": 1255,
+        "gzip": 572
+      },
+      "ClientApprovals-IRwSNLgO.js": {
+        "bytes": 257,
+        "gzip": 218
+      },
+      "ClientProjects-qKjUOtpC.js": {
+        "bytes": 797,
+        "gzip": 493
+      },
+      "ClientComingSoon-CMcfcLZg.js": {
+        "bytes": 298,
+        "gzip": 225
+      },
+      "ClientProjectDetail-DSni0kTE.js": {
+        "bytes": 3935,
+        "gzip": 1492
+      },
+      "index-DJ7DyeJf.css": {
+        "bytes": 93802,
+        "gzip": 16282
+      },
+      "ClientActivity-Bt9t1n8R.js": {
+        "bytes": 281,
+        "gzip": 232
+      },
+      "index-BEy10lAr.js": {
+        "bytes": 1087608,
+        "gzip": 312073
+      },
+      "FoundationEntry-96at75P_.js": {
+        "bytes": 1196,
+        "gzip": 699
+      }
+    }
+  },
+  "after": {
+    "dist": {
+      "file-text-Dzp4muYI.js": {
+        "bytes": 501,
+        "gzip": 320
+      },
+      "projectConstants-CTZK8p8F.js": {
+        "bytes": 1091,
+        "gzip": 408
+      },
+      "OrdoMenu-De2QQe4D.js": {
+        "bytes": 2706,
+        "gzip": 1252
+      },
+      "refresh-cw-dh85UueR.js": {
+        "bytes": 489,
+        "gzip": 324
+      },
+      "label-G5hpJ4N3.js": {
+        "bytes": 555,
+        "gzip": 376
+      },
+      "ProjectDetail-C4-3cPGI.js": {
+        "bytes": 155026,
+        "gzip": 45630
+      },
+      "Dashboard-Cdhyjj3A.js": {
+        "bytes": 1779,
+        "gzip": 912
+      },
+      "PageHeader-C7iGz1zh.js": {
+        "bytes": 504,
+        "gzip": 307
+      },
+      "ClientApprovals-Cny5uxgw.js": {
+        "bytes": 672,
+        "gzip": 418
+      },
+      "index-1LB_hXdg.css": {
+        "bytes": 119071,
+        "gzip": 19315
+      },
+      "skeleton-DhZhhoig.js": {
+        "bytes": 172,
+        "gzip": 161
+      },
+      "avatar-DrzDorw5.js": {
+        "bytes": 51588,
+        "gzip": 12884
+      },
+      "trash-2-BRLvGPmQ.js": {
+        "bytes": 526,
+        "gzip": 346
+      },
+      "UserProfileMenu-SNbnhVFx.js": {
+        "bytes": 5813,
+        "gzip": 2326
+      },
+      "ProjectOverviewCard-Bbfx2Zvg.js": {
+        "bytes": 2210,
+        "gzip": 892
+      },
+      "ClientActivity-9hC0vIRZ.js": {
+        "bytes": 665,
+        "gzip": 420
+      },
+      "email-BowZRoy9.js": {
+        "bytes": 532,
+        "gzip": 343
+      },
+      "useProjectPermissions-ChKzteCC.js": {
+        "bytes": 28238,
+        "gzip": 8984
+      },
+      "calendar-clock-CJ-cIXzw.js": {
+        "bytes": 551,
+        "gzip": 356
+      },
+      "users-BV15Tbie.js": {
+        "bytes": 473,
+        "gzip": 328
+      },
+      "useTeam-DE3lnN4X.js": {
+        "bytes": 12199,
+        "gzip": 4441
+      },
+      "card-DeXJALAM.js": {
+        "bytes": 966,
+        "gzip": 368
+      },
+      "Tasks-CI0i7HM4.js": {
+        "bytes": 7150,
+        "gzip": 2773
+      },
+      "file-up-L0s1wx4r.js": {
+        "bytes": 469,
+        "gzip": 317
+      },
+      "invitations-CkYg1h_p.js": {
+        "bytes": 1047,
+        "gzip": 605
+      },
+      "ClientDashboard-CjYwGD02.js": {
+        "bytes": 1934,
+        "gzip": 1034
+      },
+      "taskDueDates-Jla-tcLQ.js": {
+        "bytes": 1199,
+        "gzip": 587
+      },
+      "context-menu-BZYaxKpf.js": {
+        "bytes": 9208,
+        "gzip": 2700
+      },
+      "Team-DYscAvbt.js": {
+        "bytes": 9819,
+        "gzip": 3516
+      },
+      "mail-CwL9wILQ.js": {
+        "bytes": 384,
+        "gzip": 301
+      },
+      "AppLayout-C7S6zYHo.js": {
+        "bytes": 5859,
+        "gzip": 2109
+      },
+      "square-check-big-DwO_J12W.js": {
+        "bytes": 392,
+        "gzip": 295
+      },
+      "NotFound-CIXtZN7R.js": {
+        "bytes": 629,
+        "gzip": 379
+      },
+      "download-C_a07DPP.js": {
+        "bytes": 431,
+        "gzip": 316
+      },
+      "ProjectCreateDialog-M9zaGHE1.css": {
+        "bytes": 84863,
+        "gzip": 9363
+      },
+      "ProjectCreateDialog-B20K9g2I.js": {
+        "bytes": 267317,
+        "gzip": 85014
+      },
+      "input-gLp5E2j4.js": {
+        "bytes": 582,
+        "gzip": 356
+      },
+      "FoundationEntry-B5M1XNwl.js": {
+        "bytes": 1196,
+        "gzip": 704
+      },
+      "log-out-uF5ZOeaZ.js": {
+        "bytes": 427,
+        "gzip": 318
+      },
+      "textarea-CVQMn6zh.js": {
+        "bytes": 484,
+        "gzip": 322
+      },
+      "OrdoTaskCard-CXFTc7aL.js": {
+        "bytes": 7764,
+        "gzip": 2788
+      },
+      "alert-dialog-BKyO_Mf1.js": {
+        "bytes": 16789,
+        "gzip": 5473
+      },
+      "progress-DmasblNu.js": {
+        "bytes": 1903,
+        "gzip": 943
+      },
+      "ActivityPage-DpEQLm2f.js": {
+        "bytes": 1734,
+        "gzip": 946
+      },
+      "search-D1pn7PJw.js": {
+        "bytes": 341,
+        "gzip": 272
+      },
+      "arrow-right-DbK_29VD.js": {
+        "bytes": 333,
+        "gzip": 267
+      },
+      "index-DU61VwRv.js": {
+        "bytes": 752617,
+        "gzip": 220484
+      },
+      "OrdoCard-DidF2XsX.js": {
+        "bytes": 469,
+        "gzip": 322
+      },
+      "FilesTab-BAepbslI.js": {
+        "bytes": 7694,
+        "gzip": 3261
+      },
+      "ClientHeader-DEQsIQ3X.js": {
+        "bytes": 1333,
+        "gzip": 615
+      },
+      "Onboarding-BMB-ITjZ.js": {
+        "bytes": 22472,
+        "gzip": 7145
+      },
+      "index-D_USU_FB.js": {
+        "bytes": 20167,
+        "gzip": 6409
+      },
+      "OrdoInput-CZSUBGld.js": {
+        "bytes": 460,
+        "gzip": 316
+      },
+      "EmptyState-OS7iMzV0.js": {
+        "bytes": 733,
+        "gzip": 394
+      },
+      "chevron-down-fwzudYml.js": {
+        "bytes": 296,
+        "gzip": 246
+      },
+      "useMutation-jMGj8LTL.js": {
+        "bytes": 2880,
+        "gzip": 1219
+      },
+      "useInvitationProjects-98j3kedv.js": {
+        "bytes": 379,
+        "gzip": 294
+      },
+      "ClientProjects-ZMtXWx-r.js": {
+        "bytes": 1135,
+        "gzip": 664
+      },
+      "badge-BJ99mCKq.js": {
+        "bytes": 712,
+        "gzip": 374
+      },
+      "calendar-days-CV7595_M.js": {
+        "bytes": 662,
+        "gzip": 367
+      },
+      "ClientComingSoon-zApxV30y.js": {
+        "bytes": 553,
+        "gzip": 349
+      },
+      "Clients-CyRHNoWr.js": {
+        "bytes": 3286,
+        "gzip": 1442
+      },
+      "OrdoField-CGASi49V.js": {
+        "bytes": 530,
+        "gzip": 310
+      },
+      "MilestoneTimeline-kVlExQU1.js": {
+        "bytes": 1541,
+        "gzip": 824
+      },
+      "LoadingState-DZfn0YJ0.js": {
+        "bytes": 816,
+        "gzip": 371
+      },
+      "calendar-CyVB3Kb5.js": {
+        "bytes": 127703,
+        "gzip": 35759
+      },
+      "Settings-D_xEwvHm.js": {
+        "bytes": 3768,
+        "gzip": 1523
+      },
+      "OrdoDrawer-DtnRwa4t.js": {
+        "bytes": 832,
+        "gzip": 458
+      },
+      "ActivityFeed-B1yCn0oM.js": {
+        "bytes": 2912,
+        "gzip": 1326
+      },
+      "ClientProjectDetail-oBRD-6lk.js": {
+        "bytes": 4626,
+        "gzip": 1825
+      },
+      "Projects-DEnz75Ot.js": {
+        "bytes": 16342,
+        "gzip": 5517
+      },
+      "ActionCenter-DkXneRzp.js": {
+        "bytes": 3570,
+        "gzip": 1525
+      },
+      "user-cog-wpiWplJ_.js": {
+        "bytes": 751,
+        "gzip": 418
+      },
+      "format-DvdTNk0G.js": {
+        "bytes": 25713,
+        "gzip": 7618
+      }
+    },
+    "dist-foundation": {
+      "projectConstants-CTZK8p8F.js": {
+        "bytes": 1091,
+        "gzip": 408
+      },
+      "ClientDashboard-CHA_P0Yz.js": {
+        "bytes": 1934,
+        "gzip": 1036
+      },
+      "index-B7tuLBWQ.js": {
+        "bytes": 20167,
+        "gzip": 6405
+      },
+      "alert-dialog-CfE5QuSF.js": {
+        "bytes": 16789,
+        "gzip": 5473
+      },
+      "ClientApprovals-CndmnAk0.js": {
+        "bytes": 672,
+        "gzip": 419
+      },
+      "calendar-clock-CTwI5CNT.js": {
+        "bytes": 551,
+        "gzip": 355
+      },
+      "FilesTab-saBOvjGl.js": {
+        "bytes": 7694,
+        "gzip": 3259
+      },
+      "progress-Bmloth6K.js": {
+        "bytes": 1903,
+        "gzip": 943
+      },
+      "ClientActivity-Cs41zO2h.js": {
+        "bytes": 665,
+        "gzip": 420
+      },
+      "Settings-DjVedjZ4.js": {
+        "bytes": 3768,
+        "gzip": 1518
+      },
+      "index-1LB_hXdg.css": {
+        "bytes": 119071,
+        "gzip": 19315
+      },
+      "input-B_vShp4n.js": {
+        "bytes": 582,
+        "gzip": 356
+      },
+      "ProjectDetail-CuW51OVs.js": {
+        "bytes": 155026,
+        "gzip": 45629
+      },
+      "skeleton-YYxvo7Jv.js": {
+        "bytes": 172,
+        "gzip": 160
+      },
+      "log-out-DG8X-vDk.js": {
+        "bytes": 427,
+        "gzip": 318
+      },
+      "OrdoMenu-BvejCtOh.js": {
+        "bytes": 2706,
+        "gzip": 1250
+      },
+      "EmptyState-hMerQUQJ.js": {
+        "bytes": 733,
+        "gzip": 394
+      },
+      "arrow-right-2Bg-zWBu.js": {
+        "bytes": 333,
+        "gzip": 266
+      },
+      "OrdoInput-B12BJcx-.js": {
+        "bytes": 460,
+        "gzip": 318
+      },
+      "OrdoDrawer-Dgu0iZFO.js": {
+        "bytes": 832,
+        "gzip": 461
+      },
+      "LoadingState-lvwAVr4O.js": {
+        "bytes": 816,
+        "gzip": 372
+      },
+      "ActivityPage-DJVOeIuv.js": {
+        "bytes": 1734,
+        "gzip": 944
+      },
+      "taskDueDates-SGVWqT05.js": {
+        "bytes": 1199,
+        "gzip": 587
+      },
+      "ProjectCreateDialog-BF11pD9B.js": {
+        "bytes": 267317,
+        "gzip": 85012
+      },
+      "badge-B4Spy7-R.js": {
+        "bytes": 712,
+        "gzip": 375
+      },
+      "label-Clutmy0L.js": {
+        "bytes": 555,
+        "gzip": 376
+      },
+      "ActivityFeed-B3DUwgso.js": {
+        "bytes": 2912,
+        "gzip": 1329
+      },
+      "email-DYug7lu2.js": {
+        "bytes": 532,
+        "gzip": 343
+      },
+      "download-B55cYF0-.js": {
+        "bytes": 431,
+        "gzip": 316
+      },
+      "square-check-big-7s-rkl8i.js": {
+        "bytes": 392,
+        "gzip": 295
+      },
+      "file-up-CCnbxvXm.js": {
+        "bytes": 469,
+        "gzip": 317
+      },
+      "invitations-DCMy-Mgw.js": {
+        "bytes": 1047,
+        "gzip": 604
+      },
+      "calendar-days-BSVneMMW.js": {
+        "bytes": 662,
+        "gzip": 368
+      },
+      "context-menu-CSerI9Rl.js": {
+        "bytes": 9208,
+        "gzip": 2700
+      },
+      "trash-2-HUAwggu8.js": {
+        "bytes": 526,
+        "gzip": 346
+      },
+      "ProjectCreateDialog-M9zaGHE1.css": {
+        "bytes": 84863,
+        "gzip": 9363
+      },
+      "AppLayout-CP-BqaiM.js": {
+        "bytes": 5859,
+        "gzip": 2109
+      },
+      "PageHeader-CxHNAjZe.js": {
+        "bytes": 504,
+        "gzip": 306
+      },
+      "OrdoField-D50l2NFy.js": {
+        "bytes": 530,
+        "gzip": 307
+      },
+      "ActionCenter-eQfOkE0J.js": {
+        "bytes": 3570,
+        "gzip": 1525
+      },
+      "file-text-C3GeB1o1.js": {
+        "bytes": 501,
+        "gzip": 319
+      },
+      "user-cog-BhLFn60O.js": {
+        "bytes": 751,
+        "gzip": 419
+      },
+      "OrdoTaskCard-DBFCLe5H.js": {
+        "bytes": 7764,
+        "gzip": 2788
+      },
+      "search-CiVnzwTz.js": {
+        "bytes": 341,
+        "gzip": 271
+      },
+      "mail-BMG4T4w5.js": {
+        "bytes": 384,
+        "gzip": 300
+      },
+      "useTeam-DNXqojyi.js": {
+        "bytes": 12199,
+        "gzip": 4441
+      },
+      "users-BWUFBWZ0.js": {
+        "bytes": 473,
+        "gzip": 327
+      },
+      "MilestoneTimeline-C8laoIrd.js": {
+        "bytes": 1541,
+        "gzip": 825
+      },
+      "useMutation-DhDW_KTW.js": {
+        "bytes": 2880,
+        "gzip": 1218
+      },
+      "OrdoCard-BOiazNHU.js": {
+        "bytes": 469,
+        "gzip": 322
+      },
+      "avatar-nAI_e0Xy.js": {
+        "bytes": 51588,
+        "gzip": 12885
+      },
+      "chevron-down-D7o-Bpoc.js": {
+        "bytes": 296,
+        "gzip": 245
+      },
+      "UserProfileMenu-C3SaqFZU.js": {
+        "bytes": 5813,
+        "gzip": 2325
+      },
+      "card-CNF8oE8t.js": {
+        "bytes": 966,
+        "gzip": 368
+      },
+      "ProjectOverviewCard-BXFPh5HD.js": {
+        "bytes": 2210,
+        "gzip": 892
+      },
+      "Onboarding-7VLUYgkg.js": {
+        "bytes": 22472,
+        "gzip": 7145
+      },
+      "useInvitationProjects-CYhgmSmo.js": {
+        "bytes": 379,
+        "gzip": 294
+      },
+      "textarea-CrTZQlTM.js": {
+        "bytes": 484,
+        "gzip": 321
+      },
+      "Projects-BaCTd2cz.js": {
+        "bytes": 16342,
+        "gzip": 5508
+      },
+      "refresh-cw-BoZjiNKl.js": {
+        "bytes": 489,
+        "gzip": 324
+      },
+      "Dashboard-D_PoZKzm.js": {
+        "bytes": 1779,
+        "gzip": 912
+      },
+      "NotFound-G_v9zO_o.js": {
+        "bytes": 629,
+        "gzip": 378
+      },
+      "Team-BfzDkkVh.js": {
+        "bytes": 9819,
+        "gzip": 3518
+      },
+      "ClientProjects-BUhcAjVi.js": {
+        "bytes": 1135,
+        "gzip": 665
+      },
+      "FoundationEntry-CFZ5vDvo.js": {
+        "bytes": 1196,
+        "gzip": 703
+      },
+      "Clients-DKMAD2rN.js": {
+        "bytes": 3286,
+        "gzip": 1440
+      },
+      "Tasks-CgNK79cl.js": {
+        "bytes": 7150,
+        "gzip": 2770
+      },
+      "calendar-CKa3ajNa.js": {
+        "bytes": 127703,
+        "gzip": 35758
+      },
+      "ClientProjectDetail-aAJosXUq.js": {
+        "bytes": 4626,
+        "gzip": 1824
+      },
+      "useProjectPermissions-DhOgUIEo.js": {
+        "bytes": 28238,
+        "gzip": 8982
+      },
+      "ClientHeader-D_YprpeR.js": {
+        "bytes": 1333,
+        "gzip": 618
+      },
+      "index-RYj7E0uO.js": {
+        "bytes": 752720,
+        "gzip": 220506
+      },
+      "format-DvdTNk0G.js": {
+        "bytes": 25713,
+        "gzip": 7618
+      },
+      "ClientComingSoon-DUep-GZW.js": {
+        "bytes": 553,
+        "gzip": 350
+      }
+    }
+  }
+}

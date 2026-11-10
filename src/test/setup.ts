@@ -13,3 +13,8 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => {},
   }),
 });
+
+// React Aria measures popovers in real browsers; jsdom has no layout observers.
+class TestResizeObserver { observe() {} unobserve() {} disconnect() {} }
+globalThis.ResizeObserver = TestResizeObserver;
+HTMLElement.prototype.scrollIntoView ??= () => {};
