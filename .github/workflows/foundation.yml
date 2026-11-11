@@ -2,7 +2,7 @@ name: Ordo foundation
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, codex/heroui-v3-proof]
 permissions:
   contents: read
 jobs:
@@ -29,3 +29,38 @@ jobs:
           VITE_SUPABASE_URL: http://127.0.0.1:54321
           # A syntactically valid build-only key. CI makes no backend requests.
           VITE_SUPABASE_PUBLISHABLE_KEY: ci-build-only-public-placeholder
+
+  hosted-preview-build:
+    if: github.ref == 'refs/heads/codex/heroui-v3-proof'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint:foundation
+      - run: npm test -- --maxWorkers=2
+      - run: npm run test:foundation:safety
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Compile isolated preview only (placeholder API key, not deployable)
+        run: npm run build:foundation:preview
+        env:
+          VITE_ORDO_ARCHITECTURE: foundation
+          VITE_ORDO_ENVIRONMENT: preview
+          VITE_ORDO_TARGET_REF: afmclvqwejesxyzvizon
+          VITE_SUPABASE_PROJECT_ID: afmclvqwejesxyzvizon
+          VITE_SUPABASE_URL: https://afmclvqwejesxyzvizon.supabase.co
+          VITE_APP_URL: https://ordo-preview.inspirarestudio.com
+          VITE_SUPABASE_PUBLISHABLE_KEY: ci-build-only-public-placeholder
+          VITE_ENABLE_GOOGLE_AUTH: "false"
+      - name: Refuse legacy production targets in compiled preview
+        run: |
+          ! grep -REl 'ilvqopsvyacegotplstw|127[.]0[.]0[.]1:54321|sb_secret_' dist-foundation-hosted
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ordo-preview-build-only
+          path: dist-foundation-hosted
+          retention-days: 3
