@@ -1,6 +1,6 @@
 const PROTECTED_HOST = "ilvqopsvyacegotplstw.supabase.co";
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
-const HOSTED_MODES = { "foundation-staging": "staging", "foundation-production": "production" } as const;
+const HOSTED_MODES = { "foundation-staging": "staging", "foundation-preview": "preview", "foundation-production": "production" } as const;
 
 export interface FoundationEnvironment {
   MODE?: string;
@@ -67,6 +67,9 @@ export function assertFoundationEnvironment(environment: FoundationEnvironment, 
   }
   if (expectedEnvironment === "production" && app.hostname !== "ordo.inspirarestudio.com") {
     throw new Error("The production application origin is not authorized.");
+  }
+  if (expectedEnvironment === "preview" && app.hostname !== "ordo-preview.inspirarestudio.com") {
+    throw new Error("The hosted preview application origin is not authorized.");
   }
   if (expectedEnvironment === "staging" && app.hostname === "ordo.inspirarestudio.com") {
     throw new Error("A staging build cannot target the production application origin.");
