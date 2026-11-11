@@ -136,6 +136,12 @@ A dedicated **unpublished** Hostinger subdomain `ordo-preview.inspirarestudio.co
 
 **Next action:** diagnose CI runner/job failures through GitHub Actions UI or an execution-enabled repository workspace, resolve runtime dependency advisories using npm peer-compatible lockfile changes, configure and verify preview auth redirect, check Cloudflare/Hostinger DNS+TLS, build with actual publishable key and publish only to preview domain after safety checks, then test real users, tenants, workflows, mobile, and private storage. No synthetic accounts uploaded, no service-role values used in browser, no modifications to legacy database or production artifact branch.
 
+## CI runner-start investigation — 11 November 2026
+
+Investigated failed GitHub Actions runs `42943458699`, `42943593383`, and `42943643648` on `codex/heroui-v3-proof`. Reran failed jobs on latest run `42943643648` (attempt 2) via GitHub API; it **failed again before any workflow step**. Both `foundation` and `hosted-preview-build` jobs in attempt 2 report `runner_id: 0`, empty `runner_name`, `steps: []`, and a roughly 3-second lifetime. No npm, TypeScript, lint, test, audit, or build command executed. The runner never started, so a code/build failure cannot be diagnosed from these runs. GitHub job-log download previously returned 404 BlobNotFound. This behavior is consistent with a GitHub Actions account/budget/payment restriction or other runner-allocation gate, **but the exact annotation/error is not accessible through available connector results and is not verified**.
+
+Owner action needed: inspect the run's GitHub UI job annotation and personal-account `Billing & licensing → Budgets and alerts` and payment status (repository is personally owned by `theexousiamatt`, not an organization). Fix any confirmed limit/payment/Actions policy issue or contact GitHub Support with run `42943643648` if the account is unrestricted; then re-run CI. Do not increase a spending cap or add paid services without approval. **No source/build changes were made in this investigation** because no steps ran. The canonical preview is still not deployed; legacy website/database remain untouched.
+
 ## Next actions for ChatGPT
 
 1. Read this handoff and the actual safety-gate files, then resolve hosted canonical deployment/cutover and production-project access; do not repeat the broad architecture audit or continue feature work first.
