@@ -40,7 +40,10 @@ export default function ProductionWorkspace({accountId,organizationId,projectId}
     if(stageId) {
       const stage=data.columns.find(c=>c.id===stageId),target=data.columns.find(c=>c.id===destination?.columnId);
       if(permissions.can_configure && stage && target && stage.id!==target.id && stage.board_id===board?.id && target.board_id===stage.board_id && !board?.archived_at) {
-        act("move_column",stage.id,stage.revision,target.id);
+        const stages=data.columns.filter(c=>c.board_id===stage.board_id).sort((a,b)=>a.position-b.position);
+        const from=stages.findIndex(c=>c.id===stage.id),to=stages.findIndex(c=>c.id===target.id);
+        const beforeId=from<to ? (stages[to+1]?.id ?? null) : target.id;
+        act("move_column",stage.id,stage.revision,beforeId);
       }
       return;
     }
