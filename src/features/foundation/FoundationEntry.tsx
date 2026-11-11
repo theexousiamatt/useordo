@@ -32,7 +32,9 @@ export default function FoundationEntry({ children }: { children: ReactNode }) {
       const { data, error } = await environmentClient.rpc("foundation_environment_info");
       if (error) throw error;
       assertFoundationEnvironment(import.meta.env, window.location.hostname);
-      const expectedEnvironment = import.meta.env.VITE_ORDO_ENVIRONMENT;
+      // Preview uses the new production-target database without claiming a staging schema.
+      const expectedEnvironment = import.meta.env.VITE_ORDO_ENVIRONMENT === "preview"
+        ? "production" : import.meta.env.VITE_ORDO_ENVIRONMENT;
       const expectedRef = expectedEnvironment === "development" ? "local" : import.meta.env.VITE_ORDO_TARGET_REF;
       if (!expectedRef || data?.length !== 1 || data[0].environment !== expectedEnvironment
           || data[0].target_ref !== expectedRef || data[0].schema_version !== "ordo-foundation-v1") {
