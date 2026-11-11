@@ -7,7 +7,7 @@ import { assertFoundationEnvironment, type FoundationEnvironment } from "./src/l
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const environment: FoundationEnvironment = { ...loadEnv(mode, process.cwd(), ""), MODE: mode };
-  if (["foundation", "foundation-staging", "foundation-production"].includes(mode) && environment.VITE_ORDO_ARCHITECTURE !== "foundation") {
+  if (["foundation", "foundation-staging", "foundation-preview", "foundation-production"].includes(mode) && environment.VITE_ORDO_ARCHITECTURE !== "foundation") {
     throw new Error("Configure the explicit foundation environment for the selected build mode.");
   }
   assertFoundationEnvironment(environment);
