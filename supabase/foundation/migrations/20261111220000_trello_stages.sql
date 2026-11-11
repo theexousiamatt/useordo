@@ -67,16 +67,20 @@ BEGIN
   END IF;
 
   IF _action='move_column' THEN
-    SELECT * INTO destination FROM public.board_columns
-      WHERE organization_id=_organization_id AND work_context_id=ctx
-        AND board_id=src.board_id AND id=_destination_column_id;
-    IF NOT FOUND THEN RAISE EXCEPTION 'Destination stage unavailable' USING ERRCODE='42501'; END IF;
-    IF destination.id<>src.id THEN
+    -- A NULL destination means append at the end; otherwise insert before the destination.
+    IF _destination_column_id IS NOT NULL THEN
+      SELECT * INTO destination FROM public.board_columns
+        WHERE organization_id=_organization_id AND work_context_id=ctx
+          AND board_id=src.board_id AND id=_destination_column_id;
+      IF NOT FOUND THEN RAISE EXCEPTION 'Destination stage unavailable' USING ERRCODE='42501'; END IF;
+    END IF;
+    IF _destination_column_id IS DISTINCT FROM src.id THEN
       SELECT coalesce(array_agg(id ORDER BY position,id),ARRAY[]::uuid[])
         INTO column_ids FROM public.board_columns
         WHERE organization_id=_organization_id AND work_context_id=ctx
           AND board_id=src.board_id AND id<>src.id;
-      target_index := array_position(column_ids,destination.id);
+      target_index := CASE WHEN _destination_column_id IS NULL THEN cardinality(column_ids)+1
+        ELSE array_position(column_ids,_destination_column_id) END;
       IF target_index IS NULL THEN RAISE EXCEPTION 'Destination stage changed' USING ERRCODE='40001'; END IF;
       column_ids := coalesce(column_ids[1:target_index-1],ARRAY[]::uuid[])
         || ARRAY[src.id]
