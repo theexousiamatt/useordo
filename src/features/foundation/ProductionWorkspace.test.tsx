@@ -78,13 +78,22 @@ it("does not offer destructive removal of the only populated stage",async()=>{
  expect(screen.getByRole("button",{name:"Confirm removal"})).toBeDisabled();
 });
 
-it("retains the request identity when a stage action fails and is retried",async()=>{
- vi.mocked(foundationApi.getProductionWorkspace).mockResolvedValue(writableWorkspace());
+it("retries a failed empty-stage removal using the original request identity",async()=>{
+ const saved=writableWorkspace();
+ saved.columns=[...saved.columns,{id:"column-b",board_id:"board-a",name:"Review",position:1,revision:0}] as typeof saved.columns;
+ vi.mocked(foundationApi.getProductionWorkspace).mockResolvedValue(saved);
  vi.mocked(foundationApi.changeProductionColumn)
    .mockRejectedValueOnce(new Error("Connection interrupted"))
-   .mockResolvedValueOnce("column-a");
+   .mockResolvedValueOnce("column-b");
  show();
- fireEvent.click(await screen.findByRole("button",{name:"Remove stage"}));
- // The only populated column cannot be removed, even during a connection failure.
- expect(screen.getByRole("button",{name:"Confirm removal"})).toBeDisabled();
+ fireEvent.click((await screen.findAllByRole("button",{name:"Remove stage"}))[1]);
+ expect(screen.getByText("This stage has no tasks. Removing it will not affect other stages.")).toBeInTheDocument();
+ fireEvent.click(screen.getByRole("button",{name:"Confirm removal"}));
+ expect(await screen.findByRole("alert")).toHaveTextContent("Connection interrupted");
+ fireEvent.click(screen.getByRole("button",{name:"Retry save"}));
+ await screen.findByText("Changes saved.");
+ const calls=vi.mocked(foundationApi.changeProductionColumn).mock.calls;
+ expect(calls).toHaveLength(2);
+ expect(calls[0]).toEqual(calls[1]);
+ expect(calls[0]).toEqual(["studio-a","project-a","remove_column","column-b",0,null,expect.any(String)]);
 });
