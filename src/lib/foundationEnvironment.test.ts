@@ -72,3 +72,30 @@ describe("hosted canonical foundation isolation", () => {
       VITE_ORDO_ENVIRONMENT: "staging" }, "ordo.inspirarestudio.com")).toThrow();
   });
 });
+
+describe("isolated hosted preview", () => {
+  const preview = {
+    MODE: "foundation-preview", VITE_ORDO_ARCHITECTURE: "foundation",
+    VITE_ORDO_ENVIRONMENT: "preview", VITE_ORDO_TARGET_REF: "afmclvqwejesxyzvizon",
+    VITE_SUPABASE_PROJECT_ID: "afmclvqwejesxyzvizon",
+    VITE_SUPABASE_URL: "https://afmclvqwejesxyzvizon.supabase.co",
+    VITE_APP_URL: "https://ordo-preview.inspirarestudio.com",
+    VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+  } satisfies FoundationEnvironment;
+  it("accepts only the named preview host with pinned new backend", () => {
+    expect(() => assertFoundationEnvironment(preview, "ordo-preview.inspirarestudio.com")).not.toThrow();
+  });
+  it.each([
+    { MODE: "foundation-production" },
+    { VITE_ORDO_ENVIRONMENT: "production" },
+    { VITE_APP_URL: "https://ordo.inspirarestudio.com" },
+    { VITE_APP_URL: "https://other-preview.inspirarestudio.com" },
+    { VITE_SUPABASE_URL: "https://ilvqopsvyacegotplstw.supabase.co" },
+    { VITE_ORDO_TARGET_REF: "ilvqopsvyacegotplstw" },
+  ])("fails closed for mismatched preview configuration: %j", (patch) => {
+    expect(() => assertFoundationEnvironment({ ...preview, ...patch }, "ordo-preview.inspirarestudio.com")).toThrow();
+  });
+  it("refuses to run preview bundles on the production hostname", () => {
+    expect(() => assertFoundationEnvironment(preview, "ordo.inspirarestudio.com")).toThrow();
+  });
+});
