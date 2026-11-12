@@ -48,6 +48,7 @@ This additive migration creates `project_stages` with independent stage IDs, nam
 - `src/components/ordo/OrdoCardContextMenu.tsx` and `OrdoBulkActionMenu.tsx`: list real named stages under Move, separate reporting status action.
 - `src/hooks/useProjectData.tsx` and `src/integrations/supabase/types.ts`: preserve stage identity during create, duplicate, reorder and type-safe updates.
 - `src/pages/ProjectDetail.tsx`: pass existing project management permissions to stage UI.
+- `supabase/functions/duplicate-project/index.ts`: clone source stages into a newly seeded project and remap copied task stage IDs. **Deploy this Edge Function only after the migration has been validated and applied to the appropriate preview/live environment.**
 
 **Before any real migration or deployment**:
 
@@ -55,6 +56,7 @@ This additive migration creates `project_stages` with independent stage IDs, nam
 2. Test manager/owner and denied member/client/anonymous/cross-workspace RPC calls. Inspect the authenticated and anonymous grants and Supabase security advisor findings.
 3. Test column rename, create, duplicate, move left/right/to end, delete empty, delete populated, delete the only stage, archived task migration, race conditions, and replay with the same `requestId`.
 4. Test task status-only updates from legacy screens, explicit stage moves (including same-category stages), task creation/duplication, bulk moves, cross-project moves, and recent activity/reporting.
+   Verify `duplicate-project` Edge Function with blank, skeleton and full-copy modes: stage names/positions and task IDs must map to the new project, with no foreign stage references. Test failure handling and partially completed copies.
 5. Run `npm ci`, `npx tsc --noEmit`, `npm run test`, `npm run build`, targeted eslint, then desktop/mobile authenticated browser checks. **These checks have not been executed in this chat.**
 6. Repair any code/SQL failures on the legacy feature branch; do not apply the migration to production until tests, backup and recovery checks pass. Launch from a verified build with a rollback plan.
 
