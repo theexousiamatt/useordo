@@ -115,6 +115,7 @@ interface BoardInlineCtx {
   recolorLabel: (labelId: string, color: LabelColor) => void;
   deleteLabel: (labelId: string) => void;
   moveTargets: TaskMoveTarget[];
+  stages: {id:string;name:string;category:TaskStatus;position:number}[];
   inline: { id: string; mode: InlineMode } | null;
   setInline: (v: { id: string; mode: InlineMode } | null) => void;
   patchTask: (id: string, patch: Partial<TaskRow>) => void;
@@ -436,6 +437,10 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       if(!destination){toast.error("No stage currently uses this status.");return;}
       update.mutate({id:t.id,status,stage_id:destination.id});
     },
+    onMoveStage: (task,stageId) => {
+      const destination=stages.find(stage=>stage.id===stageId);
+      if(destination)update.mutate({id:task.id,stage_id:destination.id,status:destination.category});
+    },
     onMoveProject: (t, targetProjectId) =>
       update.mutate({ id: t.id, project_id: targetProjectId }),
     onDuplicate: (t) => dup.mutate(t),
@@ -458,6 +463,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     recolorLabel,
     deleteLabel,
     moveTargets,
+    stages,
     inline,
     setInline,
     patchTask,
@@ -1084,7 +1090,7 @@ function SortableTask({
         closeInline();
       }}
     >
-      <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
+      <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets} stages={stages}>
         <PopoverAnchor asChild>
           <div
             ref={setNodeRef}
@@ -1117,6 +1123,7 @@ function SortableTask({
               task={task}
               handlers={handlers}
               moveTargets={moveTargets}
+              stages={stages}
               trigger={
                 <button
                   onClick={(e) => e.stopPropagation()}
