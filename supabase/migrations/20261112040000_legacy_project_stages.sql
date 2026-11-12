@@ -50,7 +50,7 @@ FOR EACH ROW EXECUTE FUNCTION public.legacy_seed_project_stages();
 ALTER TABLE public.tasks ADD COLUMN stage_id uuid;
 ALTER TABLE public.tasks ADD CONSTRAINT tasks_project_stage_fk
   FOREIGN KEY(project_id,stage_id) REFERENCES public.project_stages(project_id,id)
-  ON DELETE RESTRICT;
+  ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED;
 CREATE INDEX tasks_project_stage_order_idx ON public.tasks(project_id,stage_id,position);
 
 UPDATE public.tasks t SET stage_id=(
