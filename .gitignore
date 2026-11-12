@@ -25,3 +25,10 @@ dist-ssr
 
 # Supabase CLI local connection state
 supabase/.temp/
+
+# Never add new private runtime configuration. Existing committed .env variants
+# contain browser-public Supabase settings; Git ignores do not erase history.
+.env
+.env.*
+!.env.example
+!.env.*.example
