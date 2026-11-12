@@ -712,21 +712,42 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     setPendingDelete(null);
   };
 
+  if(stageQuery.isPending)return <p role="status" className="py-6 text-sm text-muted-foreground">Loading project stages…</p>;
+  if(stageQuery.isError)return <div role="alert" className="flex flex-wrap items-center gap-3">
+    <span>Could not load project stages. Your project has not been changed.</span>
+    <Button variant="outline" onClick={()=>void stageQuery.refetch()}>Try again</Button>
+  </div>;
+  if(!stages.length)return <div role="alert">This project has no stages. Please contact a workspace manager.</div>;
+
+  const removableStage=stages.find(stage=>stage.id===removingStageId);
   return (
     <>
+      {stageError && <p role="alert" className="mb-3 rounded-md border border-destructive/30 p-3 text-sm text-destructive">{stageError}</p>}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={stageCollision}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {TASK_COLUMNS.map((col) => (
+        <div className="flex gap-4 overflow-x-auto pb-4" aria-label="Project stages">
+          <SortableContext items={stages.map(stage=>`stage:${stage.id}`)} strategy={horizontalListSortingStrategy}>
+          {stages.map((col) => (
             <Column
               key={col.id}
               id={col.id}
-              title={col.title}
-              tasks={byStatus(col.id)}
+              title={col.name}
+              category={col.category}
+              draggable={canConfigureStages && !stageMutation.isPending}
+              editing={canConfigureStages && editingStageId===col.id}
+              draftName={stageName}
+              onDraftNameChange={setStageName}
+              onSaveName={()=>{
+                if(!stageName.trim())return;
+                runStage({action:"rename",stageId:col.id,name:stageName.trim(),expectedRevision:col.revision},
+                  ()=>setEditingStageId(null));
+              }}
+              onCancelName={()=>setEditingStageId(null)}
+              tasks={byStage(col.id)}
               memberMap={memberMap}
               members={members}
               collapsed={collapsed.has(col.id)}
@@ -735,10 +756,38 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
               onCardClick={handleCardClick}
-              onAdd={(title) => createTask.mutate({ title, status: col.id })}
+              onAdd={(title) => createTask.mutate({ title, status: col.category,stage_id:col.id })}
               adding={createTask.isPending}
             />
           ))}
+          </SortableContext>
+          {canConfigureStages && <div className="w-72 shrink-0 rounded-card border border-border bg-card p-3">
+            {creatingStage ? <form className="space-y-3" onSubmit={event=>{
+              event.preventDefault();if(!stageName.trim())return;
+              runStage({action:"create",name:stageName.trim(),category:stageCategory},()=>{
+                setCreatingStage(false);setStageName("");
+              });
+            }}>
+              <label htmlFor="new-project-stage" className="text-sm font-medium">Stage name</label>
+              <Input id="new-project-stage" autoFocus value={stageName} onChange={event=>setStageName(event.target.value)}
+                placeholder="e.g. Client feedback" maxLength={160} required disabled={stageMutation.isPending}/>
+              <label htmlFor="stage-report-category" className="block text-xs text-muted-foreground">Reporting status</label>
+              <select id="stage-report-category" value={stageCategory}
+                onChange={event=>setStageCategory(event.target.value as TaskStatus)}
+                disabled={stageMutation.isPending}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                {TASK_COLUMNS.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}
+              </select>
+              <div className="flex gap-2">
+                <Button size="sm" type="submit" disabled={stageMutation.isPending||!stageName.trim()}>Save stage</Button>
+                <Button size="sm" type="button" variant="ghost" disabled={stageMutation.isPending}
+                  onClick={()=>{setCreatingStage(false);setStageName("");}}>Cancel</Button>
+              </div>
+            </form> :
+            <Button type="button" variant="ghost" onClick={()=>{setCreatingStage(true);setEditingStageId(null);setStageName("");setStageCategory("todo");}}>
+              <Plus className="mr-2 h-4 w-4"/>Add stage
+            </Button>}
+          </div>}
         </div>
 
         <DragOverlay>
@@ -774,6 +823,37 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         onSaveDescription={(id, description) => update.mutate({ id, description })}
       />
 
+
+      <AlertDialog open={!!removableStage} onOpenChange={open=>{if(!open&&!stageMutation.isPending)setRemovingStageId(null);}}>
+        <AlertDialogContent className="client-os rounded-panel">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {removableStage?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tasks in this stage, including archived tasks, will be moved to the destination stage.
+              No tasks or assignments will be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <label htmlFor="remove-stage-destination" className="block text-sm font-medium">Move tasks to</label>
+          <select id="remove-stage-destination" value={removeDestination}
+            disabled={stageMutation.isPending}
+            onChange={event=>setRemoveDestination(event.target.value)}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+            <option value="">Choose another stage</option>
+            {stages.filter(item=>item.id!==removableStage?.id).map(stage=>
+              <option key={stage.id} value={stage.id}>{stage.name}</option>)}
+          </select>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={stageMutation.isPending} onClick={()=>setRemovingStageId(null)}>Cancel</AlertDialogCancel>
+            <Button disabled={!removeDestination || stageMutation.isPending || stages.length<=1}
+              onClick={()=>{
+                if(!removableStage)return;
+                runStage({action:"remove",stageId:removableStage.id,
+                  destinationId:removeDestination,expectedRevision:removableStage.revision},
+                  ()=>{setRemovingStageId(null);setRemoveDestination("");});
+              }}>Remove stage</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent className="client-os rounded-panel">
