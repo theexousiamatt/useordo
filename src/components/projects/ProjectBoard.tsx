@@ -1060,6 +1060,7 @@ function SortableTask({
     recolorLabel,
     deleteLabel,
     moveTargets,
+    stages,
     inline,
     setInline,
     patchTask,
