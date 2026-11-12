@@ -26,7 +26,7 @@ jobs:
           node-version: '22'
       - name: Install browser-only test tooling
         run: |
-          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.56.1
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.65.0
           npx playwright install --with-deps chromium
       - name: Check responsive preview routes and auth UI (no login credentials)
         run: node .github/scripts/ordo-preview-smoke.mjs
