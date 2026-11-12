@@ -1,0 +1,66 @@
+name: Build Ordo legacy preview artifact
+
+on:
+  push:
+    branches:
+      - codex/legacy-ordo-improvements
+    paths:
+      - '.github/workflows/ordo-preview-publish.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  preview-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout legacy application source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Regression tests
+        run: npm run test
+      - name: Targeted lint
+        run: npx eslint src/components/projects/ProjectBoard.tsx src/components/projects/ProjectTeamDrawer.tsx src/components/ordo/OrdoColumnContextMenu.tsx src/components/ordo/OrdoCardContextMenu.tsx src/components/ordo/OrdoBulkActionMenu.tsx src/hooks/useProjectStages.ts src/hooks/useProjectData.tsx src/hooks/useProjects.tsx src/lib/legacyStageBoard.ts src/lib/legacyStageBoard.test.ts src/pages/ProjectDetail.tsx
+      - name: Build static preview with production Supabase backend
+        env:
+          VITE_APP_URL: https://ordo-preview.inspirarestudio.com
+        run: |
+          npm run build
+          test -s dist/index.html
+          test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
+          printf '{"source_sha":"%s","environment":"preview"}\n' "$GITHUB_SHA" > dist/release.json
+          printf 'User-agent: *\nDisallow: /\n' > dist/robots.txt
+      - name: Checkout preview static artifact branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/legacy-ordo-preview-static
+          path: site-artifact
+          persist-credentials: true
+      - name: Commit verified static preview bundle
+        run: |
+          set -euo pipefail
+          find site-artifact -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a dist/. site-artifact/
+          test -s site-artifact/index.html
+          test ! -e site-artifact/.env
+          test ! -e site-artifact/.env.production
+          git -C site-artifact config user.name "Ordo release automation"
+          git -C site-artifact config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C site-artifact add -A
+          if git -C site-artifact diff --cached --quiet; then
+            echo "Preview artifacts unchanged"
+          else
+            git -C site-artifact commit -m "Preview verified Ordo build from ${GITHUB_SHA}"
+            git -C site-artifact push origin HEAD:codex/legacy-ordo-preview-static
+          fi
