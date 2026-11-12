@@ -491,13 +491,15 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       const stage=stages.find(item=>item.id===id);
       if(!stage)return;
       if(action==="Rename column"){
+        setCreatingStage(false);
+        setCollapsed(current=>{const next=new Set(current);next.delete(id);return next;});
         setEditingStageId(id);setStageName(stage.name);
       }else if(action==="Reorder column"){
         toast.info("Drag the grip beside a stage title to reorder it.");
       }else if(action==="Delete column"){
         setRemovingStageId(id);setRemoveDestination("");
       }else if(action==="Duplicate column"){
-        runStage({action:"create",name:`${stage.name} copy`,category:stage.category});
+        runStage({action:"create",name:`${stage.name.slice(0,155)} copy`,category:stage.category});
       }else stub(action);
     },
   };
