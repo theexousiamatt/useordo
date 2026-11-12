@@ -2,7 +2,7 @@
 
 **Branch:** `codex/trello-stages-release`  
 **Base:** `codex/heroui-v3-proof`  
-**Scope:** Canonical project board stages only. No live deploy and no hosted SQL changes have been made.
+**Scope:** Canonical project board stages and assigning multiple existing studio members to a project. No live deploy and no hosted SQL changes have been made.
 
 ## Implemented
 
@@ -24,6 +24,25 @@
 - `src/features/foundation/ProductionWorkspace.test.tsx`
 - `supabase/foundation/migrations/20261111220000_trello_stages.sql`
 
+## Multi-member project team addition
+
+- `src/features/foundation/ProjectTeamPanel.tsx` adds a roster panel to the canonical project board, with multiple selection, project-specific Manager/Contributor/Viewer roles, edits and confirmed removal.
+- `src/features/foundation/ProjectTeamPanel.test.tsx` covers selecting multiple existing studio members, role edits and removal confirmation.
+- `src/features/foundation/api.ts` now calls `list_project_team` and `set_project_team_member` with scoped, authenticated RPCs.
+- `supabase/foundation/migrations/20261112030000_project_team_members.sql` adds the canonical project-team functions. It requires the verified canonical database, not the legacy production database.
+- Project owners are protected. A manager cannot assign other managers or remove their own access; an owner can assign project managers. Existing assigned tasks must be reassigned before project membership is removed or lowered to Viewer. Only existing active internal studio accounts appear; **new-account invitations are not implemented in this slice**.
+- Multiple projects under the same client business remain supported by the current canonical project model. Client-facing portal publishing and invitations remain outside this code change.
+
+### Additional Codex verification
+
+1. Run the new ProjectTeamPanel tests and the full frontend suite. Address TypeScript and lint problems.
+2. Apply the project-team migration after the stage migration to a clean isolated canonical database, and run authenticated integration tests with two or more existing studio users.
+3. Test owner, manager, contributor, viewer, unrelated studio user and client-role denial. Confirm a project manager cannot promote another manager or revoke the project owner, and someone from another studio cannot be added.
+4. Verify each person can belong to several projects and one project can contain multiple people, with permissions isolated by project.
+5. Verify role downgrade and removal are rejected when tasks remain assigned, including archived tasks; reassign first.
+6. Verify multi-add retries after partial failure avoid duplicates and successful additions are still visible after refresh.
+7. Confirm task assignment menus refresh after changing project members and never expose unauthorized people.
+
 ## What Codex should do
 
 1. Check out `codex/trello-stages-release`. **Do not check out `main` or push the artifact branch.**
@@ -41,5 +60,5 @@
 
 - The changes were authored via connected GitHub source editing, not by executing a local worktree; **no tests, SQL migrations or builds have yet been run for this branch**.
 - SQL function follows the existing canonical authorized SECURITY DEFINER RPC pattern. Validate permissions with actual database tests and Supabase Security Advisor before release.
-- The canonical client portal is not implemented in this branch; workflow templates are deliberately deferred.
+- The canonical client portal is not implemented in this branch; workflow templates and inviting brand-new studio accounts are deliberately deferred.
 - The canonical release continues to be blocked by its existing hosted production safety and CI gates.
