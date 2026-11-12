@@ -3,7 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import ProductionWorkspace from "./ProductionWorkspace";
 import { foundationApi } from "./api";
-vi.mock("./api",()=>({foundationApi:{getProductionWorkspace:vi.fn(),changeProductionItem:vi.fn()}}));
+vi.mock("./api",()=>({foundationApi:{getProductionWorkspace:vi.fn(),changeProductionItem:vi.fn(),changeProductionColumn:vi.fn()}}));
+vi.mock("./ProjectTeamPanel",()=>({ProjectTeamPanel:()=>null}));
 afterEach(()=>{cleanup();vi.resetAllMocks();});
 function show() {const query=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});return render(<QueryClientProvider client={query}><ProductionWorkspace accountId="account-a" organizationId="studio-a" projectId="project-a" /></QueryClientProvider>);}
 it("shows persisted tasks only in their authoritative home board and column",async()=>{
@@ -36,4 +37,64 @@ it("keeps archived board tasks available through explicit archive access",async(
  vi.mocked(foundationApi.changeProductionItem).mockImplementationOnce(async()=>{saved={...saved,boards:[{...saved.boards[0],archived_at:"2026-11-10T10:00:00Z",revision:1}]};return "board-a";});show();
  fireEvent.click(await screen.findByRole("button",{name:"Archive board"}));await screen.findByText("No active boards in this project.");
  fireEvent.click(screen.getByRole("checkbox",{name:"Include archived boards"}));expect(screen.getByText("First task")).toBeInTheDocument();expect(screen.getByText("Second task")).toBeInTheDocument();expect(screen.getByRole("button",{name:"Restore board"})).toBeInTheDocument();expect(screen.queryByRole("button",{name:"Edit task"})).not.toBeInTheDocument();
+});
+
+it("renders persisted stages in their configured order and exposes keyboard drag handles",async()=>{
+ const saved=writableWorkspace();
+ saved.columns=[
+   {...saved.columns[0],position:2},
+   {id:"column-b",board_id:"board-a",name:"Review",category:"review",position:0,revision:0},
+   {id:"column-c",board_id:"board-a",name:"Planning",category:"backlog",position:1,revision:0},
+ ] as typeof saved.columns;
+ vi.mocked(foundationApi.getProductionWorkspace).mockResolvedValue(saved);
+ show();
+ expect((await screen.findAllByRole("button",{name:/Drag .* stage/})).map(button=>button.getAttribute("aria-label")))
+   .toEqual(["Drag Review stage","Drag Planning stage","Drag Working stage"]);
+ expect(screen.getByRole("button",{name:"+ Add stage"})).toBeInTheDocument();
+});
+
+it("requires a destination for populated stage removal and preserves archived task count",async()=>{
+ const saved=writableWorkspace();
+ saved.columns=[...saved.columns,{id:"column-b",board_id:"board-a",name:"Review",position:1,revision:0}] as typeof saved.columns;
+ saved.tasks=[...saved.tasks,{...saved.tasks[1],id:"task-c",archived_at:"2026-11-11T00:00:00Z"}];
+ vi.mocked(foundationApi.getProductionWorkspace).mockResolvedValue(saved);
+ vi.mocked(foundationApi.changeProductionColumn).mockResolvedValue("column-a");
+ show();
+ fireEvent.click((await screen.findAllByRole("button",{name:"Remove stage"}))[0]);
+ const dialog=screen.getByRole("dialog",{name:"Remove project stage"});
+ expect(dialog).toHaveTextContent("3 tasks (including archived tasks)");
+ expect(screen.getByRole("button",{name:"Confirm removal"})).toBeDisabled();
+ fireEvent.change(screen.getByRole("combobox",{name:"Move tasks to"}),{target:{value:"column-b"}});
+ fireEvent.click(screen.getByRole("button",{name:"Confirm removal"}));
+ await waitFor(()=>expect(foundationApi.changeProductionColumn).toHaveBeenCalledWith(
+   "studio-a","project-a","remove_column","column-a",0,"column-b",expect.any(String)
+ ));
+});
+
+it("does not offer destructive removal of the only populated stage",async()=>{
+ vi.mocked(foundationApi.getProductionWorkspace).mockResolvedValue(writableWorkspace());
+ show();
+ fireEvent.click(await screen.findByRole("button",{name:"Remove stage"}));
+ expect(screen.getByText("Create another stage first, then choose where to move these tasks.")).toBeInTheDocument();
+ expect(screen.getByRole("button",{name:"Confirm removal"})).toBeDisabled();
+});
+
+it("retries a failed empty-stage removal using the original request identity",async()=>{
+ const saved=writableWorkspace();
+ saved.columns=[...saved.columns,{id:"column-b",board_id:"board-a",name:"Review",position:1,revision:0}] as typeof saved.columns;
+ vi.mocked(foundationApi.getProductionWorkspace).mockResolvedValue(saved);
+ vi.mocked(foundationApi.changeProductionColumn)
+   .mockRejectedValueOnce(new Error("Connection interrupted"))
+   .mockResolvedValueOnce("column-b");
+ show();
+ fireEvent.click((await screen.findAllByRole("button",{name:"Remove stage"}))[1]);
+ expect(screen.getByText("This stage has no tasks. Removing it will not affect other stages.")).toBeInTheDocument();
+ fireEvent.click(screen.getByRole("button",{name:"Confirm removal"}));
+ expect(await screen.findByRole("alert")).toHaveTextContent("Connection interrupted");
+ fireEvent.click(screen.getByRole("button",{name:"Retry save"}));
+ await screen.findByText("Changes saved.");
+ const calls=vi.mocked(foundationApi.changeProductionColumn).mock.calls;
+ expect(calls).toHaveLength(2);
+ expect(calls[0]).toEqual(calls[1]);
+ expect(calls[0]).toEqual(["studio-a","project-a","remove_column","column-b",0,null,expect.any(String)]);
 });

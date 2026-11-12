@@ -5,6 +5,7 @@ import type { CreateFoundationProject, DisciplineKey, FoundationProject, Project
 export interface ProductionBoard { id:string; organization_id:string; work_context_id:string; name:string; position:number; archived_at:string|null; revision:number }
 export interface ProductionColumn { id:string; organization_id:string; work_context_id:string; board_id:string; name:string; category:string; position:number; revision:number }
 export interface ProductionTask { id:string; organization_id:string; work_context_id:string; board_id:string|null; column_id:string|null; title:string; description:string|null; category:string; priority:string; due_date:string|null; position:number; archived_at:string|null; revision:number }
+export interface ProjectTeamPerson { user_id:string; member_name:string; studio_role:string; project_role:"owner"|"manager"|"contributor"|"viewer"|null }
 
 export interface UnifiedTask extends ProductionTask {
  context_kind:"project"|"operational";context_name:string;project_id:string|null;ownership:"client"|"internal"|null;initiative_name:string|null;
@@ -38,8 +39,11 @@ export interface FoundationDatabase {
       list_context_assignees:{Args:{_organization_id:string;_context_id:string};Returns:{id:string;name:string}[]};
       save_operational_task:{Args:{_organization_id:string;_context_id:string;_task_id:string;_expected_revision:number;_values:Record<string,unknown>;_request_id:string};Returns:string};
       change_production_item: {Args:{_organization_id:string;_project_id:string;_action:string;_id:string;_expected_revision:number;_column_id:string|null;_before_id:string|null;_request_id:string};Returns:string};
+      change_production_column: {Args:{_organization_id:string;_project_id:string;_action:"move_column"|"remove_column";_column_id:string;_expected_revision:number;_destination_column_id:string|null;_request_id:string};Returns:string};
       save_production_item: {Args:{_organization_id:string;_project_id:string;_kind:string;_id:string|null;_expected_revision:number|null;_values:Record<string,unknown>;_request_id:string};Returns:string};
       list_production_assignees: {Args:{_organization_id:string;_project_id:string};Returns:{id:string;name:string}[]};
+      list_project_team: {Args:{_organization_id:string;_project_id:string};Returns:ProjectTeamPerson[]};
+      set_project_team_member: {Args:{_organization_id:string;_project_id:string;_user_id:string;_role:"manager"|"contributor"|"viewer"|null;_request_id:string};Returns:string};
       production_permissions: {Args:{_organization_id:string;_project_id:string};Returns:{can_write:boolean;can_configure:boolean}[]};
       list_my_organizations: { Args: Record<string, never>; Returns: StudioOrganization[] };
       create_organization: { Args: { _name: string; _slug: string; _request_id: string }; Returns: string };
@@ -96,12 +100,32 @@ export const foundationApi = {
       client.from("board_columns").select("*").eq("organization_id",organizationId).eq("work_context_id",contextId).order("position").order("id"),
     ]);if(boards.error)throw boards.error;if(columns.error)throw columns.error;return {boards:boards.data ?? [],columns:columns.data ?? []};
   },
+  async changeProductionColumn(organizationId:string,projectId:string,action:"move_column"|"remove_column",columnId:string,revision:number,destinationColumnId:string|null,requestId:string) {
+    const {data,error}=await client.rpc("change_production_column",{
+      _organization_id:organizationId,_project_id:projectId,_action:action,
+      _column_id:columnId,_expected_revision:revision,_destination_column_id:destinationColumnId,_request_id:requestId,
+    });
+    if(error)throw error;
+    return savedId(data);
+  },
   async changeProductionItem(organizationId:string,projectId:string,action:string,id:string,revision:number,columnId:string|null,beforeId:string|null,requestId:string) {
     const {data,error}=await client.rpc("change_production_item",{_organization_id:organizationId,_project_id:projectId,_action:action,_id:id,_expected_revision:revision,_column_id:columnId,_before_id:beforeId,_request_id:requestId});if(error)throw error;return savedId(data);
   },
   async saveProductionItem(organizationId:string,projectId:string,kind:string,id:string|null,revision:number|null,values:Record<string,unknown>,requestId:string) {
     const {data,error}=await client.rpc("save_production_item",{_organization_id:organizationId,_project_id:projectId,_kind:kind,_id:id,_expected_revision:revision,_values:values,_request_id:requestId});
     if(error) throw error; return savedId(data);
+  },
+  async listProjectTeam(organizationId:string,projectId:string):Promise<ProjectTeamPerson[]> {
+    const {data,error}=await client.rpc("list_project_team",{_organization_id:organizationId,_project_id:projectId});
+    if(error)throw error;
+    return data ?? [];
+  },
+  async setProjectTeamMember(organizationId:string,projectId:string,userId:string,role:"manager"|"contributor"|"viewer"|null,requestId:string):Promise<string> {
+    const {data,error}=await client.rpc("set_project_team_member",{
+      _organization_id:organizationId,_project_id:projectId,_user_id:userId,_role:role,_request_id:requestId,
+    });
+    if(error)throw error;
+    return savedId(data);
   },
   async listProductionAssignees(organizationId:string,projectId:string) {
     const {data,error}=await client.rpc("list_production_assignees",{_organization_id:organizationId,_project_id:projectId});if(error) throw error;return data ?? [];
