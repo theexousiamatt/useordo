@@ -885,6 +885,13 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 function Column({
   id,
   title,
+  category,
+  draggable,
+  editing,
+  draftName,
+  onDraftNameChange,
+  onSaveName,
+  onCancelName,
   tasks,
   memberMap,
   members,
@@ -897,8 +904,15 @@ function Column({
   onAdd,
   adding,
 }: {
-  id: TaskStatus;
+  id: string;
   title: string;
+  category: TaskStatus;
+  draggable: boolean;
+  editing: boolean;
+  draftName: string;
+  onDraftNameChange: (name:string)=>void;
+  onSaveName: ()=>void;
+  onCancelName: ()=>void;
   tasks: TaskRow[];
   memberMap: Map<string, ProjectMemberProfile>;
   members: ProjectMemberProfile[];
@@ -911,10 +925,15 @@ function Column({
   onAdd: (title: string) => void;
   adding: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
+  const { setNodeRef:setDropRef, isOver } = useDroppable({ id });
+  const {
+    setNodeRef:setStageRef,setActivatorNodeRef,attributes,listeners,
+    transform,transition,isDragging,
+  }=useSortable({id:`stage:${id}`,disabled:!draggable});
+  const stageStyle={transform:CSS.Transform.toString(transform),transition,opacity:isDragging?.55:1};
   const [composing, setComposing] = useState(false);
   const [value, setValue] = useState("");
-  const theme = COLUMN_THEME[id];
+  const theme = COLUMN_THEME[category];
 
   const submit = () => {
     if (value.trim()) {
@@ -927,7 +946,11 @@ function Column({
   if (collapsed) {
     return (
       <OrdoColumnContextMenu status={id} collapsed handlers={columnHandlers}>
-        <div className="flex w-12 shrink-0 flex-col items-center gap-3 rounded-card border border-border bg-card py-3">
+        <div ref={setStageRef} style={stageStyle} className="flex w-12 shrink-0 flex-col items-center gap-3 rounded-card border border-border bg-card py-3">
+          {draggable && <button type="button" ref={setActivatorNodeRef} {...attributes} {...listeners}
+            className="cursor-grab touch-none text-muted-foreground" aria-label={`Drag ${title} stage`}>
+            <GripVertical className="h-4 w-4"/>
+          </button>}
           <button
             onClick={() => columnHandlers.onToggleCollapse(id)}
             className="text-muted-foreground hover:text-foreground"
@@ -947,17 +970,26 @@ function Column({
   }
 
   return (
-    <div className="flex w-72 shrink-0 flex-col">
+    <div ref={setStageRef} style={stageStyle} className="flex w-72 shrink-0 flex-col">
       <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers}>
         <div className="mb-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <span className={cn("h-2 w-2 rounded-full", theme.dot)} />
-            <span className={cn("text-sm font-semibold", theme.header)}>{title}</span>
+            {editing ? <Input autoFocus maxLength={160} value={draftName}
+              onChange={event=>onDraftNameChange(event.target.value)}
+              onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();onSaveName();}
+                if(event.key==="Escape")onCancelName();}}
+              onBlur={onSaveName} className="h-8 w-40 text-sm" aria-label={`Rename ${title} stage`}/> :
+              <span className={cn("text-sm font-semibold", theme.header)}>{title}</span>}
             <span className="rounded-pill bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               {tasks.length}
             </span>
           </div>
           <div className="flex items-center gap-0.5">
+            {draggable && <button type="button" ref={setActivatorNodeRef}
+              {...attributes} {...listeners}
+              className="cursor-grab touch-none rounded-md p-1 text-muted-foreground hover:bg-muted"
+              aria-label={`Drag ${title} stage`}><GripVertical className="h-4 w-4" /></button>}
             <Button
               variant="ghost"
               size="icon"
@@ -982,7 +1014,7 @@ function Column({
       </OrdoColumnContextMenu>
 
       <div
-        ref={setNodeRef}
+        ref={setDropRef}
         className={cn(
           "flex min-h-24 flex-1 flex-col gap-3 rounded-card border border-dashed border-transparent p-1.5 transition-colors",
           isOver && "border-primary/30 bg-primary/5",
