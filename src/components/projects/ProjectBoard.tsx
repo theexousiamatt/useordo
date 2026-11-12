@@ -145,7 +145,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const { data: assigneesMap } = useTaskAssignees(projectId);
   const setAssignees = useSetTaskAssignees(projectId);
   const stageQuery=useProjectStages(projectId);
-  const stages=stageQuery.data ?? [];
+  const stages=useMemo(()=>stageQuery.data ?? [],[stageQuery.data]);
   const stageMutation=useProjectStageCommand(projectId);
   const [stageError,setStageError]=useState("");
   const [editingStageId,setEditingStageId]=useState<string|null>(null);
@@ -483,7 +483,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     onToggleCollapse: (id) =>
       setCollapsed((prev) => {
         const next = new Set(prev);
-        next.has(id) ? next.delete(id) : next.add(id);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
         return next;
       }),
     onAction: (id, action) => {
@@ -540,7 +541,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     setFocusedId(taskId);
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
       return next;
     });
   }, []);
