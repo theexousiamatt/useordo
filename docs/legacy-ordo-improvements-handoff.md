@@ -33,9 +33,39 @@
 5. Confirm a project can have multiple members and each user can belong to several projects. Verify task-assignable member pickers refresh.
 6. Deploy to a controlled preview, test with safe fixture accounts and mobile/desktop. Then use the existing artifact deployment method to promote a validated build, with rollback and backups.
 
+## Customizable Trello-style project stages (source implemented; NOT deployed)
+
+**New migration**: `supabase/migrations/20261112040000_legacy_project_stages.sql`
+
+This additive migration creates `project_stages` with independent stage IDs, names, reporting categories and position for each project. Existing projects are seeded with the five familiar stages. Existing tasks receive `stage_id` with their current `status` preserved. An insert trigger seeds newly created projects. A compatibility trigger maps legacy status-only task writes to a matching or fallback stage and maps explicit stage moves back to the legacy reporting category. An authenticated, project-manager-guarded `manage_project_stage` RPC handles create/rename/reorder/remove, revision conflicts and idempotency. Removal moves **all** tasks, including archived ones, to an explicitly chosen destination within the same project before deleting a stage.
+
+**Modified frontend**:
+- `src/hooks/useProjectStages.ts`: project-scoped stage reads and commands.
+- `src/lib/legacyStageBoard.ts`: pure helpers to map legacy tasks, reorder stage positions, and move cards.
+- `src/lib/legacyStageBoard.test.ts`: unit tests for multiple stages of the same category, reordering, cross-stage moves, preserving archived task fields, and old-task mapping.
+- `src/components/projects/ProjectBoard.tsx`: dynamic sortable columns, drag handles, add/rename/delete controls, safe removal dialog, custom stage navigation, and task persistence.
+- `src/components/ordo/OrdoColumnContextMenu.tsx`: use stage IDs for column actions.
+- `src/components/ordo/OrdoCardContextMenu.tsx` and `OrdoBulkActionMenu.tsx`: list real named stages under Move, separate reporting status action.
+- `src/hooks/useProjectData.tsx` and `src/integrations/supabase/types.ts`: preserve stage identity during create, duplicate, reorder and type-safe updates.
+- `src/pages/ProjectDetail.tsx`: pass existing project management permissions to stage UI.
+
+**Before any real migration or deployment**:
+
+1. Use a **disposable isolated copy of the legacy schema** to execute the new SQL (not the canonical foundation schema, and not the live legacy database). Verify the stage backfill doesn't modify any existing task status, project, assignment, or archived flag, and that new project creation seeds stage rows.
+2. Test manager/owner and denied member/client/anonymous/cross-workspace RPC calls. Inspect the authenticated and anonymous grants and Supabase security advisor findings.
+3. Test column rename, create, duplicate, move left/right/to end, delete empty, delete populated, delete the only stage, archived task migration, race conditions, and replay with the same `requestId`.
+4. Test task status-only updates from legacy screens, explicit stage moves (including same-category stages), task creation/duplication, bulk moves, cross-project moves, and recent activity/reporting.
+5. Run `npm ci`, `npx tsc --noEmit`, `npm run test`, `npm run build`, targeted eslint, then desktop/mobile authenticated browser checks. **These checks have not been executed in this chat.**
+6. Repair any code/SQL failures on the legacy feature branch; do not apply the migration to production until tests, backup and recovery checks pass. Launch from a verified build with a rollback plan.
+
+**Compatibility notes**:
+- Task `status` still has the original reporting categories; the user-facing stage name/order is customizable. Two or more stages may share a reporting category.
+- Previous category-oriented reports and actions are retained, but categories with no corresponding user-facing stage require explicit verification for the fallback behavior.
+- A failed/unconfirmed stage RPC must retry the *same* command/request identity or reload before changing inputs.
+- Stage drag-and-drop currently uses the existing task reordering mechanism, which writes task positions across multiple calls. Verify failure reconciliation and improve atomicity if testing reveals partial writes.
+
 ## Next features, separate incremental legacy changes
 
-- **Trello-like custom project stages:** current `src/components/projects/ProjectBoard.tsx` renders fixed `TASK_COLUMNS` and `TaskStatus` enum from `src/lib/projectConstants.ts`. To enable arbitrary labels/order/number, create a project-scoped stage identity (not merely rename the enum). Review all task mutations, filtering, reporting, automation and database checks/RLS before schema change. Backfill existing projects without changing their tasks; test rollback and status migration; retain cross-project drag/drop and archive behavior.
 - **Multiple projects per client:** legacy `projects.client_id` and `project_members` support multiple projects. Validate client portal visibility for every assigned project and invitation assignment separately. Avoid granting workspace-wide internal task access.
 
 **No production environment was changed in preparing this branch.**
