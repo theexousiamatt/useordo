@@ -433,7 +433,11 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     onEditLabels: (t) => startInline(t, "labels"),
     onEditMembers: (t) => startInline(t, "members"),
     onEditDueDate: (t) => startInline(t, "due"),
-    onMoveStatus: (t, status) => update.mutate({ id: t.id, status }),
+    onMoveStatus: (t, status) => {
+      const destination=stages.find(stage=>stage.category===status);
+      if(!destination){toast.error("No stage currently uses this status.");return;}
+      update.mutate({id:t.id,status,stage_id:destination.id});
+    },
     onMoveProject: (t, targetProjectId) =>
       update.mutate({ id: t.id, project_id: targetProjectId }),
     onDuplicate: (t) => dup.mutate(t),
@@ -468,14 +472,30 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 
   // ---------------- Column actions ----------------
   const columnHandlers: ColumnMenuHandlers = {
-    onAddTask: (status) => createTask.mutate({ title: "New task", status }),
-    onToggleCollapse: (status) =>
+    onAddTask: (id) => {
+      const stage=stages.find(item=>item.id===id);
+      if(stage)createTask.mutate({title:"New task",status:stage.category,stage_id:stage.id});
+    },
+    onToggleCollapse: (id) =>
       setCollapsed((prev) => {
         const next = new Set(prev);
-        next.has(status) ? next.delete(status) : next.add(status);
+        next.has(id) ? next.delete(id) : next.add(id);
         return next;
       }),
-    onAction: (_status, action) => stub(action),
+    onAction: (id, action) => {
+      if(!canConfigureStages){toast.error("You do not have permission to configure stages.");return;}
+      const stage=stages.find(item=>item.id===id);
+      if(!stage)return;
+      if(action==="Rename column"){
+        setEditingStageId(id);setStageName(stage.name);
+      }else if(action==="Reorder column"){
+        toast.info("Drag the grip beside a stage title to reorder it.");
+      }else if(action==="Delete column"){
+        setRemovingStageId(id);setRemoveDestination("");
+      }else if(action==="Duplicate column"){
+        runStage({action:"create",name:`${stage.name} copy`,category:stage.category});
+      }else stub(action);
+    },
   };
 
   // ---------------- Bulk actions ----------------
@@ -486,7 +506,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       clearSelection();
     },
     onMove: (status) => {
-      bulkUpdate.mutate({ ids: selectedIds, patch: { status } });
+      const target=stages.find(stage=>stage.category===status);
+      if(!target){toast.error("No stage currently uses this status.");return;}
+      bulkUpdate.mutate({ ids: selectedIds, patch: { status,stage_id:target.id } });
       clearSelection();
     },
     onSetStatus: (status) => {
@@ -590,8 +612,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           break;
         case "m": {
           e.preventDefault();
-          const idx = STATUS_ORDER.indexOf(task.status);
-          update.mutate({ id: task.id, status: STATUS_ORDER[(idx + 1) % STATUS_ORDER.length] });
+          const index=stages.findIndex(stage=>stage.id===stageForTask(task));
+          const next=stages[(index+1)%stages.length];
+          if(next)update.mutate({id:task.id,status:next.category,stage_id:next.id});
           break;
         }
         case "l": {
@@ -608,7 +631,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [items, focusedId, selected, editOpen, openTask, startInline, dup, update, clearSelection]);
+  }, [items, focusedId, selected, editOpen, openTask, startInline, dup, update, clearSelection, stages, stageForTask]);
 
   // ---------------- Drag & drop ----------------
   const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
