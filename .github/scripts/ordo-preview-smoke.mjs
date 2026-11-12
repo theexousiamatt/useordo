@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 
 const origin = process.env.PREVIEW_URL;
+const expectedEnvironment = process.env.EXPECTED_ENV ?? "preview";
 assert.ok(origin?.startsWith("https://"), "Preview URL required");
 const browser = await chromium.launch({headless:true});
 await fs.mkdir(".github/screenshots",{recursive:true});
@@ -36,7 +37,18 @@ try {
       const release=await page.request.get(`${origin}/release.json`);
       assert.equal(release.status(),200,"Preview release metadata should be public and reachable");
       const rel=await release.json();
-      assert.equal(rel.environment,"preview");
+      assert.equal(rel.environment,expectedEnvironment);
+      if(expectedEnvironment==="production"){
+        const blocked=await page.request.get(`${origin}/.env`,{maxRedirects:0});
+        assert.ok([401,403,404].includes(blocked.status()),
+          `Private environment file must be inaccessible; HTTP ${blocked.status()}`);
+        const edge=await page.request.post(
+          "https://ilvqopsvyacegotplstw.supabase.co/functions/v1/duplicate-project",
+          {data:{projectId:"00000000-0000-4000-8000-000000000001",name:"Unauthorized probe"}}
+        );
+        assert.equal(edge.status(),401,"Project duplication must reject unauthenticated calls");
+        console.log("Production sensitive-file and unauthenticated Edge Function checks: PASS");
+      }
       assert.match(rel.source_sha,/^[0-9a-f]{40}$/);
       const signUp=await page.goto(`${origin}/auth/sign-up`,{waitUntil:"domcontentloaded"});
       assert.equal(signUp?.status(),200,"Sign-up route should return an SPA page");
