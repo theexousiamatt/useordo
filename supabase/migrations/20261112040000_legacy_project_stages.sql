@@ -90,11 +90,12 @@ BEGIN
     SELECT s.category INTO target_category FROM public.project_stages s
       WHERE s.project_id=NEW.project_id AND s.id=NEW.stage_id;
     IF NOT FOUND THEN RAISE EXCEPTION 'Stage does not belong to this project' USING ERRCODE='23503'; END IF;
-    IF NOT map_legacy_status AND (
-      TG_OP='INSERT' OR
-      (TG_OP='UPDATE' AND NEW.stage_id IS DISTINCT FROM OLD.stage_id)
-    ) THEN
-      NEW.status:=target_category;
+    IF NOT map_legacy_status THEN
+      IF TG_OP='INSERT' THEN
+        NEW.status:=target_category;
+      ELSIF NEW.stage_id IS DISTINCT FROM OLD.stage_id THEN
+        NEW.status:=target_category;
+      END IF;
     END IF;
   END IF;
   RETURN NEW;
