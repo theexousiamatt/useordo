@@ -33,9 +33,29 @@
 5. Confirm a project can have multiple members and each user can belong to several projects. Verify task-assignable member pickers refresh.
 6. Deploy to a controlled preview, test with safe fixture accounts and mobile/desktop. Then use the existing artifact deployment method to promote a validated build, with rollback and backups.
 
+## Production release verification — 12 November 2026
+
+- Production URL: https://ordo.inspirarestudio.com
+- Legacy source release: `a6eb5d764bc8f2da8e83799f83057e520c32c4c6` (production-configured bundle)
+- Live static artifact release branch: `codex/hostinger-static`, released commit `33132ca0ca7bfd7d183e34357a6e7d73b9bff88f`
+- Exact previous static rollback commit: `0f48d88cadad592dcfc087bcfd855b0129e3d0e4` preserved in `codex/hostinger-static-rollback-20261112`
+- Supabase project: existing Ordo project, unchanged identity. Applied restricted pre-release snapshot `20261112225010_ordo_legacy_stages_predeploy_snapshot_20261112` and custom stages migration `20261112225108_legacy_project_stages`.
+- Internal snapshot schema: `ordo_release_backup`, with no anonymous or authenticated role usage grants.
+- Post-migration verification: 3 existing projects, 4 existing tasks, 15 seeded stages; all task-stage assignments valid; no original task status, position or archive flags changed compared with the snapshot.
+- `duplicate-project` Edge Function deployed at version 6. Original deployed version 5 exactly matches the original legacy Git branch source.
+- Frontend verification: TypeScript, 52 unit tests, build, changed-file lint all passing; GitHub Actions release run green.
+- Browser verification: https://github.com/theexousiamatt/useordo/actions/runs/43324919242 — desktop/tablet/mobile public auth and routing, no overflow/page errors, production manifest, blocked `/.env` and unauthenticated Edge Function request passed.
+- Local disposable Supabase migration/authorization tests passed on the original migration source. After aligning Git migration filename versions with the actual Supabase ledger, repeat isolated CI to verify the entire committed migration chain.
+- Remaining limitation: authenticated end-to-end project editing/duplication was not exercised with a real login because no test account credentials are available. SQL fixture authorization tests and stage data integrity checks passed; production activity should be watched for regressions.
+- Keep GitHub repository public per owner preference; track repository history Gitleaks findings separately. Known findings were a public Supabase anon/publishable key and likely prose false positives. No secret values are documented in this handoff.
+
+### Rollback
+
+Revert the static artifact branch to `0f48d88cadad592dcfc087bcfd855b0129e3d0e4` and redeploy that branch through Hostinger if the frontend regresses. The database migration is deliberately **additive** and its compatibility trigger supports old status-only task clients, so do not drop newly written stages without a separate data-preserving rollback plan. If project duplication has issues, redeploy `supabase/functions/duplicate-project/index.ts` from `codex/owned-supabase-backend` (the exact source of the previous deployed Edge Function). The private snapshot is a release recovery aid and not a replacement for off-site database backups.
+
 ## Customizable Trello-style project stages (source implemented; NOT deployed)
 
-**New migration**: `supabase/migrations/20261112040000_legacy_project_stages.sql`
+**New migration**: `supabase/migrations/20261112225108_legacy_project_stages.sql`
 
 This additive migration creates `project_stages` with independent stage IDs, names, reporting categories and position for each project. Existing projects are seeded with the five familiar stages. Existing tasks receive `stage_id` with their current `status` preserved. An insert trigger seeds newly created projects. A compatibility trigger maps legacy status-only task writes to a matching or fallback stage and maps explicit stage moves back to the legacy reporting category. An authenticated, project-manager-guarded `manage_project_stage` RPC handles create/rename/reorder/remove, revision conflicts and idempotency. Removal moves **all** tasks, including archived ones, to an explicitly chosen destination within the same project before deleting a stage.
 
