@@ -59,14 +59,14 @@ jobs:
         run: |
           set -euo pipefail
           current_static_sha="$(git -C production-static rev-parse HEAD)"
-          expected_static_sha="0f48d88cadad592dcfc087bcfd855b0129e3d0e4"
+          expected_static_sha="e167c1fccb301fc759808cffa75637f055e2728a"
           if [ "$current_static_sha" != "$expected_static_sha" ]; then
             echo "Production static branch has changed; refusing automated overwrite"
             exit 1
           fi
           git fetch origin codex/hostinger-static-rollback-20261112
           rollback_sha="$(git rev-parse FETCH_HEAD)"
-          test "$rollback_sha" = "$expected_static_sha"
+          test "$rollback_sha" = "0f48d88cadad592dcfc087bcfd855b0129e3d0e4"
           find production-static -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a dist/. production-static/
           test -s production-static/index.html
