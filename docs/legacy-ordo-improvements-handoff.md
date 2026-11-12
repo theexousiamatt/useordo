@@ -50,6 +50,17 @@ This additive migration creates `project_stages` with independent stage IDs, nam
 - `src/pages/ProjectDetail.tsx`: pass existing project management permissions to stage UI.
 - `supabase/functions/duplicate-project/index.ts`: clone source stages into a newly seeded project and remap copied task stage IDs. **Deploy this Edge Function only after the migration has been validated and applied to the appropriate preview/live environment.**
 
+**Verification recorded 12 November 2026**
+
+- Verified source branch: `codex/legacy-ordo-improvements`.
+- Targeted isolated TypeScript check for the extracted `legacyStageBoard.ts` helper **passed** using TypeScript 5.8.3 and stubbed type-only imports. It is not a whole-project typecheck.
+- Seven deterministic runtime helper assertions and an additional 800-case randomized cross-stage data preservation test **passed** using a locally transcribed copy of the helper and the global TypeScript transpiler. This is not the Vitest suite.
+- Added `.github/workflows/legacy-ordo-verify.yml` to request `npm ci`, `npx tsc --noEmit`, `npm run test`, `npm run build` and targeted ESLint. Its GitHub Actions runs failed **before a runner was allocated** (`runner_id:0`, zero executed steps); CI application results remain unknown, not failed tests.
+- Added `supabase/tests/legacy-project-stages.sql` with transaction-only synthetic project/auth fixtures, grant checks, RPC access denial, idempotency, revision checks, stage operations, and task preservation. **It has not run** because no isolated clone/branch of the old Supabase project is available, and the execution environment has no local PostgreSQL server.
+- Improved migration safety: explicitly revoke inherited table write privileges on `project_stages`, and make the task-stage foreign key DEFERRABLE so project cascade deletion remains possible.
+- Confirmed old Supabase still has four user accounts, three projects, four tasks and **no `project_stages` table**. The live database remains untouched.
+- **Release remains BLOCKED** on actual CI runner execution, real full-project checks, disposable legacy-schema integration tests, authentic user-role tests and preview acceptance.
+
 **Before any real migration or deployment**:
 
 1. Use a **disposable isolated copy of the legacy schema** to execute the new SQL (not the canonical foundation schema, and not the live legacy database). Verify the stage backfill doesn't modify any existing task status, project, assignment, or archived flag, and that new project creation seeds stage rows.
