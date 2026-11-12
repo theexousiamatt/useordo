@@ -515,8 +515,16 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       bulkUpdate.mutate({ ids: selectedIds, patch: { status,stage_id:target.id } });
       clearSelection();
     },
+    onMoveStage: (stageId) => {
+      const target=stages.find(stage=>stage.id===stageId);
+      if(!target)return;
+      bulkUpdate.mutate({ids:selectedIds,patch:{status:target.category,stage_id:target.id}});
+      clearSelection();
+    },
     onSetStatus: (status) => {
-      bulkUpdate.mutate({ ids: selectedIds, patch: { status } });
+      const target=stages.find(stage=>stage.category===status);
+      if(!target){toast.error("No stage currently uses this status.");return;}
+      bulkUpdate.mutate({ ids: selectedIds, patch: { status,stage_id:target.id } });
       clearSelection();
     },
     onDelete: () => setPendingDelete({ type: "bulk", ids: selectedIds }),
@@ -774,6 +782,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       <OrdoBulkActionMenu
         count={selected.size}
         members={members}
+        stages={stages}
         handlers={bulkHandlers}
         onClear={clearSelection}
       />
