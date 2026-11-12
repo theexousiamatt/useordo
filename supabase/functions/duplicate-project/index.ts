@@ -155,6 +155,47 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 3c. Duplicate the custom stage layout after the project seed trigger.
+    // "Blank project" intentionally retains the five default stages.
+    const stageIdMap = new Map<string,string>();
+    if (opts.copySettings || opts.copyTasks || opts.copyMilestones) {
+      const { data: sourceStages, error: sourceStagesError } = await admin
+        .from("project_stages").select("id,name,category,position")
+        .eq("project_id",opts.projectId).order("position").order("id");
+      if(sourceStagesError)throw sourceStagesError;
+      if(sourceStages?.length){
+        const { data: seededStages, error: seededError } = await admin
+          .from("project_stages").select("id")
+          .eq("project_id",newId).order("position").order("id");
+        if(seededError)throw seededError;
+        for(let index=0;index<sourceStages.length;index++){
+          const sourceStage=sourceStages[index];
+          const seed=seededStages?.[index];
+          if(seed){
+            const { error }=await admin.from("project_stages").update({
+              name:sourceStage.name,category:sourceStage.category,position:index,
+            }).eq("id",seed.id).eq("project_id",newId);
+            if(error)throw error;
+            stageIdMap.set(sourceStage.id,seed.id);
+          }else{
+            const {data:newStage,error}=await admin.from("project_stages").insert({
+              workspace_id:workspaceId,project_id:newId,name:sourceStage.name,
+              category:sourceStage.category,position:index,
+            }).select("id").single();
+            if(error || !newStage)throw error ?? new Error("Could not copy project stage");
+            stageIdMap.set(sourceStage.id,newStage.id);
+          }
+        }
+        const unused=(seededStages??[]).slice(sourceStages.length).map(stage=>stage.id);
+        if(unused.length){
+          const {error}=await admin.from("project_stages").delete()
+            .eq("project_id",newId).in("id",unused);
+          if(error)throw error;
+        }
+        records.stages=sourceStages.length;
+      }
+    }
+
     // 4. Tasks (track id mapping for comments and labels).
     const taskIdMap = new Map<string, string>();
     if (opts.copyTasks) {
@@ -172,6 +213,7 @@ Deno.serve(async (req) => {
             title: t.title,
             description: t.description,
             status: t.status,
+            stage_id: t.stage_id ? stageIdMap.get(t.stage_id) ?? null : null,
             position: t.position,
             assignee_id: opts.copyTeam ? t.assignee_id : null,
             due_date: opts.copyDueDates ? t.due_date : null,
