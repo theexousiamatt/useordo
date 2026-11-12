@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/states/ErrorState";
 import type { ProductionEdit } from "./ProductionEditor";
 import { Button } from "@/components/ui/button";
 import { ProductionDragTask, ProductionDropColumn } from "./ProductionDrag";
+import { ProjectTeamPanel } from "./ProjectTeamPanel";
 import { productionCollision, productionKeyboard, productionDropBefore } from "./productionDragSensors";
 import { invalidateTaskViews } from "./taskViewCache";
 import { dateShort } from "@/lib/format";
@@ -58,6 +59,7 @@ export default function ProductionWorkspace({accountId,organizationId,projectId}
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showArchived} onChange={event=>setShowArchived(event.target.checked)}/>Include archived boards</label>
     {failure && <div role="alert" className="space-y-2"><p>{failure.message}</p><Button onClick={()=>void command(failure.command)}>Retry save</Button><Button variant="outline" onClick={()=>{setFailure(null);void workspace.refetch();}}>Reload saved work</Button></div>}
     <p role="status" className="text-sm">{saving ? "Saving…" : notice}</p>
+    {permissions.can_configure && <ProjectTeamPanel accountId={accountId} organizationId={organizationId} projectId={projectId}/>}
     {permissions.can_configure && <Button disabled={locked} onClick={()=>setEdit({kind:"board",boardId:board?.id ?? ""})}>Create board</Button>}
     {!board ? <p>No active boards in this project.</p> : <>
       {permissions.can_configure && <div className="flex flex-wrap gap-2">{!board.archived_at && <><Button disabled={locked} variant="outline" onClick={()=>setEdit({kind:"board",item:board,boardId:board.id})}>Edit board</Button><Button disabled={locked} variant="outline" onClick={()=>setEdit({kind:"column",boardId:board.id})}>Add stage</Button></>}<Button disabled={locked} variant="outline" onClick={()=>act(board.archived_at ? "restore_board" : "archive_board",board.id,board.revision)}>{board.archived_at ? "Restore board" : "Archive board"}</Button></div>}
