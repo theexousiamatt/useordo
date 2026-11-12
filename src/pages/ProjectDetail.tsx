@@ -186,6 +186,7 @@ export default function ProjectDetail() {
             tasks={tasks}
             members={assignableMembers}
             initialTaskId={deepLinkedTaskId}
+            canConfigureStages={perms.canManage}
           />
         </TabsContent>
         <TabsContent value="milestones" className="mt-6">
