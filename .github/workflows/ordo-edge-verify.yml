@@ -23,6 +23,12 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install package dependencies for Deno's node_modules integration
+        run: npm ci --no-audit --no-fund
       - name: Typecheck the deployed Edge Function source
         run: deno check supabase/functions/duplicate-project/index.ts
       - name: Static release assertions
