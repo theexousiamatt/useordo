@@ -38,8 +38,9 @@ export function ProjectTeamDrawer({
   const assignedIds = useMemo(() => new Set(assigned.map((m) => m.user_id)), [assigned]);
   const available = useMemo(
     () => members.filter((m) =>
-      ["owner", "manager", "member"].includes(m.role) && !assignedIds.has(m.user_id)),
-    [members, assignedIds],
+      ["owner", "manager", "member"].includes(m.role) && !assignedIds.has(m.user_id)
+      && m.user_id !== project.owner_id),
+    [members, assignedIds, project.owner_id],
   );
 
   const toggle = (id: string, checked: boolean) => {
