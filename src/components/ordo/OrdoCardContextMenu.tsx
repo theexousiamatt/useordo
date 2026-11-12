@@ -33,6 +33,7 @@ export interface TaskMenuHandlers {
   /** Open the anchored due-date popover. */
   onEditDueDate: (task: TaskRow) => void;
   onMoveStatus: (task: TaskRow, status: TaskStatus) => void;
+  onMoveStage?: (task: TaskRow, stageId: string) => void;
   /** Move to another project (only shown when targets are provided). */
   onMoveProject?: (task: TaskRow, projectId: string) => void;
   onDuplicate: (task: TaskRow) => void;
@@ -49,12 +50,17 @@ export function buildTaskMenuConfig(
   task: TaskRow,
   h: TaskMenuHandlers,
   moveTargets: TaskMoveTarget[] = [],
+  stages: {id:string;name:string;category:TaskStatus}[] = [],
 ): OrdoMenuConfig {
-  const statusSub = TASK_COLUMNS.filter((c) => c.id !== task.status).map((c) => ({
-    id: `move-${c.id}`,
-    label: c.title,
-    onSelect: () => h.onMoveStatus(task, c.id),
-  }));
+  const statusSub = stages.length && h.onMoveStage
+    ? stages.filter(s=>s.id!==task.stage_id).map(s=>({
+      id:`move-stage-${s.id}`,label:s.name,onSelect:()=>h.onMoveStage?.(task,s.id),
+    }))
+    : TASK_COLUMNS.filter((c) => c.id !== task.status).map((c) => ({
+      id: `move-${c.id}`,
+      label: c.title,
+      onSelect: () => h.onMoveStatus(task, c.id),
+    }));
 
   const moveItem = {
     id: "move-to",
@@ -107,15 +113,17 @@ export function OrdoCardContextMenu({
   task,
   handlers,
   moveTargets,
+  stages,
   children,
 }: {
   task: TaskRow;
   handlers: TaskMenuHandlers;
   moveTargets?: TaskMoveTarget[];
+  stages?: {id:string;name:string;category:TaskStatus}[];
   children: ReactNode;
 }) {
   return (
-    <OrdoContextMenu config={buildTaskMenuConfig(task, handlers, moveTargets)}>{children}</OrdoContextMenu>
+    <OrdoContextMenu config={buildTaskMenuConfig(task, handlers, moveTargets, stages)}>{children}</OrdoContextMenu>
   );
 }
 
@@ -123,12 +131,14 @@ export function OrdoCardOverflowMenu({
   task,
   handlers,
   moveTargets,
+  stages,
   trigger,
 }: {
   task: TaskRow;
   handlers: TaskMenuHandlers;
   moveTargets?: TaskMoveTarget[];
+  stages?: {id:string;name:string;category:TaskStatus}[];
   trigger: ReactNode;
 }) {
-  return <OrdoOverflowMenu config={buildTaskMenuConfig(task, handlers, moveTargets)} trigger={trigger} />;
+  return <OrdoOverflowMenu config={buildTaskMenuConfig(task, handlers, moveTargets, stages)} trigger={trigger} />;
 }

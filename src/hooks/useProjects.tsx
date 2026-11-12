@@ -59,7 +59,8 @@ export function useWorkspaceMembers() {
       const { data: members, error } = await supabase
         .from("workspace_members")
         .select("user_id, role")
-        .eq("workspace_id", workspaceId!);
+        .eq("workspace_id", workspaceId!)
+        .eq("status", "active");
       if (error) throw error;
       const ids = (members ?? []).map((m) => m.user_id);
       // Ensure the owner is included even if no explicit membership row exists.

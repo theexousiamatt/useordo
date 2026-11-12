@@ -9,16 +9,18 @@ import {
   closestCorners,
   type DragEndEvent,
   type DragStartEvent,
+  type CollisionDetection,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   useSortable,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
-import { Plus, Loader2, MoreHorizontal, ChevronRight } from "lucide-react";
+import { Plus, Loader2, MoreHorizontal, ChevronRight, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +36,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
+import { useProjectStages, useProjectStageCommand, type StageCommand } from "@/hooks/useProjectStages";
+import { stageForTaskId, stageInsertBefore, moveTaskWithinStages } from "@/lib/legacyStageBoard";
 import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
@@ -92,6 +96,7 @@ interface Props {
   members: ProjectMemberProfile[];
   /** When set (e.g. from a ?task= deep link), open this task's drawer on mount. */
   initialTaskId?: string | null;
+  canConfigureStages?: boolean;
 }
 
 type PendingDelete = { type: "single"; task: TaskRow } | { type: "bulk"; ids: string[] } | null;
@@ -110,6 +115,7 @@ interface BoardInlineCtx {
   recolorLabel: (labelId: string, color: LabelColor) => void;
   deleteLabel: (labelId: string) => void;
   moveTargets: TaskMoveTarget[];
+  stages: {id:string;name:string;category:TaskStatus;position:number}[];
   inline: { id: string; mode: InlineMode } | null;
   setInline: (v: { id: string; mode: InlineMode } | null) => void;
   patchTask: (id: string, patch: Partial<TaskRow>) => void;
@@ -117,9 +123,14 @@ interface BoardInlineCtx {
   setTaskAssignees: (taskId: string, userIds: string[]) => void;
 }
 
-const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
+const stageCollision: CollisionDetection = (args) => {
+  const movingStage=String(args.active.id).startsWith("stage:");
+  return closestCorners({...args,droppableContainers:args.droppableContainers.filter(item =>
+    String(item.id).startsWith("stage:")===movingStage
+  )});
+};
 
-export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId }: Props) {
+export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId, canConfigureStages=false }: Props) {
   const qc = useQueryClient();
   const { role, currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -133,6 +144,30 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const bulkDelete = useBulkDeleteTasks(projectId);
   const { data: assigneesMap } = useTaskAssignees(projectId);
   const setAssignees = useSetTaskAssignees(projectId);
+  const stageQuery=useProjectStages(projectId);
+  const stages=useMemo(()=>stageQuery.data ?? [],[stageQuery.data]);
+  const stageMutation=useProjectStageCommand(projectId);
+  const [stageError,setStageError]=useState("");
+  const [editingStageId,setEditingStageId]=useState<string|null>(null);
+  const [stageName,setStageName]=useState("");
+  const [creatingStage,setCreatingStage]=useState(false);
+  const [stageCategory,setStageCategory]=useState<TaskStatus>("todo");
+  const [removingStageId,setRemovingStageId]=useState<string|null>(null);
+  const [removeDestination,setRemoveDestination]=useState("");
+  const stageRequest=useRef<{signature:string;requestId:string}|null>(null);
+  const runStage=useCallback((command:Omit<StageCommand,"requestId">,onSuccess?:()=>void)=>{
+    if(stageMutation.isPending)return;
+    const signature=JSON.stringify(command);
+    if(stageRequest.current?.signature!==signature) stageRequest.current={signature,requestId:crypto.randomUUID()};
+    const requestId=stageRequest.current.requestId;
+    setStageError("");
+    void stageMutation.mutateAsync({...command,requestId}).then(()=>{
+      stageRequest.current=null;onSuccess?.();
+    }).catch((error)=>{
+      setStageError(error instanceof Error?error.message:"Could not save stage. Retry the same action.");
+    });
+  },[stageMutation]);
+  const stageForTask=useCallback((task:TaskRow)=>stageForTaskId(task,stages),[stages]);
 
   // ---------------- Labels ----------------
   const { data: projectLabels = [] } = useProjectLabels(projectId);
@@ -212,10 +247,10 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
   // Inline quick-edit state — which card is being edited inline, and how.
   const [inline, setInline] = useState<{ id: string; mode: InlineMode } | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<TaskStatus>>(() => {
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(`ordo:collapsed:${projectId}`);
-      return new Set(raw ? (JSON.parse(raw) as TaskStatus[]) : []);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
     } catch {
       return new Set();
     }
@@ -340,8 +375,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const byStatus = (status: TaskStatus) =>
-    items.filter((t) => t.status === status).sort((a, b) => a.position - b.position);
+  const byStage = (id: string) =>
+    items.filter((t) => stageForTask(t) === id).sort((a, b) => a.position - b.position);
 
   const activeTask = items.find((t) => t.id === activeId) ?? null;
 
@@ -397,7 +432,15 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     onEditLabels: (t) => startInline(t, "labels"),
     onEditMembers: (t) => startInline(t, "members"),
     onEditDueDate: (t) => startInline(t, "due"),
-    onMoveStatus: (t, status) => update.mutate({ id: t.id, status }),
+    onMoveStatus: (t, status) => {
+      const destination=stages.find(stage=>stage.category===status);
+      if(!destination){toast.error("No stage currently uses this status.");return;}
+      update.mutate({id:t.id,status,stage_id:destination.id});
+    },
+    onMoveStage: (task,stageId) => {
+      const destination=stages.find(stage=>stage.id===stageId);
+      if(destination)update.mutate({id:task.id,stage_id:destination.id,status:destination.category});
+    },
     onMoveProject: (t, targetProjectId) =>
       update.mutate({ id: t.id, project_id: targetProjectId }),
     onDuplicate: (t) => dup.mutate(t),
@@ -420,6 +463,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     recolorLabel,
     deleteLabel,
     moveTargets,
+    stages,
     inline,
     setInline,
     patchTask,
@@ -432,14 +476,33 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 
   // ---------------- Column actions ----------------
   const columnHandlers: ColumnMenuHandlers = {
-    onAddTask: (status) => createTask.mutate({ title: "New task", status }),
-    onToggleCollapse: (status) =>
+    onAddTask: (id) => {
+      const stage=stages.find(item=>item.id===id);
+      if(stage)createTask.mutate({title:"New task",status:stage.category,stage_id:stage.id});
+    },
+    onToggleCollapse: (id) =>
       setCollapsed((prev) => {
         const next = new Set(prev);
-        next.has(status) ? next.delete(status) : next.add(status);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
         return next;
       }),
-    onAction: (_status, action) => stub(action),
+    onAction: (id, action) => {
+      if(!canConfigureStages){toast.error("You do not have permission to configure stages.");return;}
+      const stage=stages.find(item=>item.id===id);
+      if(!stage)return;
+      if(action==="Rename column"){
+        setCreatingStage(false);
+        setCollapsed(current=>{const next=new Set(current);next.delete(id);return next;});
+        setEditingStageId(id);setStageName(stage.name);
+      }else if(action==="Reorder column"){
+        toast.info("Drag the grip beside a stage title to reorder it.");
+      }else if(action==="Delete column"){
+        setRemovingStageId(id);setRemoveDestination("");
+      }else if(action==="Duplicate column"){
+        runStage({action:"create",name:`${stage.name.slice(0,155)} copy`,category:stage.category});
+      }else stub(action);
+    },
   };
 
   // ---------------- Bulk actions ----------------
@@ -450,11 +513,21 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       clearSelection();
     },
     onMove: (status) => {
-      bulkUpdate.mutate({ ids: selectedIds, patch: { status } });
+      const target=stages.find(stage=>stage.category===status);
+      if(!target){toast.error("No stage currently uses this status.");return;}
+      bulkUpdate.mutate({ ids: selectedIds, patch: { status,stage_id:target.id } });
+      clearSelection();
+    },
+    onMoveStage: (stageId) => {
+      const target=stages.find(stage=>stage.id===stageId);
+      if(!target)return;
+      bulkUpdate.mutate({ids:selectedIds,patch:{status:target.category,stage_id:target.id}});
       clearSelection();
     },
     onSetStatus: (status) => {
-      bulkUpdate.mutate({ ids: selectedIds, patch: { status } });
+      const target=stages.find(stage=>stage.category===status);
+      if(!target){toast.error("No stage currently uses this status.");return;}
+      bulkUpdate.mutate({ ids: selectedIds, patch: { status,stage_id:target.id } });
       clearSelection();
     },
     onDelete: () => setPendingDelete({ type: "bulk", ids: selectedIds }),
@@ -468,7 +541,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     setFocusedId(taskId);
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
       return next;
     });
   }, []);
@@ -554,13 +628,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           break;
         case "m": {
           e.preventDefault();
-          const idx = STATUS_ORDER.indexOf(task.status);
-          update.mutate({ id: task.id, status: STATUS_ORDER[(idx + 1) % STATUS_ORDER.length] });
-          break;
-        }
-        case "l": {
-          e.preventDefault();
-          startInline(task, "labels");
+          const index=stages.findIndex(stage=>stage.id===stageForTask(task));
+          const next=stages[(index+1)%stages.length];
+          if(next)update.mutate({id:task.id,status:next.category,stage_id:next.id});
           break;
         }
         default:
@@ -572,43 +642,33 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [items, focusedId, selected, editOpen, openTask, startInline, dup, update, clearSelection]);
+  }, [items, focusedId, selected, editOpen, openTask, startInline, dup, update, clearSelection, stages, stageForTask]);
 
   // ---------------- Drag & drop ----------------
-  const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
+  const handleDragStart = (e: DragStartEvent) =>
+    setActiveId(String(e.active.id).startsWith("stage:") ? null : String(e.active.id));
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = e;
     if (!over) return;
+    const activeId=String(active.id), overId=String(over.id);
 
-    const activeTaskItem = items.find((t) => t.id === active.id);
-    if (!activeTaskItem) return;
+    if(activeId.startsWith("stage:")){
+      if(!canConfigureStages || stageMutation.isPending || !overId.startsWith("stage:"))return;
+      const stage=stages.find(item=>item.id===activeId.slice(6));
+      const destination=stages.find(item=>item.id===overId.slice(6));
+      if(!stage || !destination || stage.id===destination.id)return;
+      const beforeId=stageInsertBefore(stages,stage.id,destination.id);
+      runStage({action:"reorder",stageId:stage.id,beforeId,expectedRevision:stage.revision});
+      return;
+    }
 
-    const overId = String(over.id);
-    const overTask = items.find((t) => t.id === overId);
-    const targetStatus = (overTask?.status ?? overId) as TaskStatus;
-    if (!TASK_COLUMNS.some((c) => c.id === targetStatus)) return;
-
-    const next = items.map((t) => ({ ...t }));
-    const moving = next.find((t) => t.id === active.id)!;
-    moving.status = targetStatus;
-
-    const affected = new Set<TaskStatus>([activeTaskItem.status, targetStatus]);
-    const updates: { id: string; status: TaskStatus; position: number }[] = [];
-    affected.forEach((status) => {
-      next
-        .filter((t) => t.status === status)
-        .sort((a, b) => (a.id === active.id ? -0.5 : a.position) - (b.id === active.id ? -0.5 : b.position))
-        .forEach((t, idx) => {
-          t.position = idx;
-          updates.push({ id: t.id, status, position: idx });
-        });
-    });
-
-    setItems(next);
-    qc.setQueryData(["project-tasks", projectId], next);
-    reorder.mutate(updates);
+    const move=moveTaskWithinStages(items,stages,activeId,overId);
+    if(!move)return;
+    setItems(move.next);
+    qc.setQueryData(["project-tasks", projectId], move.next);
+    reorder.mutate(move.updates);
   };
 
   const confirmDelete = () => {
@@ -627,21 +687,42 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     setPendingDelete(null);
   };
 
+  if(stageQuery.isPending)return <p role="status" className="py-6 text-sm text-muted-foreground">Loading project stages…</p>;
+  if(stageQuery.isError)return <div role="alert" className="flex flex-wrap items-center gap-3">
+    <span>Could not load project stages. Your project has not been changed.</span>
+    <Button variant="outline" onClick={()=>void stageQuery.refetch()}>Try again</Button>
+  </div>;
+  if(!stages.length)return <div role="alert">This project has no stages. Please contact a workspace manager.</div>;
+
+  const removableStage=stages.find(stage=>stage.id===removingStageId);
   return (
     <>
+      {stageError && <p role="alert" className="mb-3 rounded-md border border-destructive/30 p-3 text-sm text-destructive">{stageError}</p>}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={stageCollision}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {TASK_COLUMNS.map((col) => (
+        <div className="flex gap-4 overflow-x-auto pb-4" aria-label="Project stages">
+          <SortableContext items={stages.map(stage=>`stage:${stage.id}`)} strategy={horizontalListSortingStrategy}>
+          {stages.map((col) => (
             <Column
               key={col.id}
               id={col.id}
-              title={col.title}
-              tasks={byStatus(col.id)}
+              title={col.name}
+              category={col.category}
+              draggable={canConfigureStages && !stageMutation.isPending}
+              editing={canConfigureStages && editingStageId===col.id}
+              draftName={stageName}
+              onDraftNameChange={setStageName}
+              onSaveName={()=>{
+                if(!stageName.trim())return;
+                runStage({action:"rename",stageId:col.id,name:stageName.trim(),expectedRevision:col.revision},
+                  ()=>setEditingStageId(null));
+              }}
+              onCancelName={()=>setEditingStageId(null)}
+              tasks={byStage(col.id)}
               memberMap={memberMap}
               members={members}
               collapsed={collapsed.has(col.id)}
@@ -650,10 +731,38 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
               onCardClick={handleCardClick}
-              onAdd={(title) => createTask.mutate({ title, status: col.id })}
+              onAdd={(title) => createTask.mutate({ title, status: col.category,stage_id:col.id })}
               adding={createTask.isPending}
             />
           ))}
+          </SortableContext>
+          {canConfigureStages && <div className="w-72 shrink-0 rounded-card border border-border bg-card p-3">
+            {creatingStage ? <form className="space-y-3" onSubmit={event=>{
+              event.preventDefault();if(!stageName.trim())return;
+              runStage({action:"create",name:stageName.trim(),category:stageCategory},()=>{
+                setCreatingStage(false);setStageName("");
+              });
+            }}>
+              <label htmlFor="new-project-stage" className="text-sm font-medium">Stage name</label>
+              <Input id="new-project-stage" autoFocus value={stageName} onChange={event=>setStageName(event.target.value)}
+                placeholder="e.g. Client feedback" maxLength={160} required disabled={stageMutation.isPending}/>
+              <label htmlFor="stage-report-category" className="block text-xs text-muted-foreground">Reporting status</label>
+              <select id="stage-report-category" value={stageCategory}
+                onChange={event=>setStageCategory(event.target.value as TaskStatus)}
+                disabled={stageMutation.isPending}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                {TASK_COLUMNS.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}
+              </select>
+              <div className="flex gap-2">
+                <Button size="sm" type="submit" disabled={stageMutation.isPending||!stageName.trim()}>Save stage</Button>
+                <Button size="sm" type="button" variant="ghost" disabled={stageMutation.isPending}
+                  onClick={()=>{setCreatingStage(false);setStageName("");}}>Cancel</Button>
+              </div>
+            </form> :
+            <Button type="button" variant="ghost" onClick={()=>{setCreatingStage(true);setEditingStageId(null);setStageName("");setStageCategory("todo");}}>
+              <Plus className="mr-2 h-4 w-4"/>Add stage
+            </Button>}
+          </div>}
         </div>
 
         <DragOverlay>
@@ -677,6 +786,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       <OrdoBulkActionMenu
         count={selected.size}
         members={members}
+        stages={stages}
         handlers={bulkHandlers}
         onClear={clearSelection}
       />
@@ -689,6 +799,37 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         onSaveDescription={(id, description) => update.mutate({ id, description })}
       />
 
+
+      <AlertDialog open={!!removableStage} onOpenChange={open=>{if(!open&&!stageMutation.isPending)setRemovingStageId(null);}}>
+        <AlertDialogContent className="client-os rounded-panel">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {removableStage?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tasks in this stage, including archived tasks, will be moved to the destination stage.
+              No tasks or assignments will be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <label htmlFor="remove-stage-destination" className="block text-sm font-medium">Move tasks to</label>
+          <select id="remove-stage-destination" value={removeDestination}
+            disabled={stageMutation.isPending}
+            onChange={event=>setRemoveDestination(event.target.value)}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+            <option value="">Choose another stage</option>
+            {stages.filter(item=>item.id!==removableStage?.id).map(stage=>
+              <option key={stage.id} value={stage.id}>{stage.name}</option>)}
+          </select>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={stageMutation.isPending} onClick={()=>setRemovingStageId(null)}>Cancel</AlertDialogCancel>
+            <Button disabled={!removeDestination || stageMutation.isPending || stages.length<=1}
+              onClick={()=>{
+                if(!removableStage)return;
+                runStage({action:"remove",stageId:removableStage.id,
+                  destinationId:removeDestination,expectedRevision:removableStage.revision},
+                  ()=>{setRemovingStageId(null);setRemoveDestination("");});
+              }}>Remove stage</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent className="client-os rounded-panel">
@@ -720,6 +861,13 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 function Column({
   id,
   title,
+  category,
+  draggable,
+  editing,
+  draftName,
+  onDraftNameChange,
+  onSaveName,
+  onCancelName,
   tasks,
   memberMap,
   members,
@@ -732,8 +880,15 @@ function Column({
   onAdd,
   adding,
 }: {
-  id: TaskStatus;
+  id: string;
   title: string;
+  category: TaskStatus;
+  draggable: boolean;
+  editing: boolean;
+  draftName: string;
+  onDraftNameChange: (name:string)=>void;
+  onSaveName: ()=>void;
+  onCancelName: ()=>void;
   tasks: TaskRow[];
   memberMap: Map<string, ProjectMemberProfile>;
   members: ProjectMemberProfile[];
@@ -746,10 +901,15 @@ function Column({
   onAdd: (title: string) => void;
   adding: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
+  const { setNodeRef:setDropRef, isOver } = useDroppable({ id });
+  const {
+    setNodeRef:setStageRef,setActivatorNodeRef,attributes,listeners,
+    transform,transition,isDragging,
+  }=useSortable({id:`stage:${id}`,disabled:!draggable});
+  const stageStyle={transform:CSS.Transform.toString(transform),transition,opacity:isDragging ? 0.55 : 1};
   const [composing, setComposing] = useState(false);
   const [value, setValue] = useState("");
-  const theme = COLUMN_THEME[id];
+  const theme = COLUMN_THEME[category];
 
   const submit = () => {
     if (value.trim()) {
@@ -762,7 +922,11 @@ function Column({
   if (collapsed) {
     return (
       <OrdoColumnContextMenu status={id} collapsed handlers={columnHandlers}>
-        <div className="flex w-12 shrink-0 flex-col items-center gap-3 rounded-card border border-border bg-card py-3">
+        <div ref={setStageRef} style={stageStyle} className="flex w-12 shrink-0 flex-col items-center gap-3 rounded-card border border-border bg-card py-3">
+          {draggable && <button type="button" ref={setActivatorNodeRef} {...attributes} {...listeners}
+            className="cursor-grab touch-none text-muted-foreground" aria-label={`Drag ${title} stage`}>
+            <GripVertical className="h-4 w-4"/>
+          </button>}
           <button
             onClick={() => columnHandlers.onToggleCollapse(id)}
             className="text-muted-foreground hover:text-foreground"
@@ -782,17 +946,30 @@ function Column({
   }
 
   return (
-    <div className="flex w-72 shrink-0 flex-col">
+    <div ref={setStageRef} style={stageStyle} className="flex w-72 shrink-0 flex-col">
       <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers}>
         <div className="mb-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <span className={cn("h-2 w-2 rounded-full", theme.dot)} />
-            <span className={cn("text-sm font-semibold", theme.header)}>{title}</span>
+            {editing ? <Input autoFocus maxLength={160} value={draftName}
+              onChange={event=>onDraftNameChange(event.target.value)}
+              onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();onSaveName();}
+                if(event.key==="Escape")onCancelName();}}
+              className="h-8 w-40 text-sm" aria-label={`Rename ${title} stage`}/> :
+              <span className={cn("text-sm font-semibold", theme.header)}>{title}</span>}
+            {editing && <>
+              <Button type="button" variant="ghost" size="sm" onClick={onSaveName} disabled={!draftName.trim()}>Save</Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onCancelName}>Cancel</Button>
+            </>}
             <span className="rounded-pill bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               {tasks.length}
             </span>
           </div>
           <div className="flex items-center gap-0.5">
+            {draggable && <button type="button" ref={setActivatorNodeRef}
+              {...attributes} {...listeners}
+              className="cursor-grab touch-none rounded-md p-1 text-muted-foreground hover:bg-muted"
+              aria-label={`Drag ${title} stage`}><GripVertical className="h-4 w-4" /></button>}
             <Button
               variant="ghost"
               size="icon"
@@ -817,7 +994,7 @@ function Column({
       </OrdoColumnContextMenu>
 
       <div
-        ref={setNodeRef}
+        ref={setDropRef}
         className={cn(
           "flex min-h-24 flex-1 flex-col gap-3 rounded-card border border-dashed border-transparent p-1.5 transition-colors",
           isOver && "border-primary/30 bg-primary/5",
@@ -896,6 +1073,7 @@ function SortableTask({
     recolorLabel,
     deleteLabel,
     moveTargets,
+    stages,
     inline,
     setInline,
     patchTask,
@@ -926,7 +1104,7 @@ function SortableTask({
         closeInline();
       }}
     >
-      <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets}>
+      <OrdoCardContextMenu task={task} handlers={handlers} moveTargets={moveTargets} stages={stages}>
         <PopoverAnchor asChild>
           <div
             ref={setNodeRef}
@@ -959,6 +1137,7 @@ function SortableTask({
               task={task}
               handlers={handlers}
               moveTargets={moveTargets}
+              stages={stages}
               trigger={
                 <button
                   onClick={(e) => e.stopPropagation()}

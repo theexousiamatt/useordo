@@ -1,0 +1,41 @@
+name: Ordo production browser acceptance
+
+on:
+  push:
+    branches:
+      - codex/legacy-ordo-improvements
+    paths:
+      - '.github/workflows/ordo-production-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PREVIEW_URL: https://ordo.inspirarestudio.com
+      EXPECTED_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser acceptance tooling
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.65.0
+          npx playwright install --with-deps chromium
+      - name: Test production desktop/tablet/mobile and API boundaries
+        run: node .github/scripts/ordo-preview-smoke.mjs
+      - name: Upload public-page browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordo-production-browser-smoke
+          path: .github/screenshots/
+          if-no-files-found: ignore
+          retention-days: 3

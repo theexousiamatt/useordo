@@ -18,16 +18,15 @@ import {
   Trash2,
 } from "lucide-react";
 import { OrdoContextMenu, OrdoOverflowMenu, type OrdoMenuConfig } from "./OrdoMenu";
-import type { TaskStatus } from "@/lib/projectConstants";
 
 export interface ColumnMenuHandlers {
-  onAddTask: (status: TaskStatus) => void;
-  onToggleCollapse: (status: TaskStatus) => void;
-  onAction: (status: TaskStatus, action: string) => void;
+  onAddTask: (status: string) => void;
+  onToggleCollapse: (status: string) => void;
+  onAction: (status: string, action: string) => void;
 }
 
 export function buildColumnMenuConfig(
-  status: TaskStatus,
+  status: string,
   collapsed: boolean,
   h: ColumnMenuHandlers,
 ): OrdoMenuConfig {
@@ -92,7 +91,7 @@ export function OrdoColumnContextMenu({
   handlers,
   children,
 }: {
-  status: TaskStatus;
+  status: string;
   collapsed: boolean;
   handlers: ColumnMenuHandlers;
   children: ReactNode;
@@ -110,7 +109,7 @@ export function OrdoColumnOverflowMenu({
   handlers,
   trigger,
 }: {
-  status: TaskStatus;
+  status: string;
   collapsed: boolean;
   handlers: ColumnMenuHandlers;
   trigger: ReactNode;

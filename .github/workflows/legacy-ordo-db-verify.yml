@@ -1,0 +1,46 @@
+name: Legacy Ordo isolated database verification
+
+on:
+  push:
+    branches:
+      - codex/legacy-ordo-improvements
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/legacy-project-stages.sql'
+      - '.github/workflows/legacy-ordo-db-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-supabase:
+    name: Isolated local legacy Supabase migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start disposable local Supabase with legacy migrations
+        run: supabase start
+      - name: Confirm local database is reachable
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -c "SELECT current_database() as database, to_regclass('public.project_stages') as migrated_stage_table;"
+      - name: Test stage migration in rollback-only synthetic fixtures
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -f supabase/tests/legacy-project-stages.sql
+      - name: Stop and destroy disposable database containers
+        if: always()
+        run: supabase stop --no-backup || true

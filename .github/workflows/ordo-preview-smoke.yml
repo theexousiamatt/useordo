@@ -1,0 +1,40 @@
+name: Ordo preview browser acceptance
+
+on:
+  push:
+    branches:
+      - codex/legacy-ordo-improvements
+    paths:
+      - '.github/workflows/ordo-preview-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PREVIEW_URL: https://ordo-preview.inspirarestudio.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser-only test tooling
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.65.0
+          npx playwright install --with-deps chromium
+      - name: Check responsive preview routes and auth UI (no login credentials)
+        run: node .github/scripts/ordo-preview-smoke.mjs
+      - name: Upload smoke-test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordo-preview-browser-smoke
+          path: .github/screenshots/
+          if-no-files-found: ignore
+          retention-days: 3

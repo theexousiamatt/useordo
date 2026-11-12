@@ -15,6 +15,7 @@ import type { ProjectMemberProfile } from "@/hooks/useProjects";
 export interface BulkActionHandlers {
   onAssign: (userId: string | null) => void;
   onMove: (status: TaskStatus) => void;
+  onMoveStage?: (stageId: string) => void;
   onSetStatus: (status: TaskStatus) => void;
   onDelete: () => void;
   onAction: (action: string) => void;
@@ -29,10 +30,12 @@ export function OrdoBulkActionMenu({
   members,
   handlers,
   onClear,
+  stages=[],
 }: {
   count: number;
   members: ProjectMemberProfile[];
   handlers: BulkActionHandlers;
+  stages?: {id:string;name:string}[];
   onClear: () => void;
 }) {
   if (count === 0) return null;
@@ -54,14 +57,16 @@ export function OrdoBulkActionMenu({
   const moveMenu: OrdoMenuConfig = [
     {
       id: "move",
-      items: TASK_COLUMNS.map((c) => ({
-        id: c.id,
-        label: c.title,
-        onSelect: () => handlers.onMove(c.id),
-      })),
+      items: stages.length && handlers.onMoveStage
+        ? stages.map(stage=>({id:stage.id,label:stage.name,onSelect:()=>handlers.onMoveStage?.(stage.id)}))
+        : TASK_COLUMNS.map(c=>({id:c.id,label:c.title,onSelect:()=>handlers.onMove(c.id)})),
     },
   ];
-
+  const statusMenu:OrdoMenuConfig=[{
+    id:"status",items:TASK_COLUMNS.map(c=>({
+      id:c.id,label:c.title,onSelect:()=>handlers.onSetStatus(c.id),
+    })),
+  }];
 
   const trigger = (cls: string, icon: React.ReactNode, label: string) => (
     <Button variant="ghost" size="sm" className={cls}>
@@ -84,7 +89,7 @@ export function OrdoBulkActionMenu({
 
       <OrdoOverflowMenu config={assignMenu} trigger={trigger(btnCls, <UserPlus className="h-4 w-4" />, "Assign")} />
       <OrdoOverflowMenu config={moveMenu} trigger={trigger(btnCls, <ArrowRightLeft className="h-4 w-4" />, "Move")} />
-      <OrdoOverflowMenu config={moveMenu} trigger={trigger(btnCls, <CircleDot className="h-4 w-4" />, "Status")} />
+      <OrdoOverflowMenu config={statusMenu} trigger={trigger(btnCls, <CircleDot className="h-4 w-4" />, "Status")} />
       
 
       <Button variant="ghost" size="sm" className={btnCls} onClick={() => handlers.onAction("Add label")}>
