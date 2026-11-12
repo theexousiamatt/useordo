@@ -915,6 +915,74 @@ export type Database = {
           },
         ]
       }
+      project_stages: {
+        Row: {
+          id: string
+          workspace_id: string
+          project_id: string
+          name: string
+          category: string
+          position: number
+          revision: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          project_id: string
+          name: string
+          category: string
+          position?: number
+          revision?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          project_id?: string
+          name?: string
+          category?: string
+          position?: number
+          revision?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_stage_receipts: {
+        Row: {
+          actor_id: string
+          request_id: string
+          project_id: string
+          payload: Json
+          result_id: string
+          created_at: string
+        }
+        Insert: {
+          actor_id: string
+          request_id: string
+          project_id: string
+          payload: Json
+          result_id: string
+          created_at?: string
+        }
+        Update: {
+          actor_id?: string
+          request_id?: string
+          project_id?: string
+          payload?: Json
+          result_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           archived_at: string | null
@@ -1116,6 +1184,7 @@ export type Database = {
           id: string
           position: number
           project_id: string
+          stage_id: string | null
           status: string
           title: string
           updated_at: string
@@ -1131,6 +1200,7 @@ export type Database = {
           id?: string
           position?: number
           project_id: string
+          stage_id?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -1146,12 +1216,20 @@ export type Database = {
           id?: string
           position?: number
           project_id?: string
+          stage_id?: string | null
           status?: string
           title?: string
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_project_stage_fk"
+            columns: ["project_id", "stage_id"]
+            isOneToOne: false
+            referencedRelation: "project_stages"
+            referencedColumns: ["project_id", "id"]
+          },
           {
             foreignKeyName: "tasks_created_by_fkey"
             columns: ["created_by"]
@@ -1328,6 +1406,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      manage_project_stage: {
+        Args: {
+          _project_id: string
+          _action: string
+          _stage_id: string | null
+          _name: string | null
+          _category: string | null
+          _before_id: string | null
+          _destination_id: string | null
+          _expected_revision: number | null
+          _request_id: string
+        }
+        Returns: string
+      }
       accept_workspace_invitation: {
         Args: { _token: string; _user_id: string }
         Returns: string
