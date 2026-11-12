@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import ProductionWorkspace from "./ProductionWorkspace";
 import { foundationApi } from "./api";
 vi.mock("./api",()=>({foundationApi:{getProductionWorkspace:vi.fn(),changeProductionItem:vi.fn(),changeProductionColumn:vi.fn()}}));
+vi.mock("./ProjectTeamPanel",()=>({ProjectTeamPanel:()=>null}));
 afterEach(()=>{cleanup();vi.resetAllMocks();});
 function show() {const query=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});return render(<QueryClientProvider client={query}><ProductionWorkspace accountId="account-a" organizationId="studio-a" projectId="project-a" /></QueryClientProvider>);}
 it("shows persisted tasks only in their authoritative home board and column",async()=>{
