@@ -92,6 +92,9 @@ BEGIN
     WHERE member.organization_id=_organization_id AND member.work_context_id=project_row.work_context_id
       AND member.user_id=_user_id AND member.status='active';
 
+  IF current_role='owner' THEN
+    RAISE EXCEPTION 'Project ownership cannot be changed here' USING ERRCODE='42501';
+  END IF;
   IF NOT is_lead AND (_role='manager' OR current_role='manager' OR _user_id=actor) THEN
     RAISE EXCEPTION 'Only the project owner may manage project managers' USING ERRCODE='42501';
   END IF;
@@ -100,7 +103,7 @@ BEGIN
       SELECT 1 FROM public.task_assignees assigned
       WHERE assigned.organization_id=_organization_id
         AND assigned.work_context_id=project_row.work_context_id AND assigned.user_id=_user_id
-    ) AND NOT public.foundation_has_capability(_organization_id,'production.write_all') THEN
+    ) THEN
       RAISE EXCEPTION 'Reassign this person''s tasks before removing or reducing project access' USING ERRCODE='22023';
     END IF;
   END IF;
