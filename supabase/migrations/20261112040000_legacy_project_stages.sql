@@ -62,12 +62,20 @@ UPDATE public.tasks t SET stage_id=(
 -- An explicit stage move updates the reporting category; a status-only update
 -- chooses the first matching stage, or the first available stage as fallback.
 CREATE FUNCTION public.legacy_sync_task_stage() RETURNS trigger
-LANGUAGE plpgsql SET search_path=public,pg_temp AS $$
-DECLARE target_category text; target_stage uuid;
+LANGUAGE plpgsql SET search_path=public,pg_temp AS $
+DECLARE target_category text; target_stage uuid; map_legacy_status boolean;
 BEGIN
-  IF TG_OP='INSERT' OR NEW.project_id IS DISTINCT FROM OLD.project_id
-    OR (TG_OP='UPDATE' AND NEW.status IS DISTINCT FROM OLD.status
-      AND NEW.stage_id IS NOT DISTINCT FROM OLD.stage_id) THEN
+  -- Handle INSERT separately: accessing OLD on an insert is undefined.
+  IF TG_OP='INSERT' THEN
+    map_legacy_status := NEW.stage_id IS NULL;
+  ELSE
+    map_legacy_status := NEW.project_id IS DISTINCT FROM OLD.project_id
+      OR NEW.stage_id IS NULL
+      OR (NEW.status IS DISTINCT FROM OLD.status
+        AND NEW.stage_id IS NOT DISTINCT FROM OLD.stage_id);
+  END IF;
+
+  IF map_legacy_status THEN
     SELECT s.id INTO target_stage FROM public.project_stages s
       WHERE s.project_id=NEW.project_id AND s.category=NEW.status
       ORDER BY s.position,s.id LIMIT 1;
@@ -75,22 +83,22 @@ BEGIN
       SELECT s.id INTO target_stage FROM public.project_stages s
         WHERE s.project_id=NEW.project_id ORDER BY s.position,s.id LIMIT 1;
     END IF;
-    IF NEW.stage_id IS NULL OR TG_OP='UPDATE' THEN NEW.stage_id:=target_stage; END IF;
+    NEW.stage_id:=target_stage;
   END IF;
+
   IF NEW.stage_id IS NOT NULL THEN
     SELECT s.category INTO target_category FROM public.project_stages s
       WHERE s.project_id=NEW.project_id AND s.id=NEW.stage_id;
     IF NOT FOUND THEN RAISE EXCEPTION 'Stage does not belong to this project' USING ERRCODE='23503'; END IF;
-    IF (TG_OP='INSERT' AND NEW.stage_id IS NOT NULL AND
-       NOT EXISTS(SELECT 1 FROM public.project_stages s WHERE s.project_id=NEW.project_id AND s.id=NEW.stage_id AND s.category=NEW.status))
-      OR (TG_OP='UPDATE' AND NEW.stage_id IS DISTINCT FROM OLD.stage_id
-         AND NEW.project_id IS NOT DISTINCT FROM OLD.project_id
-         AND NEW.status IS NOT DISTINCT FROM OLD.status) THEN
+    IF NOT map_legacy_status AND (
+      TG_OP='INSERT' OR
+      (TG_OP='UPDATE' AND NEW.stage_id IS DISTINCT FROM OLD.stage_id)
+    ) THEN
       NEW.status:=target_category;
     END IF;
   END IF;
   RETURN NEW;
-END $$;
+END $;
 REVOKE ALL ON FUNCTION public.legacy_sync_task_stage() FROM PUBLIC,anon,authenticated;
 CREATE TRIGGER legacy_task_stage_compat
 BEFORE INSERT OR UPDATE OF stage_id,status,project_id ON public.tasks
