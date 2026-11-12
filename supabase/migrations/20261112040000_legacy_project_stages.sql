@@ -64,7 +64,7 @@ UPDATE public.tasks t SET stage_id=(
 -- An explicit stage move updates the reporting category; a status-only update
 -- chooses the first matching stage, or the first available stage as fallback.
 CREATE FUNCTION public.legacy_sync_task_stage() RETURNS trigger
-LANGUAGE plpgsql SET search_path=public,pg_temp AS $
+LANGUAGE plpgsql SET search_path=public,pg_temp AS $$
 DECLARE target_category text; target_stage uuid; map_legacy_status boolean;
 BEGIN
   -- Handle INSERT separately: accessing OLD on an insert is undefined.
@@ -101,7 +101,7 @@ BEGIN
     END IF;
   END IF;
   RETURN NEW;
-END $;
+END $$;
 REVOKE ALL ON FUNCTION public.legacy_sync_task_stage() FROM PUBLIC,anon,authenticated;
 CREATE TRIGGER legacy_task_stage_compat
 BEFORE INSERT OR UPDATE OF stage_id,status,project_id ON public.tasks
