@@ -19,6 +19,8 @@ CREATE INDEX project_stages_order_idx ON public.project_stages(project_id,positi
 ALTER TABLE public.project_stages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Read project stages" ON public.project_stages FOR SELECT TO authenticated
   USING(public.can_view_project(project_id,auth.uid()));
+-- Supabase may have default table grants; explicitly remove direct writes.
+REVOKE ALL ON public.project_stages FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.project_stages TO authenticated;
 
 -- Seed all existing projects; no tasks are removed or their legacy status altered.
