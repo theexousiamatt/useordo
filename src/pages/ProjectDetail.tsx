@@ -19,6 +19,7 @@ import { DeliverablesTab } from "@/components/projects/DeliverablesTab";
 import { ActivityTab } from "@/components/projects/ActivityTab";
 import { FilesTab } from "@/components/projects/FilesTab";
 import { ProjectSettingsDrawer } from "@/components/projects/ProjectSettingsDrawer";
+import { ProjectTeamDrawer } from "@/components/projects/ProjectTeamDrawer";
 import { DeleteProjectDialog } from "@/components/projects/DeleteProjectDialog";
 import { DuplicateProjectDialog } from "@/components/projects/DuplicateProjectDialog";
 import {
@@ -57,6 +58,7 @@ export default function ProjectDetail() {
   const { currentWorkspace, role } = useWorkspace();
   const { inviteMembers, busy: inviteBusy } = useTeam();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [projectTeamOpen, setProjectTeamOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
@@ -152,6 +154,7 @@ export default function ProjectDetail() {
             </div>
             <Progress value={project.progress} className="h-2" />
           </div>
+          {perms.canManage && <Button variant="outline" onClick={() => setProjectTeamOpen(true)}>Add teammates</Button>}
           {(role === "owner" || role === "manager") && <Button variant="outline" onClick={() => setInviteOpen(true)}>Invite client</Button>}
           <ProjectOverflowMenu
             project={project as ProjectRow}
@@ -202,6 +205,11 @@ export default function ProjectDetail() {
       <InviteMemberDrawer open={inviteOpen} onOpenChange={setInviteOpen} initialRole="client" initialProjectId={id}
         projects={[{ id: project.id, name: project.name }]} workspaceName={currentWorkspace?.name ?? "your agency"}
         onInvite={inviteMembers} busy={inviteBusy} />
+      {perms.canManage && <ProjectTeamDrawer
+        project={project as ProjectRow}
+        open={projectTeamOpen}
+        onOpenChange={setProjectTeamOpen}
+      />}
       <ProjectSettingsDrawer
         project={project as ProjectRow}
         open={settingsOpen}
