@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
-import { useProjectStages, useProjectStageCommand, type ProjectStage, type StageCommand } from "@/hooks/useProjectStages";
+import { useProjectStages, useProjectStageCommand, type StageCommand } from "@/hooks/useProjectStages";
 import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
@@ -617,11 +617,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           if(next)update.mutate({id:task.id,status:next.category,stage_id:next.id});
           break;
         }
-        case "l": {
-          e.preventDefault();
-          startInline(task, "labels");
-          break;
-        }
         default:
           if (e.key === "Delete" || e.key === "Backspace") {
             e.preventDefault();
@@ -930,7 +925,7 @@ function Column({
     setNodeRef:setStageRef,setActivatorNodeRef,attributes,listeners,
     transform,transition,isDragging,
   }=useSortable({id:`stage:${id}`,disabled:!draggable});
-  const stageStyle={transform:CSS.Transform.toString(transform),transition,opacity:isDragging?.55:1};
+  const stageStyle={transform:CSS.Transform.toString(transform),transition,opacity:isDragging ? 0.55 : 1};
   const [composing, setComposing] = useState(false);
   const [value, setValue] = useState("");
   const theme = COLUMN_THEME[category];
@@ -979,8 +974,12 @@ function Column({
               onChange={event=>onDraftNameChange(event.target.value)}
               onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();onSaveName();}
                 if(event.key==="Escape")onCancelName();}}
-              onBlur={onSaveName} className="h-8 w-40 text-sm" aria-label={`Rename ${title} stage`}/> :
+              className="h-8 w-40 text-sm" aria-label={`Rename ${title} stage`}/> :
               <span className={cn("text-sm font-semibold", theme.header)}>{title}</span>}
+            {editing && <>
+              <Button type="button" variant="ghost" size="sm" onClick={onSaveName} disabled={!draftName.trim()}>Save</Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onCancelName}>Cancel</Button>
+            </>}
             <span className="rounded-pill bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               {tasks.length}
             </span>
