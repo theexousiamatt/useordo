@@ -37,6 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
 import { useProjectStages, useProjectStageCommand, type StageCommand } from "@/hooks/useProjectStages";
+import { stageForTaskId, stageInsertBefore, moveTaskWithinStages } from "@/lib/legacyStageBoard";
 import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
@@ -165,10 +166,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       setStageError(error instanceof Error?error.message:"Could not save stage. Retry the same action.");
     });
   },[stageMutation]);
-  const stageForTask=useCallback((task:TaskRow):string|undefined=>{
-    if(task.stage_id && stages.some(stage=>stage.id===task.stage_id))return task.stage_id;
-    return stages.find(stage=>stage.category===task.status)?.id ?? stages[0]?.id;
-  },[stages]);
+  const stageForTask=useCallback((task:TaskRow)=>stageForTaskId(task,stages),[stages]);
 
   // ---------------- Labels ----------------
   const { data: projectLabels = [] } = useProjectLabels(projectId);
@@ -643,52 +641,16 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       const stage=stages.find(item=>item.id===activeId.slice(6));
       const destination=stages.find(item=>item.id===overId.slice(6));
       if(!stage || !destination || stage.id===destination.id)return;
-      const from=stages.findIndex(item=>item.id===stage.id);
-      const to=stages.findIndex(item=>item.id===destination.id);
-      const beforeId=from<to ? (stages[to+1]?.id ?? null) : destination.id;
+      const beforeId=stageInsertBefore(stages,stage.id,destination.id);
       runStage({action:"reorder",stageId:stage.id,beforeId,expectedRevision:stage.revision});
       return;
     }
 
-    const activeTaskItem=items.find(task=>task.id===activeId);
-    if(!activeTaskItem)return;
-    const overTask=items.find(task=>task.id===overId);
-    const destination=stages.find(stage=>stage.id===(overTask?stageForTask(overTask):overId));
-    if(!destination)return;
-
-    const originalStage=stageForTask(activeTaskItem);
-    const targetStage=destination.id;
-    if(originalStage===targetStage && (!overTask || overTask.id===activeTaskItem.id))return;
-    const next=items.map(task=>({...task}));
-    const moving=next.find(task=>task.id===activeId)!;
-    moving.stage_id=destination.id;
-    moving.status=destination.category;
-
-    const updates:{id:string;status:TaskStatus;stage_id:string|null;position:number}[]=[];
-    for(const stageId of new Set([originalStage,targetStage])){
-      if(!stageId)continue;
-      const stage=stages.find(entry=>entry.id===stageId);
-      if(!stage)continue;
-      const group=next.filter(task=>task.id!==moving.id && stageForTask(task)===stageId)
-        .sort((a,b)=>a.position-b.position);
-      if(stageId===targetStage){
-        const overIndex=overTask?group.findIndex(task=>task.id===overTask.id):-1;
-        const sourceIndex=items.filter(task=>stageForTask(task)===originalStage).sort((a,b)=>a.position-b.position)
-          .findIndex(task=>task.id===activeTaskItem.id);
-        const hoveredIndex=overTask?items.filter(task=>stageForTask(task)===targetStage).sort((a,b)=>a.position-b.position)
-          .findIndex(task=>task.id===overTask.id):-1;
-        const after=originalStage===targetStage && sourceIndex<hoveredIndex;
-        group.splice(overIndex<0?group.length:overIndex+(after?1:0),0,moving);
-      }
-      group.forEach((task,position)=>{
-        task.position=position;
-        updates.push({id:task.id,status:task.status,stage_id:task.stage_id??stageId,position});
-      });
-    }
-
-    setItems(next);
-    qc.setQueryData(["project-tasks", projectId], next);
-    reorder.mutate(updates);
+    const move=moveTaskWithinStages(items,stages,activeId,overId);
+    if(!move)return;
+    setItems(move.next);
+    qc.setQueryData(["project-tasks", projectId], move.next);
+    reorder.mutate(move.updates);
   };
 
   const confirmDelete = () => {
