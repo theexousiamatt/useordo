@@ -1,0 +1,44 @@
+name: Legacy Ordo release verification
+
+on:
+  push:
+    branches:
+      - codex/legacy-ordo-improvements
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/legacy-ordo-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legacy-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Unit and regression tests
+        run: npm run test -- --reporter=default
+      - name: Production build
+        run: npm run build
+      - name: Lint changed legacy modules
+        run: npx eslint src/components/projects/ProjectBoard.tsx src/components/projects/ProjectTeamDrawer.tsx src/components/ordo/OrdoColumnContextMenu.tsx src/components/ordo/OrdoCardContextMenu.tsx src/components/ordo/OrdoBulkActionMenu.tsx src/hooks/useProjectStages.ts src/hooks/useProjectData.tsx src/hooks/useProjects.tsx src/lib/legacyStageBoard.ts src/lib/legacyStageBoard.test.ts src/pages/ProjectDetail.tsx
