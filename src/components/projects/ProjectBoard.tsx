@@ -9,16 +9,18 @@ import {
   closestCorners,
   type DragEndEvent,
   type DragStartEvent,
+  type CollisionDetection,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   useSortable,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
-import { Plus, Loader2, MoreHorizontal, ChevronRight } from "lucide-react";
+import { Plus, Loader2, MoreHorizontal, ChevronRight, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
+import { useProjectStages, useProjectStageCommand, type ProjectStage, type StageCommand } from "@/hooks/useProjectStages";
 import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
@@ -92,6 +95,7 @@ interface Props {
   members: ProjectMemberProfile[];
   /** When set (e.g. from a ?task= deep link), open this task's drawer on mount. */
   initialTaskId?: string | null;
+  canConfigureStages?: boolean;
 }
 
 type PendingDelete = { type: "single"; task: TaskRow } | { type: "bulk"; ids: string[] } | null;
@@ -117,9 +121,14 @@ interface BoardInlineCtx {
   setTaskAssignees: (taskId: string, userIds: string[]) => void;
 }
 
-const STATUS_ORDER = TASK_COLUMNS.map((c) => c.id);
+const stageCollision: CollisionDetection = (args) => {
+  const movingStage=String(args.active.id).startsWith("stage:");
+  return closestCorners({...args,droppableContainers:args.droppableContainers.filter(item =>
+    String(item.id).startsWith("stage:")===movingStage
+  )});
+};
 
-export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId }: Props) {
+export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId, canConfigureStages=false }: Props) {
   const qc = useQueryClient();
   const { role, currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -133,6 +142,33 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const bulkDelete = useBulkDeleteTasks(projectId);
   const { data: assigneesMap } = useTaskAssignees(projectId);
   const setAssignees = useSetTaskAssignees(projectId);
+  const stageQuery=useProjectStages(projectId);
+  const stages=stageQuery.data ?? [];
+  const stageMutation=useProjectStageCommand(projectId);
+  const [stageError,setStageError]=useState("");
+  const [editingStageId,setEditingStageId]=useState<string|null>(null);
+  const [stageName,setStageName]=useState("");
+  const [creatingStage,setCreatingStage]=useState(false);
+  const [stageCategory,setStageCategory]=useState<TaskStatus>("todo");
+  const [removingStageId,setRemovingStageId]=useState<string|null>(null);
+  const [removeDestination,setRemoveDestination]=useState("");
+  const stageRequest=useRef<{signature:string;requestId:string}|null>(null);
+  const runStage=useCallback((command:Omit<StageCommand,"requestId">,onSuccess?:()=>void)=>{
+    if(stageMutation.isPending)return;
+    const signature=JSON.stringify(command);
+    if(stageRequest.current?.signature!==signature) stageRequest.current={signature,requestId:crypto.randomUUID()};
+    const requestId=stageRequest.current.requestId;
+    setStageError("");
+    void stageMutation.mutateAsync({...command,requestId}).then(()=>{
+      stageRequest.current=null;onSuccess?.();
+    }).catch((error)=>{
+      setStageError(error instanceof Error?error.message:"Could not save stage. Retry the same action.");
+    });
+  },[stageMutation]);
+  const stageForTask=useCallback((task:TaskRow):string|undefined=>{
+    if(task.stage_id && stages.some(stage=>stage.id===task.stage_id))return task.stage_id;
+    return stages.find(stage=>stage.category===task.status)?.id ?? stages[0]?.id;
+  },[stages]);
 
   // ---------------- Labels ----------------
   const { data: projectLabels = [] } = useProjectLabels(projectId);
@@ -212,10 +248,10 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
   // Inline quick-edit state — which card is being edited inline, and how.
   const [inline, setInline] = useState<{ id: string; mode: InlineMode } | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<TaskStatus>>(() => {
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(`ordo:collapsed:${projectId}`);
-      return new Set(raw ? (JSON.parse(raw) as TaskStatus[]) : []);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
     } catch {
       return new Set();
     }
@@ -340,8 +376,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const byStatus = (status: TaskStatus) =>
-    items.filter((t) => t.status === status).sort((a, b) => a.position - b.position);
+  const byStage = (id: string) =>
+    items.filter((t) => stageForTask(t) === id).sort((a, b) => a.position - b.position);
 
   const activeTask = items.find((t) => t.id === activeId) ?? null;
 
