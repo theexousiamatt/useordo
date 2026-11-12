@@ -634,36 +634,62 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   }, [items, focusedId, selected, editOpen, openTask, startInline, dup, update, clearSelection, stages, stageForTask]);
 
   // ---------------- Drag & drop ----------------
-  const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
+  const handleDragStart = (e: DragStartEvent) =>
+    setActiveId(String(e.active.id).startsWith("stage:") ? null : String(e.active.id));
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = e;
     if (!over) return;
+    const activeId=String(active.id), overId=String(over.id);
 
-    const activeTaskItem = items.find((t) => t.id === active.id);
-    if (!activeTaskItem) return;
+    if(activeId.startsWith("stage:")){
+      if(!canConfigureStages || stageMutation.isPending || !overId.startsWith("stage:"))return;
+      const stage=stages.find(item=>item.id===activeId.slice(6));
+      const destination=stages.find(item=>item.id===overId.slice(6));
+      if(!stage || !destination || stage.id===destination.id)return;
+      const from=stages.findIndex(item=>item.id===stage.id);
+      const to=stages.findIndex(item=>item.id===destination.id);
+      const beforeId=from<to ? (stages[to+1]?.id ?? null) : destination.id;
+      runStage({action:"reorder",stageId:stage.id,beforeId,expectedRevision:stage.revision});
+      return;
+    }
 
-    const overId = String(over.id);
-    const overTask = items.find((t) => t.id === overId);
-    const targetStatus = (overTask?.status ?? overId) as TaskStatus;
-    if (!TASK_COLUMNS.some((c) => c.id === targetStatus)) return;
+    const activeTaskItem=items.find(task=>task.id===activeId);
+    if(!activeTaskItem)return;
+    const overTask=items.find(task=>task.id===overId);
+    const destination=stages.find(stage=>stage.id===(overTask?stageForTask(overTask):overId));
+    if(!destination)return;
 
-    const next = items.map((t) => ({ ...t }));
-    const moving = next.find((t) => t.id === active.id)!;
-    moving.status = targetStatus;
+    const originalStage=stageForTask(activeTaskItem);
+    const targetStage=destination.id;
+    if(originalStage===targetStage && (!overTask || overTask.id===activeTaskItem.id))return;
+    const next=items.map(task=>({...task}));
+    const moving=next.find(task=>task.id===activeId)!;
+    moving.stage_id=destination.id;
+    moving.status=destination.category;
 
-    const affected = new Set<TaskStatus>([activeTaskItem.status, targetStatus]);
-    const updates: { id: string; status: TaskStatus; position: number }[] = [];
-    affected.forEach((status) => {
-      next
-        .filter((t) => t.status === status)
-        .sort((a, b) => (a.id === active.id ? -0.5 : a.position) - (b.id === active.id ? -0.5 : b.position))
-        .forEach((t, idx) => {
-          t.position = idx;
-          updates.push({ id: t.id, status, position: idx });
-        });
-    });
+    const updates:{id:string;status:TaskStatus;stage_id:string|null;position:number}[]=[];
+    for(const stageId of new Set([originalStage,targetStage])){
+      if(!stageId)continue;
+      const stage=stages.find(entry=>entry.id===stageId);
+      if(!stage)continue;
+      const group=next.filter(task=>task.id!==moving.id && stageForTask(task)===stageId)
+        .sort((a,b)=>a.position-b.position);
+      if(stageId===targetStage){
+        const overIndex=overTask?group.findIndex(task=>task.id===overTask.id):-1;
+        const sourceIndex=items.filter(task=>stageForTask(task)===originalStage).sort((a,b)=>a.position-b.position)
+          .findIndex(task=>task.id===activeTaskItem.id);
+        const hoveredIndex=overTask?items.filter(task=>stageForTask(task)===targetStage).sort((a,b)=>a.position-b.position)
+          .findIndex(task=>task.id===overTask.id):-1;
+        const after=originalStage===targetStage && sourceIndex<hoveredIndex;
+        group.splice(overIndex<0?group.length:overIndex+(after?1:0),0,moving);
+      }
+      group.forEach((task,position)=>{
+        task.position=position;
+        updates.push({id:task.id,status:task.status,stage_id:task.stage_id??stageId,position});
+      });
+    }
 
     setItems(next);
     qc.setQueryData(["project-tasks", projectId], next);
