@@ -1,5 +1,13 @@
 Options -MultiViews
+
+# Prevent stale deployment-time environment files and hidden Git metadata from
+# being served even when present on the hosting filesystem.
+<FilesMatch "^(?:\.env(?:\..*)?|.*\.(?:pem|key|p12|pfx|map))$">
+  Require all denied
+</FilesMatch>
+
 RewriteEngine On
+RewriteRule (^|/)\.(?:env|git)(?:[./]|$) - [F,L,NC]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.html [L]
