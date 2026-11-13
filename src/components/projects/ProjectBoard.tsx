@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
+import type { BoardTheme } from "@/lib/boardThemes";
 import { useProjectStages, useProjectStageCommand, type StageCommand } from "@/hooks/useProjectStages";
 import { stageForTaskId, stageInsertBefore, moveTaskWithinStages, hasStageTasks } from "@/lib/legacyStageBoard";
 import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
@@ -97,6 +98,7 @@ interface Props {
   /** When set (e.g. from a ?task= deep link), open this task's drawer on mount. */
   initialTaskId?: string | null;
   canConfigureStages?: boolean;
+  boardTheme?: BoardTheme;
 }
 
 type PendingDelete = { type: "single"; task: TaskRow } | { type: "bulk"; ids: string[] } | null;
@@ -105,6 +107,7 @@ type InlineMode = "rename" | "labels" | "members" | "due";
 
 /** Shared inline-editing context threaded down to each card. */
 interface BoardInlineCtx {
+  boardTheme: BoardTheme;
   members: ProjectMemberProfile[];
   projectLabels: ProjectLabel[];
   labelChipsFor: (taskId: string) => TaskLabelChip[];
@@ -130,7 +133,7 @@ const stageCollision: CollisionDetection = (args) => {
   )});
 };
 
-export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId, canConfigureStages=false }: Props) {
+export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId, canConfigureStages=false, boardTheme="neutral" }: Props) {
   const qc = useQueryClient();
   const { role, currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -467,6 +470,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const liveEditTask = editTask ? items.find((t) => t.id === editTask.id) ?? editTask : null;
 
   const inlineCtx: BoardInlineCtx = {
+    boardTheme,
+    boardTheme,
     members,
     projectLabels,
     labelChipsFor,
@@ -789,6 +794,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               <OrdoTaskCard
                 title={activeTask.title}
                 status={activeTask.status}
+                boardTheme={boardTheme}
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
                 labels={labelChipsFor(activeTask.id)}
@@ -1187,6 +1193,7 @@ function SortableTask({
             <OrdoTaskCard
               title={task.title}
               status={task.status}
+              boardTheme={boardTheme}
               description={task.description}
               dueDate={task.due_date}
               labels={labelChipsFor(task.id)}
