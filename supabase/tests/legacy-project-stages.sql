@@ -24,7 +24,9 @@ INSERT INTO public.projects(id,workspace_id,name,owner_id,status) VALUES
  ('99000000-0000-4000-8000-000000000001','98000000-0000-4000-8000-000000000001','Stage fixture one',
    '97000000-0000-4000-8000-000000000001','active'),
  ('99000000-0000-4000-8000-000000000002','98000000-0000-4000-8000-000000000002','Stage fixture two',
-   '97000000-0000-4000-8000-000000000004','active');
+   '97000000-0000-4000-8000-000000000004','active'),
+ ('99000000-0000-4000-8000-000000000003','98000000-0000-4000-8000-000000000001','Destructive stage fixture',
+   '97000000-0000-4000-8000-000000000001','active');
 
 DO $$ BEGIN
   IF (SELECT count(*) FROM public.project_stages
@@ -42,7 +44,25 @@ INSERT INTO public.tasks(id,project_id,workspace_id,title,status,position,archiv
  ('96000000-0000-4000-8000-000000000001','99000000-0000-4000-8000-000000000001',
   '98000000-0000-4000-8000-000000000001','Stage fixture active','todo',0,NULL),
  ('96000000-0000-4000-8000-000000000002','99000000-0000-4000-8000-000000000001',
-  '98000000-0000-4000-8000-000000000001','Stage fixture archived','todo',1,now());
+  '98000000-0000-4000-8000-000000000001','Stage fixture archived','todo',1,now()),
+ ('96000000-0000-4000-8000-000000000003','99000000-0000-4000-8000-000000000003',
+  '98000000-0000-4000-8000-000000000001','Delete fixture active','todo',0,NULL),
+ ('96000000-0000-4000-8000-000000000004','99000000-0000-4000-8000-000000000003',
+  '98000000-0000-4000-8000-000000000001','Delete fixture archived','todo',1,now()),
+ ('96000000-0000-4000-8000-000000000005','99000000-0000-4000-8000-000000000003',
+  '98000000-0000-4000-8000-000000000001','Preserved task in Done','done',0,NULL);
+
+INSERT INTO public.task_assignees(task_id,user_id,project_id,workspace_id,created_by) VALUES
+ ('96000000-0000-4000-8000-000000000003','97000000-0000-4000-8000-000000000002',
+  '99000000-0000-4000-8000-000000000003','98000000-0000-4000-8000-000000000001',
+  '97000000-0000-4000-8000-000000000001');
+INSERT INTO public.project_comments(project_id,workspace_id,task_id,author_id,content) VALUES
+ ('99000000-0000-4000-8000-000000000003','98000000-0000-4000-8000-000000000001',
+  '96000000-0000-4000-8000-000000000003','97000000-0000-4000-8000-000000000001',
+  'Fixture comment to be cascade-deleted');
+INSERT INTO public.files(project_id,workspace_id,task_id,name,storage_path) VALUES
+ ('99000000-0000-4000-8000-000000000003','98000000-0000-4000-8000-000000000001',
+  '96000000-0000-4000-8000-000000000004','Fixture attachment','test-fixtures/no-object-created');
 DO $$ BEGIN
   IF EXISTS(SELECT 1 FROM public.tasks
     WHERE id IN ('96000000-0000-4000-8000-000000000001','96000000-0000-4000-8000-000000000002')
@@ -69,6 +89,17 @@ DO $$ DECLARE denied boolean:=false; BEGIN
       NULL,NULL,NULL,'94000000-0000-4000-8000-000000000001');
   EXCEPTION WHEN SQLSTATE '42501' THEN denied:=true; END;
   IF NOT denied THEN RAISE EXCEPTION 'Client can configure project stages'; END IF;
+END $$;
+
+-- Destructive deletion is denied to clients, even when they can view a project.
+DO $$ DECLARE denied boolean:=false; stage_id uuid; stage_rev integer; BEGIN
+  SELECT id,revision INTO stage_id,stage_rev FROM public.project_stages
+    WHERE project_id='99000000-0000-4000-8000-000000000003' AND category='todo';
+  BEGIN
+    PERFORM public.manage_project_stage('99000000-0000-4000-8000-000000000003',
+      'delete',stage_id,NULL,NULL,NULL,NULL,stage_rev,gen_random_uuid());
+  EXCEPTION WHEN SQLSTATE '42501' THEN denied:=true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'Client can delete a project stage'; END IF;
 END $$;
 
 SELECT set_config('request.jwt.claim.sub','97000000-0000-4000-8000-000000000004',true);
@@ -196,6 +227,52 @@ BEGIN
     RAISE EXCEPTION 'Stage removal changed the number of active or archived tasks'; END IF;
 END $$;
 
+-- Manager can explicitly delete a stage and all its active/archived tasks.
+-- Other stages and their tasks remain unchanged; related task rows cascade.
+DO $$ DECLARE
+  project_uuid uuid:='99000000-0000-4000-8000-000000000003';
+  stage_id uuid; stage_rev integer; done_stage uuid;
+  request_uuid uuid:=gen_random_uuid(); deleted_id uuid; refused boolean:=false;
+BEGIN
+  SELECT id,revision INTO stage_id,stage_rev FROM public.project_stages
+    WHERE project_id=project_uuid AND category='todo';
+  SELECT id INTO done_stage FROM public.project_stages
+    WHERE project_id=project_uuid AND category='done';
+  deleted_id:=public.manage_project_stage(project_uuid,'delete',stage_id,
+    NULL,NULL,NULL,NULL,stage_rev,request_uuid);
+  IF deleted_id<>stage_id OR
+     public.manage_project_stage(project_uuid,'delete',stage_id,
+       NULL,NULL,NULL,NULL,stage_rev,request_uuid)<>stage_id THEN
+    RAISE EXCEPTION 'Destructive stage command was not idempotent';
+  END IF;
+  IF EXISTS(SELECT 1 FROM public.tasks WHERE id IN
+    ('96000000-0000-4000-8000-000000000003','96000000-0000-4000-8000-000000000004')) THEN
+    RAISE EXCEPTION 'Active or archived tasks survived stage deletion'; END IF;
+  IF EXISTS(SELECT 1 FROM public.project_stages WHERE id=stage_id) THEN
+    RAISE EXCEPTION 'Deleted stage still exists'; END IF;
+  IF (SELECT count(*) FROM public.project_stages WHERE project_id=project_uuid)<>4 THEN
+    RAISE EXCEPTION 'Incorrect stage count after destructive deletion'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.tasks WHERE id='96000000-0000-4000-8000-000000000005'
+    AND stage_id=done_stage AND status='done') THEN
+    RAISE EXCEPTION 'Task outside deleted stage was affected'; END IF;
+  IF EXISTS(SELECT 1 FROM public.task_assignees
+      WHERE task_id='96000000-0000-4000-8000-000000000003')
+     OR EXISTS(SELECT 1 FROM public.project_comments
+      WHERE task_id='96000000-0000-4000-8000-000000000003')
+     OR EXISTS(SELECT 1 FROM public.files
+      WHERE task_id='96000000-0000-4000-8000-000000000004') THEN
+    RAISE EXCEPTION 'Task dependencies did not cascade on delete'; END IF;
+
+  -- A project cannot lose its final stage, not even via the new delete command.
+  SELECT id,revision INTO stage_id,stage_rev FROM public.project_stages
+    WHERE project_id='99000000-0000-4000-8000-000000000001' LIMIT 1;
+  BEGIN
+    PERFORM public.manage_project_stage('99000000-0000-4000-8000-000000000001',
+      'delete',stage_id,NULL,NULL,NULL,NULL,stage_rev,gen_random_uuid());
+  EXCEPTION WHEN SQLSTATE '22023' THEN refused:=true; END;
+  IF NOT refused THEN RAISE EXCEPTION 'Final stage was deleted'; END IF;
+END $$;
+
 RESET ROLE;
 
 DO $$ BEGIN
@@ -207,4 +284,4 @@ DO $$ BEGIN
 END $$;
 
 ROLLBACK;
-SELECT 'PASS: isolated legacy stage CRUD, access, compatibility, task preservation (rollback)' AS result;
+SELECT 'PASS: legacy stage transfers, explicit stage/task delete, archive and FK cascades, permissions, idempotency (rollback)' AS result;
