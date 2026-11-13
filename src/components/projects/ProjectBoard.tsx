@@ -491,11 +491,11 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       if(!canConfigureStages){toast.error("You do not have permission to configure stages.");return;}
       const stage=stages.find(item=>item.id===id);
       if(!stage)return;
-      if(action==="Rename column"){
+      if(action==="Rename column" || action==="Rename stage"){
         setCreatingStage(false);
         setCollapsed(current=>{const next=new Set(current);next.delete(id);return next;});
         setEditingStageId(id);setStageName(stage.name);
-      }else if(action==="Reorder column"){
+      }else if(action==="Reorder column" || action==="Reorder stage"){
         toast.info("Drag the grip beside a stage title to reorder it.");
       }else if(action==="Delete column" || action==="Remove stage"){
         const destinationId=stageRemovalDestination(stages,id);
@@ -717,6 +717,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               title={col.name}
               category={col.category}
               draggable={canConfigureStages && !stageMutation.isPending}
+              canManageStages={canConfigureStages && !stageMutation.isPending}
+              canRemoveStage={stages.length > 1}
               editing={canConfigureStages && editingStageId===col.id}
               draftName={stageName}
               onDraftNameChange={setStageName}
@@ -870,6 +872,8 @@ function Column({
   title,
   category,
   draggable,
+  canManageStages,
+  canRemoveStage,
   editing,
   draftName,
   onDraftNameChange,
@@ -891,6 +895,8 @@ function Column({
   title: string;
   category: TaskStatus;
   draggable: boolean;
+  canManageStages: boolean;
+  canRemoveStage: boolean;
   editing: boolean;
   draftName: string;
   onDraftNameChange: (name:string)=>void;
@@ -928,7 +934,7 @@ function Column({
 
   if (collapsed) {
     return (
-      <OrdoColumnContextMenu status={id} collapsed handlers={columnHandlers}>
+      <OrdoColumnContextMenu status={id} collapsed handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
         <div ref={setStageRef} style={stageStyle} className="flex w-12 shrink-0 flex-col items-center gap-3 rounded-card border border-border bg-card py-3">
           {draggable && <button type="button" ref={setActivatorNodeRef} {...attributes} {...listeners}
             className="cursor-grab touch-none text-muted-foreground" aria-label={`Drag ${title} stage`}>
@@ -954,7 +960,7 @@ function Column({
 
   return (
     <div ref={setStageRef} style={stageStyle} className="flex w-72 shrink-0 flex-col">
-      <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers}>
+      <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
         <div className="mb-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <span className={cn("h-2 w-2 rounded-full", theme.dot)} />
@@ -987,6 +993,8 @@ function Column({
               <Plus className="h-4 w-4" />
             </Button>
             <OrdoColumnOverflowMenu
+              canManageStages={canManageStages}
+              canRemoveStage={canRemoveStage}
               status={id}
               collapsed={false}
               handlers={columnHandlers}
