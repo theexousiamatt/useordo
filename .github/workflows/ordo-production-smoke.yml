@@ -30,6 +30,15 @@ jobs:
         run: |
           npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.65.0
           npx playwright install --with-deps chromium
+      - name: Verify Hostinger serves the latest published static release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          expected="$(gh api 'repos/theexousiamatt/useordo/contents/release.json?ref=codex/hostinger-static' --jq '.content' | base64 --decode | jq -r '.source_sha')"
+          actual="$(curl -fsSL --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' 'https://ordo.inspirarestudio.com/release.json' | jq -r '.source_sha')"
+          test "$expected" != "null" && test "$actual" = "$expected"
+          echo "Hostinger serves verified static release $actual"
       - name: Test production desktop/tablet/mobile and API boundaries
         run: node .github/scripts/ordo-preview-smoke.mjs
       - name: Upload public-page browser screenshots
