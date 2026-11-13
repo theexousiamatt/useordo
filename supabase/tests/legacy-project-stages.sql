@@ -145,6 +145,57 @@ BEGIN
     RAISE EXCEPTION 'Removed stage count mismatch';
   END IF;
 END $$;
+-- Regression: a project can go from five stages to two (and even one).
+-- Archived tasks must be reassigned without changing their archived flag.
+DO $$ DECLARE
+  project_uuid uuid:='99000000-0000-4000-8000-000000000001';
+  removing record;
+  destination uuid;
+  stage_count integer;
+  attempt integer;
+  rejected boolean:=false;
+BEGIN
+  FOR attempt IN 1..3 LOOP
+    SELECT s.id,s.revision INTO removing FROM public.project_stages s
+      WHERE s.project_id=project_uuid ORDER BY s.position DESC,s.id DESC LIMIT 1;
+    SELECT s.id INTO destination FROM public.project_stages s
+      WHERE s.project_id=project_uuid AND s.id<>removing.id
+      ORDER BY s.position,s.id LIMIT 1;
+    PERFORM public.manage_project_stage(project_uuid,'remove',removing.id,
+      NULL,NULL,NULL,destination,removing.revision,gen_random_uuid());
+  END LOOP;
+  SELECT count(*) INTO stage_count FROM public.project_stages WHERE project_id=project_uuid;
+  IF stage_count<>2 THEN RAISE EXCEPTION 'Project cannot be reduced to two stages: %',stage_count; END IF;
+  IF EXISTS(SELECT 1 FROM public.project_stages WHERE project_id=project_uuid AND position NOT IN (0,1)) THEN
+    RAISE EXCEPTION 'Two-stage layout positions were not normalized'; END IF;
+
+  -- Remove a populated stage holding an archived task; the sole survivor keeps all tasks.
+  SELECT s.id,s.revision INTO removing FROM public.project_stages s
+    WHERE s.project_id=project_uuid AND s.category='todo' LIMIT 1;
+  SELECT s.id INTO destination FROM public.project_stages s
+    WHERE s.project_id=project_uuid AND s.id<>removing.id LIMIT 1;
+  IF removing.id IS NULL OR destination IS NULL THEN
+    RAISE EXCEPTION 'Two-stage fixture is missing expected stages'; END IF;
+  PERFORM public.manage_project_stage(project_uuid,'remove',removing.id,
+    NULL,NULL,NULL,destination,removing.revision,gen_random_uuid());
+  IF (SELECT count(*) FROM public.project_stages WHERE project_id=project_uuid)<>1 THEN
+    RAISE EXCEPTION 'Reducing two stages to one unexpectedly failed'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM public.tasks t
+      WHERE t.id='96000000-0000-4000-8000-000000000002'
+        AND t.stage_id=destination AND t.status='backlog' AND t.archived_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'An archived task was lost or not moved during stage removal'; END IF;
+
+  SELECT s.id,s.revision INTO removing FROM public.project_stages s
+    WHERE s.project_id=project_uuid LIMIT 1;
+  BEGIN
+    PERFORM public.manage_project_stage(project_uuid,'remove',removing.id,
+      NULL,NULL,NULL,NULL,removing.revision,gen_random_uuid());
+  EXCEPTION WHEN SQLSTATE '22023' THEN rejected:=true; END;
+  IF NOT rejected THEN RAISE EXCEPTION 'The final stage must not be removable'; END IF;
+  IF (SELECT count(*) FROM public.tasks WHERE project_id=project_uuid)<>2 THEN
+    RAISE EXCEPTION 'Stage removal changed the number of active or archived tasks'; END IF;
+END $$;
+
 RESET ROLE;
 
 DO $$ BEGIN
