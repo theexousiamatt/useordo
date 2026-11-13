@@ -8,6 +8,11 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/tests/legacy-project-stages.sql'
       - '.github/workflows/legacy-ordo-db-verify.yml'
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/legacy-project-stages.sql'
+      - '.github/workflows/legacy-ordo-db-verify.yml'
   workflow_dispatch:
 
 permissions:
