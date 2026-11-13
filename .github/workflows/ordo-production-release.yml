@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/ordo-production-release.yml'
       - 'src/components/projects/ProjectBoard.tsx'
+      - 'src/hooks/useProjectStages.ts'
+      - 'src/components/ordo/OrdoColumnContextMenu.tsx'
       - 'src/lib/legacyStageBoard.ts'
       - 'src/lib/legacyStageBoard.test.ts'
   workflow_dispatch:
@@ -62,7 +64,7 @@ jobs:
         run: |
           set -euo pipefail
           current_static_sha="$(git -C production-static rev-parse HEAD)"
-          expected_static_sha="cb228676c21b043468144345c0590948450202e4"
+          expected_static_sha="94b9a443a8f6bf8858889b54f3c588b6923e9e9f"
           if [ "$current_static_sha" != "$expected_static_sha" ]; then
             echo "Production static branch has changed; refusing automated overwrite"
             exit 1

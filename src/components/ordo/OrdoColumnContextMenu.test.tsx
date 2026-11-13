@@ -15,9 +15,9 @@ describe("project stage actions", () => {
     const config = buildColumnMenuConfig("stage-1", false, handlers, true, true);
     const action = config.flatMap((section) => section.items).find((item) => item.id === "delete");
 
-    expect(action).toMatchObject({ label: "Remove stage", disabled: false, destructive: true });
+    expect(action).toMatchObject({ label: "Delete stage", disabled: false, destructive: true });
     action?.onSelect?.();
-    expect(handlers.onAction).toHaveBeenCalledWith("stage-1", "Remove stage");
+    expect(handlers.onAction).toHaveBeenCalledWith("stage-1", "Delete stage");
   });
 
   it("keeps the final column and avoids dead-end actions", () => {

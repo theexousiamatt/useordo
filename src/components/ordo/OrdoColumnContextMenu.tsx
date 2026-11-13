@@ -39,8 +39,8 @@ export function buildColumnMenuConfig(
         { id: "rename", label: "Rename stage", icon: Pencil, onSelect: () => h.onAction(status, "Rename stage") },
         { id: "duplicate", label: "Duplicate stage", icon: Copy, onSelect: () => h.onAction(status, "Duplicate stage") },
         { id: "reorder", label: "Reorder stage", icon: ArrowLeftRight, onSelect: () => h.onAction(status, "Reorder stage") },
-        { id: "delete", label: "Remove stage", icon: Trash2, destructive: true, disabled: !canRemoveStage,
-          onSelect: () => h.onAction(status, "Remove stage") },
+        { id: "delete", label: "Delete stage", icon: Trash2, destructive: true, disabled: !canRemoveStage,
+          onSelect: () => h.onAction(status, "Delete stage") },
       ],
     }] : []),
   ];

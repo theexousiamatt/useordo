@@ -37,7 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
 import { useProjectStages, useProjectStageCommand, type StageCommand } from "@/hooks/useProjectStages";
-import { stageForTaskId, stageInsertBefore, moveTaskWithinStages, stageRemovalDestination, resolveStageRemovalDestination, hasStageTasks } from "@/lib/legacyStageBoard";
+import { stageForTaskId, stageInsertBefore, moveTaskWithinStages, hasStageTasks } from "@/lib/legacyStageBoard";
 import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
@@ -153,7 +153,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const [creatingStage,setCreatingStage]=useState(false);
   const [stageCategory,setStageCategory]=useState<TaskStatus>("todo");
   const [removingStageId,setRemovingStageId]=useState<string|null>(null);
-  const [removeDestination,setRemoveDestination]=useState("");
   // Count all tasks including archived items hidden from the visible board.
   const removalTaskCount = useQuery({
     queryKey: ["stage-removal-task-count", projectId, removingStageId],
@@ -512,11 +511,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         setEditingStageId(id);setStageName(stage.name);
       }else if(action==="Reorder column" || action==="Reorder stage"){
         toast.info("Drag the grip beside a stage title to reorder it.");
-      }else if(action==="Delete column" || action==="Remove stage"){
-        const destinationId=stageRemovalDestination(stages,id);
-        if(!destinationId){toast.info("Keep at least one stage in the project.");return;}
+      }else if(action==="Delete column" || action==="Remove stage" || action==="Delete stage"){
+        if(stages.length<=1){toast.info("Keep at least one stage in the project.");return;}
         setStageError("");
-        setRemoveDestination("");
         setRemovingStageId(id);
       }else if(action==="Duplicate column" || action==="Duplicate stage"){
         runStage({action:"create",name:`${stage.name.slice(0,155)} copy`,category:stage.category});
@@ -822,17 +819,17 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 
 
       <AlertDialog open={!!removableStage} onOpenChange={open=>{
-        if(!open&&!stageMutation.isPending){setRemovingStageId(null);setRemoveDestination("");setStageError("");}
+        if(!open&&!stageMutation.isPending){setRemovingStageId(null);setStageError("");}
       }}>
         <AlertDialogContent className="client-os rounded-panel">
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {removableStage?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>Delete {removableStage?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
               {removalTaskCount.isPending
                 ? "Checking whether this stage contains tasks…"
                 : hasStageTasks(removalTaskCount.data)
-                  ? "Removing this stage will transfer its tasks, including archived ones. No tasks or assignments will be deleted."
-                  : "This empty stage will be removed from the project. Your other stages and tasks will not be changed."}
+                  ? `This will permanently delete ${removalTaskCount.data} ${removalTaskCount.data === 1 ? "task" : "tasks"} in this stage, including archived tasks. Related comments, approvals, assignments and file records will also be deleted. This cannot be undone.`
+                  : "This stage contains no tasks. Deleting it will not affect tasks in other stages."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {removalTaskCount.isError && (
@@ -843,46 +840,23 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               </Button>
             </div>
           )}
-          {!removalTaskCount.isFetching && !removalTaskCount.isError &&
-            hasStageTasks(removalTaskCount.data) && (
-              <div className="space-y-2">
-                <label htmlFor="remove-stage-destination" className="block text-sm font-medium">
-                  Transfer tasks to <span className="font-normal text-muted-foreground">(optional)</span>
-                </label>
-                <select id="remove-stage-destination" value={removeDestination}
-                  disabled={stageMutation.isPending}
-                  onChange={event=>setRemoveDestination(event.target.value)}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-                  <option value="">Automatically choose a nearby stage</option>
-                  {stages.filter(item=>item.id!==removableStage?.id).map(stage=>
-                    <option key={stage.id} value={stage.id}>{stage.name}</option>)}
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  {removalTaskCount.data} {removalTaskCount.data === 1 ? "task" : "tasks"} will be kept.
-                  Leave this unchanged to transfer automatically, or choose another stage.
-                </p>
-              </div>
-            )}
           {stageError && <p role="alert" className="text-sm text-destructive">{stageError}</p>}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={stageMutation.isPending} onClick={()=>{setRemovingStageId(null);setRemoveDestination("");setStageError("");}}>Cancel</AlertDialogCancel>
-            <Button disabled={stageMutation.isPending || stages.length<=1 ||
+            <AlertDialogCancel disabled={stageMutation.isPending} onClick={()=>{setRemovingStageId(null);setStageError("");}}>Cancel</AlertDialogCancel>
+            <Button variant="destructive" disabled={stageMutation.isPending || stages.length<=1 ||
                 removalTaskCount.isFetching || removalTaskCount.isError || removalTaskCount.data === undefined}
               onClick={()=>{
                 if(!removableStage)return;
-                // Keep the backend safety guarantee even when the optional selection is skipped.
-                // Always send a destination to handle tasks added during the dialog.
-                const destinationId = resolveStageRemovalDestination(stages, removableStage.id, removeDestination);
-                if(!destinationId)return;
-                const transferred = removalTaskCount.data ?? 0;
-                runStage({action:"remove",stageId:removableStage.id,
-                  destinationId,expectedRevision:removableStage.revision},
+                runStage({action:"delete",stageId:removableStage.id,expectedRevision:removableStage.revision},
                   ()=>{
                     setRemovingStageId(null);
-                    setRemoveDestination("");
-                    toast.success(transferred > 0 ? "Stage removed. Tasks transferred safely." : "Empty stage removed.");
+                    toast.success("Stage and its tasks deleted.");
                   });
-              }}>Remove stage</Button>
+              }}>
+              {hasStageTasks(removalTaskCount.data)
+                ? `Delete stage and ${removalTaskCount.data} ${removalTaskCount.data === 1 ? "task" : "tasks"}`
+                : "Delete stage"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
