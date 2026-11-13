@@ -37,7 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
 import { useProjectStages, useProjectStageCommand, type StageCommand } from "@/hooks/useProjectStages";
-import { stageForTaskId, stageInsertBefore, moveTaskWithinStages } from "@/lib/legacyStageBoard";
+import { stageForTaskId, stageInsertBefore, moveTaskWithinStages, stageRemovalDestination } from "@/lib/legacyStageBoard";
 import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
@@ -497,9 +497,13 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         setEditingStageId(id);setStageName(stage.name);
       }else if(action==="Reorder column"){
         toast.info("Drag the grip beside a stage title to reorder it.");
-      }else if(action==="Delete column"){
-        setRemovingStageId(id);setRemoveDestination("");
-      }else if(action==="Duplicate column"){
+      }else if(action==="Delete column" || action==="Remove stage"){
+        const destinationId=stageRemovalDestination(stages,id);
+        if(!destinationId){toast.info("Keep at least one stage in the project.");return;}
+        setStageError("");
+        setRemovingStageId(id);
+        setRemoveDestination(destinationId);
+      }else if(action==="Duplicate column" || action==="Duplicate stage"){
         runStage({action:"create",name:`${stage.name.slice(0,155)} copy`,category:stage.category});
       }else stub(action);
     },
@@ -800,16 +804,18 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       />
 
 
-      <AlertDialog open={!!removableStage} onOpenChange={open=>{if(!open&&!stageMutation.isPending)setRemovingStageId(null);}}>
+      <AlertDialog open={!!removableStage} onOpenChange={open=>{
+        if(!open&&!stageMutation.isPending){setRemovingStageId(null);setRemoveDestination("");setStageError("");}
+      }}>
         <AlertDialogContent className="client-os rounded-panel">
           <AlertDialogHeader>
             <AlertDialogTitle>Remove {removableStage?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tasks in this stage, including archived tasks, will be moved to the destination stage.
-              No tasks or assignments will be deleted.
+              The stage will be removed from this project. Any tasks in it, including archived tasks,
+              will move to the selected stage. No tasks or assignments will be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <label htmlFor="remove-stage-destination" className="block text-sm font-medium">Move tasks to</label>
+          <label htmlFor="remove-stage-destination" className="block text-sm font-medium">Move any tasks to</label>
           <select id="remove-stage-destination" value={removeDestination}
             disabled={stageMutation.isPending}
             onChange={event=>setRemoveDestination(event.target.value)}
@@ -818,14 +824,15 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
             {stages.filter(item=>item.id!==removableStage?.id).map(stage=>
               <option key={stage.id} value={stage.id}>{stage.name}</option>)}
           </select>
+          {stageError && <p role="alert" className="text-sm text-destructive">{stageError}</p>}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={stageMutation.isPending} onClick={()=>setRemovingStageId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={stageMutation.isPending} onClick={()=>{setRemovingStageId(null);setRemoveDestination("");setStageError("");}}>Cancel</AlertDialogCancel>
             <Button disabled={!removeDestination || stageMutation.isPending || stages.length<=1}
               onClick={()=>{
                 if(!removableStage)return;
                 runStage({action:"remove",stageId:removableStage.id,
                   destinationId:removeDestination,expectedRevision:removableStage.revision},
-                  ()=>{setRemovingStageId(null);setRemoveDestination("");});
+                  ()=>{setRemovingStageId(null);setRemoveDestination("");toast.success("Stage removed. Existing tasks were preserved.");});
               }}>Remove stage</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
