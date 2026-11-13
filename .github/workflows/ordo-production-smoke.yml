@@ -3,7 +3,7 @@ name: Ordo production browser acceptance
 on:
   push:
     branches:
-      - codex/legacy-ordo-improvements
+      - codex/owned-supabase-backend
     paths:
       - '.github/workflows/ordo-production-smoke.yml'
   workflow_dispatch:
