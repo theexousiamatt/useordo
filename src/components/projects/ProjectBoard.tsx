@@ -37,7 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
 import { useProjectStages, useProjectStageCommand, type StageCommand } from "@/hooks/useProjectStages";
-import { stageForTaskId, stageInsertBefore, moveTaskWithinStages, stageRemovalDestination } from "@/lib/legacyStageBoard";
+import { stageForTaskId, stageInsertBefore, moveTaskWithinStages, stageRemovalDestination, resolveStageRemovalDestination, hasStageTasks } from "@/lib/legacyStageBoard";
 import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
@@ -830,7 +830,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
             <AlertDialogDescription>
               {removalTaskCount.isPending
                 ? "Checking whether this stage contains tasks…"
-                : removalTaskCount.data
+                : hasStageTasks(removalTaskCount.data)
                   ? "Removing this stage will transfer its tasks, including archived ones. No tasks or assignments will be deleted."
                   : "This empty stage will be removed from the project. Your other stages and tasks will not be changed."}
             </AlertDialogDescription>
@@ -844,7 +844,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
             </div>
           )}
           {!removalTaskCount.isFetching && !removalTaskCount.isError &&
-            (removalTaskCount.data ?? 0) > 0 && (
+            hasStageTasks(removalTaskCount.data) && (
               <div className="space-y-2">
                 <label htmlFor="remove-stage-destination" className="block text-sm font-medium">
                   Transfer tasks to <span className="font-normal text-muted-foreground">(optional)</span>
@@ -872,8 +872,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
                 if(!removableStage)return;
                 // Keep the backend safety guarantee even when the optional selection is skipped.
                 // Always send a destination to handle tasks added during the dialog.
-                const destinationId = removeDestination ||
-                  stageRemovalDestination(stages, removableStage.id);
+                const destinationId = resolveStageRemovalDestination(stages, removableStage.id, removeDestination);
                 if(!destinationId)return;
                 const transferred = removalTaskCount.data ?? 0;
                 runStage({action:"remove",stageId:removableStage.id,
