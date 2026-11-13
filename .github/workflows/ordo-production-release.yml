@@ -6,6 +6,9 @@ on:
       - codex/owned-supabase-backend
     paths:
       - '.github/workflows/ordo-production-release.yml'
+      - 'src/components/projects/ProjectBoard.tsx'
+      - 'src/lib/legacyStageBoard.ts'
+      - 'src/lib/legacyStageBoard.test.ts'
   workflow_dispatch:
 
 permissions:
@@ -59,7 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           current_static_sha="$(git -C production-static rev-parse HEAD)"
-          expected_static_sha="33132ca0ca7bfd7d183e34357a6e7d73b9bff88f"
+          expected_static_sha="cb228676c21b043468144345c0590948450202e4"
           if [ "$current_static_sha" != "$expected_static_sha" ]; then
             echo "Production static branch has changed; refusing automated overwrite"
             exit 1

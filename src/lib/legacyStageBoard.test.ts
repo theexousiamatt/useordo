@@ -1,5 +1,5 @@
 import { describe,expect,it } from "vitest";
-import { moveTaskWithinStages,stageForTaskId,stageInsertBefore,stageRemovalDestination,type BoardStage } from "./legacyStageBoard";
+import { moveTaskWithinStages,stageForTaskId,stageInsertBefore,stageRemovalDestination,resolveStageRemovalDestination,hasStageTasks,type BoardStage } from "./legacyStageBoard";
 
 const stages:BoardStage[]=[
   {id:"backlog",category:"backlog",position:0},
@@ -58,6 +58,23 @@ describe("legacy Ordo customizable stages",()=>{
     const inStage=result!.next.filter(task=>task.stage_id==="todo-1").sort((a,b)=>a.position-b.position);
     expect(inStage.map(task=>task.id)).toEqual(["b","a"]);
     expect(new Set(result!.updates.map(task=>task.id)).size).toBe(2);
+  });
+
+  it("shows transfer options only when a stage contains tasks",()=>{
+    expect(hasStageTasks(0)).toBe(false);
+    expect(hasStageTasks(null)).toBe(false);
+    expect(hasStageTasks(undefined)).toBe(false);
+    expect(hasStageTasks(1)).toBe(true);
+    expect(hasStageTasks(3)).toBe(true);
+  });
+
+  it("uses a neighboring stage automatically when transfer selection is skipped",()=>{
+    expect(resolveStageRemovalDestination(stages,"todo-1","")).toBe("todo-2");
+    expect(resolveStageRemovalDestination(stages,"todo-1",undefined)).toBe("todo-2");
+    expect(resolveStageRemovalDestination(stages,"todo-1","done")).toBe("done");
+    expect(resolveStageRemovalDestination(stages,"todo-1","todo-1")).toBe("todo-2");
+    expect(resolveStageRemovalDestination(stages,"todo-1","missing")).toBe("todo-2");
+    expect(resolveStageRemovalDestination([stages[0]],"backlog","")).toBeNull();
   });
 
   it("does not move a task to itself or an unknown stage",()=>{

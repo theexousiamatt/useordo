@@ -27,6 +27,22 @@ export function stageRemovalDestination(stages: readonly BoardStage[], stageId: 
   return (ordered[index + 1] ?? ordered[index - 1]).id;
 }
 
+/** Empty stages need no transfer controls; zero counts still require a confirmation. */
+export function hasStageTasks(taskCount: number | null | undefined): boolean {
+  return typeof taskCount === "number" && taskCount > 0;
+}
+
+/** A choice is optional; the backend always receives a valid surviving stage for safety. */
+export function resolveStageRemovalDestination(
+  stages: readonly BoardStage[],
+  removingId: string,
+  chosenId?: string | null,
+): string | null {
+  if (chosenId && chosenId !== removingId &&
+      stages.some((stage) => stage.id === chosenId)) return chosenId;
+  return stageRemovalDestination(stages, removingId);
+}
+
 export function moveTaskWithinStages<T extends BoardTask>(
   items:readonly T[],stages:readonly BoardStage[],movingId:string,hoveredId:string,
 ):{next:T[];updates:{id:string;status:TaskStatus;stage_id:string|null;position:number}[]}|null {
