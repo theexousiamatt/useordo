@@ -1,5 +1,5 @@
 import { describe,expect,it } from "vitest";
-import { moveTaskWithinStages,stageForTaskId,stageInsertBefore,type BoardStage } from "./legacyStageBoard";
+import { moveTaskWithinStages,stageForTaskId,stageInsertBefore,stageRemovalDestination,type BoardStage } from "./legacyStageBoard";
 
 const stages:BoardStage[]=[
   {id:"backlog",category:"backlog",position:0},
@@ -23,6 +23,20 @@ describe("legacy Ordo customizable stages",()=>{
     expect(stageInsertBefore(stages,"todo-1","todo-2")).toBe("done");
     expect(stageInsertBefore(stages,"done","todo-1")).toBe("todo-1");
     expect(stageInsertBefore(stages,"backlog","done")).toBeNull();
+  });
+
+  it("lets a five-stage project be reduced to two without requiring any category",()=>{
+    const two=[stages[0],stages[3]];
+    expect(stageRemovalDestination(stages,"todo-1")).toBe("todo-2");
+    expect(stageRemovalDestination(stages,"done")).toBe("todo-2");
+    expect(stageRemovalDestination(two,"backlog")).toBe("done");
+    expect(stageRemovalDestination(two,"done")).toBe("backlog");
+  });
+
+  it("never proposes deleting the final stage or an unknown stage",()=>{
+    expect(stageRemovalDestination([stages[0]],"backlog")).toBeNull();
+    expect(stageRemovalDestination([], "backlog")).toBeNull();
+    expect(stageRemovalDestination(stages,"missing")).toBeNull();
   });
 
   it("moves one task between stages that share a reporting status",()=>{
