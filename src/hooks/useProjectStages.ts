@@ -14,7 +14,7 @@ export interface ProjectStage {
 }
 
 export type StageCommand = {
-  action: "create" | "rename" | "reorder" | "remove";
+  action: "create" | "rename" | "reorder" | "remove" | "delete";
   stageId?: string | null;
   name?: string | null;
   category?: TaskStatus | null;
