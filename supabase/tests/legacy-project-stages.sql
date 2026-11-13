@@ -231,29 +231,29 @@ END $$;
 -- Other stages and their tasks remain unchanged; related task rows cascade.
 DO $$ DECLARE
   project_uuid uuid:='99000000-0000-4000-8000-000000000003';
-  stage_id uuid; stage_rev integer; done_stage uuid;
+  deleting_stage_id uuid; stage_rev integer; done_stage uuid;
   request_uuid uuid:=gen_random_uuid(); deleted_id uuid; refused boolean:=false;
 BEGIN
-  SELECT id,revision INTO stage_id,stage_rev FROM public.project_stages
+  SELECT id,revision INTO deleting_stage_id,stage_rev FROM public.project_stages
     WHERE project_id=project_uuid AND category='todo';
   SELECT id INTO done_stage FROM public.project_stages
     WHERE project_id=project_uuid AND category='done';
-  deleted_id:=public.manage_project_stage(project_uuid,'delete',stage_id,
+  deleted_id:=public.manage_project_stage(project_uuid,'delete',deleting_stage_id,
     NULL,NULL,NULL,NULL,stage_rev,request_uuid);
-  IF deleted_id<>stage_id OR
-     public.manage_project_stage(project_uuid,'delete',stage_id,
-       NULL,NULL,NULL,NULL,stage_rev,request_uuid)<>stage_id THEN
+  IF deleted_id<>deleting_stage_id OR
+     public.manage_project_stage(project_uuid,'delete',deleting_stage_id,
+       NULL,NULL,NULL,NULL,stage_rev,request_uuid)<>deleting_stage_id THEN
     RAISE EXCEPTION 'Destructive stage command was not idempotent';
   END IF;
   IF EXISTS(SELECT 1 FROM public.tasks WHERE id IN
     ('96000000-0000-4000-8000-000000000003','96000000-0000-4000-8000-000000000004')) THEN
     RAISE EXCEPTION 'Active or archived tasks survived stage deletion'; END IF;
-  IF EXISTS(SELECT 1 FROM public.project_stages WHERE id=stage_id) THEN
+  IF EXISTS(SELECT 1 FROM public.project_stages WHERE id=deleting_stage_id) THEN
     RAISE EXCEPTION 'Deleted stage still exists'; END IF;
   IF (SELECT count(*) FROM public.project_stages WHERE project_id=project_uuid)<>4 THEN
     RAISE EXCEPTION 'Incorrect stage count after destructive deletion'; END IF;
-  IF NOT EXISTS(SELECT 1 FROM public.tasks WHERE id='96000000-0000-4000-8000-000000000005'
-    AND stage_id=done_stage AND status='done') THEN
+  IF NOT EXISTS(SELECT 1 FROM public.tasks t WHERE t.id='96000000-0000-4000-8000-000000000005'
+    AND t.stage_id=done_stage AND t.status='done') THEN
     RAISE EXCEPTION 'Task outside deleted stage was affected'; END IF;
   IF EXISTS(SELECT 1 FROM public.task_assignees
       WHERE task_id='96000000-0000-4000-8000-000000000003')
@@ -264,11 +264,11 @@ BEGIN
     RAISE EXCEPTION 'Task dependencies did not cascade on delete'; END IF;
 
   -- A project cannot lose its final stage, not even via the new delete command.
-  SELECT id,revision INTO stage_id,stage_rev FROM public.project_stages
+  SELECT id,revision INTO deleting_stage_id,stage_rev FROM public.project_stages
     WHERE project_id='99000000-0000-4000-8000-000000000001' LIMIT 1;
   BEGIN
     PERFORM public.manage_project_stage('99000000-0000-4000-8000-000000000001',
-      'delete',stage_id,NULL,NULL,NULL,NULL,stage_rev,gen_random_uuid());
+      'delete',deleting_stage_id,NULL,NULL,NULL,NULL,stage_rev,gen_random_uuid());
   EXCEPTION WHEN SQLSTATE '22023' THEN refused:=true; END;
   IF NOT refused THEN RAISE EXCEPTION 'Final stage was deleted'; END IF;
 END $$;
