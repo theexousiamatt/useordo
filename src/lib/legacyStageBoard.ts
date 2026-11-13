@@ -19,6 +19,14 @@ export function stageInsertBefore(stages:readonly BoardStage[],sourceId:string,t
   return from<to ? ordered[to+1]?.id ?? null : targetId;
 }
 
+/** Choose a nearby surviving stage so removing a column is one click, not a blocked form. */
+export function stageRemovalDestination(stages: readonly BoardStage[], stageId: string): string | null {
+  const ordered = [...stages].sort((a, b) => a.position - b.position);
+  const index = ordered.findIndex((stage) => stage.id === stageId);
+  if (index < 0 || ordered.length <= 1) return null;
+  return (ordered[index + 1] ?? ordered[index - 1]).id;
+}
+
 export function moveTaskWithinStages<T extends BoardTask>(
   items:readonly T[],stages:readonly BoardStage[],movingId:string,hoveredId:string,
 ):{next:T[];updates:{id:string;status:TaskStatus;stage_id:string|null;position:number}[]}|null {

@@ -1,22 +1,5 @@
 import { type ReactNode } from "react";
-import {
-  Pencil,
-  Palette,
-  ArrowLeftRight,
-  ChevronsDownUp,
-  Plus,
-  ListPlus,
-  Sparkles,
-  Wand2,
-  Activity,
-  FileText,
-  Bot,
-  GitMerge,
-  Workflow,
-  Copy,
-  Archive,
-  Trash2,
-} from "lucide-react";
+import { Pencil, ArrowLeftRight, ChevronsDownUp, Plus, Copy, Trash2 } from "lucide-react";
 import { OrdoContextMenu, OrdoOverflowMenu, type OrdoMenuConfig } from "./OrdoMenu";
 
 export interface ColumnMenuHandlers {
@@ -25,96 +8,76 @@ export interface ColumnMenuHandlers {
   onAction: (status: string, action: string) => void;
 }
 
+/** Only offer actions that really work; manage-stage controls require project permissions. */
 export function buildColumnMenuConfig(
   status: string,
   collapsed: boolean,
   h: ColumnMenuHandlers,
+  canManageStages = true,
+  canRemoveStage = true,
 ): OrdoMenuConfig {
   return [
-    {
-      id: "column",
-      label: "Column",
-      items: [
-        { id: "rename", label: "Rename column", icon: Pencil, onSelect: () => h.onAction(status, "Rename column") },
-        { id: "color", label: "Change color", icon: Palette, onSelect: () => h.onAction(status, "Change color") },
-        { id: "reorder", label: "Reorder column", icon: ArrowLeftRight, onSelect: () => h.onAction(status, "Reorder column") },
-        {
-          id: "collapse",
-          label: collapsed ? "Expand column" : "Collapse column",
-          icon: ChevronsDownUp,
-          onSelect: () => h.onToggleCollapse(status),
-        },
-      ],
-    },
     {
       id: "tasks",
       label: "Tasks",
       items: [
         { id: "add", label: "Add task", icon: Plus, onSelect: () => h.onAddTask(status) },
-        { id: "bulk-add", label: "Bulk add tasks", icon: ListPlus, onSelect: () => h.onAction(status, "Bulk add tasks") },
       ],
     },
     {
-      id: "ai",
-      label: "AI actions",
+      id: "display",
+      label: "Display",
       items: [
-        { id: "ai-generate", label: "Generate tasks for column", icon: Sparkles, ai: true, onSelect: () => h.onAction(status, "Generate tasks for column") },
-        { id: "ai-suggest", label: "Suggest missing tasks", icon: Wand2, ai: true, onSelect: () => h.onAction(status, "Suggest missing tasks") },
-        { id: "ai-bottleneck", label: "Analyze bottlenecks", icon: Activity, ai: true, onSelect: () => h.onAction(status, "Analyze bottlenecks") },
-        { id: "ai-summary", label: "Summarize column progress", icon: FileText, ai: true, onSelect: () => h.onAction(status, "Summarize column progress") },
+        { id: "collapse", label: collapsed ? "Expand stage" : "Collapse stage", icon: ChevronsDownUp,
+          onSelect: () => h.onToggleCollapse(status) },
       ],
     },
-    {
-      id: "automation",
-      label: "Automation",
-      items: [
-        { id: "auto-assign", label: "Create auto-assign rule", icon: Bot, onSelect: () => h.onAction(status, "Create auto-assign rule") },
-        { id: "auto-move", label: "Create auto-move rule", icon: GitMerge, onSelect: () => h.onAction(status, "Create auto-move rule") },
-        { id: "workflow", label: "Create workflow rule", icon: Workflow, onSelect: () => h.onAction(status, "Create workflow rule") },
-      ],
-    },
-    {
+    ...(canManageStages ? [{
       id: "management",
-      label: "Management",
+      label: "Manage stage",
       items: [
-        { id: "duplicate", label: "Duplicate column", icon: Copy, onSelect: () => h.onAction(status, "Duplicate column") },
-        { id: "archive", label: "Archive column", icon: Archive, onSelect: () => h.onAction(status, "Archive column") },
-        { id: "delete", label: "Delete column", icon: Trash2, destructive: true, onSelect: () => h.onAction(status, "Delete column") },
+        { id: "rename", label: "Rename stage", icon: Pencil, onSelect: () => h.onAction(status, "Rename stage") },
+        { id: "duplicate", label: "Duplicate stage", icon: Copy, onSelect: () => h.onAction(status, "Duplicate stage") },
+        { id: "reorder", label: "Reorder stage", icon: ArrowLeftRight, onSelect: () => h.onAction(status, "Reorder stage") },
+        { id: "delete", label: "Remove stage", icon: Trash2, destructive: true, disabled: !canRemoveStage,
+          onSelect: () => h.onAction(status, "Remove stage") },
       ],
-    },
+    }] : []),
   ];
 }
 
 export function OrdoColumnContextMenu({
-  status,
-  collapsed,
-  handlers,
-  children,
+  status, collapsed, handlers, children, canManageStages = true, canRemoveStage = true,
 }: {
   status: string;
   collapsed: boolean;
   handlers: ColumnMenuHandlers;
   children: ReactNode;
+  canManageStages?: boolean;
+  canRemoveStage?: boolean;
 }) {
   return (
-    <OrdoContextMenu config={buildColumnMenuConfig(status, collapsed, handlers)}>
+    <OrdoContextMenu config={buildColumnMenuConfig(status, collapsed, handlers, canManageStages, canRemoveStage)}>
       {children}
     </OrdoContextMenu>
   );
 }
 
 export function OrdoColumnOverflowMenu({
-  status,
-  collapsed,
-  handlers,
-  trigger,
+  status, collapsed, handlers, trigger, canManageStages = true, canRemoveStage = true,
 }: {
   status: string;
   collapsed: boolean;
   handlers: ColumnMenuHandlers;
   trigger: ReactNode;
+  canManageStages?: boolean;
+  canRemoveStage?: boolean;
 }) {
   return (
-    <OrdoOverflowMenu config={buildColumnMenuConfig(status, collapsed, handlers)} trigger={trigger} align="start" />
+    <OrdoOverflowMenu
+      config={buildColumnMenuConfig(status, collapsed, handlers, canManageStages, canRemoveStage)}
+      trigger={trigger}
+      align="start"
+    />
   );
 }
