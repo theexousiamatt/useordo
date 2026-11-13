@@ -86,7 +86,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { sendAppEmail } from "@/lib/email";
 import { projectUrl } from "@/lib/appUrl";
 import { dateShort } from "@/lib/format";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -154,6 +154,21 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const [stageCategory,setStageCategory]=useState<TaskStatus>("todo");
   const [removingStageId,setRemovingStageId]=useState<string|null>(null);
   const [removeDestination,setRemoveDestination]=useState("");
+  // Count all tasks including archived items hidden from the visible board.
+  const removalTaskCount = useQuery({
+    queryKey: ["stage-removal-task-count", projectId, removingStageId],
+    enabled: Boolean(removingStageId),
+    queryFn: async (): Promise<number> => {
+      const { count, error } = await supabase.from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", projectId)
+        .eq("stage_id", removingStageId!);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
   const stageRequest=useRef<{signature:string;requestId:string}|null>(null);
   const runStage=useCallback((command:Omit<StageCommand,"requestId">,onSuccess?:()=>void)=>{
     if(stageMutation.isPending)return;
@@ -501,8 +516,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         const destinationId=stageRemovalDestination(stages,id);
         if(!destinationId){toast.info("Keep at least one stage in the project.");return;}
         setStageError("");
+        setRemoveDestination("");
         setRemovingStageId(id);
-        setRemoveDestination(destinationId);
       }else if(action==="Duplicate column" || action==="Duplicate stage"){
         runStage({action:"create",name:`${stage.name.slice(0,155)} copy`,category:stage.category});
       }else stub(action);
@@ -813,28 +828,61 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           <AlertDialogHeader>
             <AlertDialogTitle>Remove {removableStage?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              The stage will be removed from this project. Any tasks in it, including archived tasks,
-              will move to the selected stage. No tasks or assignments will be deleted.
+              {removalTaskCount.isPending
+                ? "Checking whether this stage contains tasks…"
+                : removalTaskCount.data
+                  ? "Removing this stage will transfer its tasks, including archived ones. No tasks or assignments will be deleted."
+                  : "This empty stage will be removed from the project. Your other stages and tasks will not be changed."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <label htmlFor="remove-stage-destination" className="block text-sm font-medium">Move any tasks to</label>
-          <select id="remove-stage-destination" value={removeDestination}
-            disabled={stageMutation.isPending}
-            onChange={event=>setRemoveDestination(event.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-            <option value="">Choose another stage</option>
-            {stages.filter(item=>item.id!==removableStage?.id).map(stage=>
-              <option key={stage.id} value={stage.id}>{stage.name}</option>)}
-          </select>
+          {removalTaskCount.isError && (
+            <div role="alert" className="text-sm text-destructive">
+              Could not check whether this stage contains tasks. No changes were made.
+              <Button type="button" variant="link" onClick={() => void removalTaskCount.refetch()}>
+                Try again
+              </Button>
+            </div>
+          )}
+          {!removalTaskCount.isFetching && !removalTaskCount.isError &&
+            (removalTaskCount.data ?? 0) > 0 && (
+              <div className="space-y-2">
+                <label htmlFor="remove-stage-destination" className="block text-sm font-medium">
+                  Transfer tasks to <span className="font-normal text-muted-foreground">(optional)</span>
+                </label>
+                <select id="remove-stage-destination" value={removeDestination}
+                  disabled={stageMutation.isPending}
+                  onChange={event=>setRemoveDestination(event.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                  <option value="">Automatically choose a nearby stage</option>
+                  {stages.filter(item=>item.id!==removableStage?.id).map(stage=>
+                    <option key={stage.id} value={stage.id}>{stage.name}</option>)}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  {removalTaskCount.data} {removalTaskCount.data === 1 ? "task" : "tasks"} will be kept.
+                  Leave this unchanged to transfer automatically, or choose another stage.
+                </p>
+              </div>
+            )
           {stageError && <p role="alert" className="text-sm text-destructive">{stageError}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={stageMutation.isPending} onClick={()=>{setRemovingStageId(null);setRemoveDestination("");setStageError("");}}>Cancel</AlertDialogCancel>
-            <Button disabled={!removeDestination || stageMutation.isPending || stages.length<=1}
+            <Button disabled={stageMutation.isPending || stages.length<=1 ||
+                removalTaskCount.isFetching || removalTaskCount.isError || removalTaskCount.data === undefined}
               onClick={()=>{
                 if(!removableStage)return;
+                // Keep the backend safety guarantee even when the optional selection is skipped.
+                // Always send a destination to handle tasks added during the dialog.
+                const destinationId = removeDestination ||
+                  stageRemovalDestination(stages, removableStage.id);
+                if(!destinationId)return;
+                const transferred = removalTaskCount.data ?? 0;
                 runStage({action:"remove",stageId:removableStage.id,
-                  destinationId:removeDestination,expectedRevision:removableStage.revision},
-                  ()=>{setRemovingStageId(null);setRemoveDestination("");toast.success("Stage removed. Existing tasks were preserved.");});
+                  destinationId,expectedRevision:removableStage.revision},
+                  ()=>{
+                    setRemovingStageId(null);
+                    setRemoveDestination("");
+                    toast.success(transferred > 0 ? "Stage removed. Tasks transferred safely." : "Empty stage removed.");
+                  });
               }}>Remove stage</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
