@@ -3,7 +3,7 @@ name: Release Ordo legacy static site to production
 on:
   push:
     branches:
-      - codex/legacy-ordo-improvements
+      - codex/owned-supabase-backend
     paths:
       - '.github/workflows/ordo-production-release.yml'
   workflow_dispatch:
@@ -59,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           current_static_sha="$(git -C production-static rev-parse HEAD)"
-          expected_static_sha="e167c1fccb301fc759808cffa75637f055e2728a"
+          expected_static_sha="33132ca0ca7bfd7d183e34357a6e7d73b9bff88f"
           if [ "$current_static_sha" != "$expected_static_sha" ]; then
             echo "Production static branch has changed; refusing automated overwrite"
             exit 1
