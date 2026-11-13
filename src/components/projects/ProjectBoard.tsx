@@ -862,7 +862,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
                   Leave this unchanged to transfer automatically, or choose another stage.
                 </p>
               </div>
-            )
+            )}
           {stageError && <p role="alert" className="text-sm text-destructive">{stageError}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={stageMutation.isPending} onClick={()=>{setRemovingStageId(null);setRemoveDestination("");setStageError("");}}>Cancel</AlertDialogCancel>
