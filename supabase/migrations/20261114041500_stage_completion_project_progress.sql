@@ -51,6 +51,10 @@ BEGIN
   WHERE id = _project_id;
 END $$;
 
+-- Do not expose privileged trigger functions as callable RPCs.
+REVOKE ALL ON FUNCTION public.ordo_task_progress_trigger() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.ordo_stage_progress_trigger() FROM PUBLIC, anon, authenticated;
+
 -- Do not make security-definer recomputation callable by browser clients.
 REVOKE ALL ON FUNCTION public.recalculate_ordo_project_progress(uuid) FROM PUBLIC, anon, authenticated;
 
