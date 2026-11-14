@@ -28,11 +28,11 @@ export function TaskSubtaskChecklist({ projectId, taskId }: { projectId: string;
   };
 
   return (
-    <section aria-label="Subtasks" className="space-y-3">
+    <section aria-label="Checklist" className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <CheckSquare className="h-4 w-4" />
-          Subtasks
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <CheckSquare className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          Checklist
         </h3>
         {items.length > 0 && (
           <span className="text-xs tabular-nums text-muted-foreground">{done} of {items.length} complete</span>
@@ -46,7 +46,7 @@ export function TaskSubtaskChecklist({ projectId, taskId }: { projectId: string;
       )}
       {query.isLoading && <p role="status" className="text-xs text-muted-foreground">Loading subtasks…</p>}
       {query.isSuccess && items.length === 0 && (
-        <p className="text-xs text-muted-foreground">Add a subtask to break this work into smaller steps.</p>
+        <p className="text-xs text-muted-foreground">Break this task into smaller, actionable steps.</p>
       )}
       {items.length > 0 && (
         <div className="space-y-1.5">
@@ -75,7 +75,7 @@ export function TaskSubtaskChecklist({ projectId, taskId }: { projectId: string;
       )}
       <form onSubmit={create} className="flex items-center gap-2">
         <Input value={title} onChange={event => setTitle(event.target.value)}
-          placeholder="Add a subtask…" aria-label="New subtask title" maxLength={240}
+          placeholder="Add checklist item…" aria-label="New subtask title" maxLength={240}
           disabled={action.isPending || query.isError} className="h-9 flex-1 rounded-lg text-sm" />
         <Button type="submit" size="sm" variant="outline" className="h-9 shrink-0 gap-1.5"
           disabled={!title.trim() || action.isPending || query.isError}>

@@ -1,0 +1,103 @@
+name: Verify Ordo task drawer desktop and mobile experience
+
+on:
+  push:
+    branches:
+      - codex/refine-task-drawer-hierarchy-20261114
+    paths:
+      - '.github/workflows/ordo-task-drawer-browser-verify.yml'
+      - 'src/components/projects/TaskDetailDrawer.tsx'
+      - 'src/components/projects/TaskDrawerProperties.tsx'
+      - 'src/components/projects/TaskDetailDrawer.test.tsx'
+      - 'scripts/qa/task-drawer-smoke.mjs'
+      - 'scripts/qa/seed-browser.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript strict checks
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Full drawer and application regression suite
+        run: npm test
+      - name: Lint task drawer and editing properties
+        run: npx eslint src/components/projects/TaskDetailDrawer.tsx src/components/projects/TaskDrawerProperties.tsx src/components/projects/TaskDetailDrawer.test.tsx
+      - name: Production build
+        run: npm run build
+
+  drawer-browser:
+    needs: frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install application dependencies
+        run: npm ci --no-audit --no-fund
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.1.0
+      - name: Boot isolated database
+        run: supabase start
+      - name: Prepare isolated browser account
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/ordo-qa-supabase.env
+          source /tmp/ordo-qa-supabase.env
+          : "${ANON_KEY:?Local anon key missing}"
+          : "${SERVICE_ROLE_KEY:?Local service key missing}"
+          echo "::add-mask::${SERVICE_ROLE_KEY}"
+          echo "QA_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "QA_SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
+          echo "QA_SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
+      - name: Seed task data inside disposable database
+        run: node scripts/qa/seed-browser.mjs
+      - name: Start Ordo using local backend
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/ordo-mobile-qa-vite.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ordo-mobile-qa-vite.log
+          exit 1
+      - name: Install Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Verify inline edits, stage and comment persistence, and mobile drawer layout
+        run: node scripts/qa/task-drawer-smoke.mjs
+      - name: Save mobile and desktop screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordo-task-drawer-desktop-mobile-qa
+          path: qa-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Destroy isolated database
+        if: always()
+        run: supabase stop --no-backup || true

@@ -164,7 +164,7 @@ export function TaskAttachmentsSection({
         </div>
       )}
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
           <Paperclip className="h-3.5 w-3.5" />
           Attachments
           {attachments.length > 0 && (
@@ -199,13 +199,14 @@ export function TaskAttachmentsSection({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex w-full flex-col items-center gap-1.5 rounded-card border border-dashed border-border p-6 text-center transition-colors hover:border-primary/40 hover:bg-black/[0.015]"
+          className="flex w-full items-center gap-3 rounded-lg border border-dashed border-border px-3 py-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Paperclip className="h-5 w-5 text-muted-foreground/60" />
-          <span className="text-sm font-medium text-foreground">Add attachments</span>
-          <span className="text-xs text-muted-foreground/70">
-            Drag, paste, or click to upload (max 50 MB each)
+          <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium text-foreground">Add files</span>
+            <span className="block text-xs text-muted-foreground">Drop, paste or browse · 50 MB max each</span>
           </span>
+          <Upload className="h-4 w-4 shrink-0 text-muted-foreground/70" aria-hidden="true" />
         </button>
       ) : (
         <ul className="space-y-2">
