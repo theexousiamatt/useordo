@@ -14,7 +14,7 @@ COMMENT ON COLUMN public.project_stages.is_completion IS
 
 -- New projects must seed one completion stage; do not rely on the old name.
 CREATE OR REPLACE FUNCTION public.legacy_seed_project_stages()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 BEGIN
   INSERT INTO public.project_stages(workspace_id,project_id,name,category,position,is_completion)
   SELECT NEW.workspace_id,NEW.id,seed.name,seed.category,seed.position,(seed.category='done')
@@ -23,7 +23,7 @@ BEGIN
     ('Review','review',3),('Done','done',4)
   ) AS seed(name,category,position);
   RETURN NEW;
-END $;
+END $$;
 
 -- Completion is stage-driven; keep projects.progress up to date for all clients,
 -- including dashboards that do not have the task board open.
