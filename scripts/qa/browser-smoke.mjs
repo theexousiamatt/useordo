@@ -22,7 +22,8 @@ async function verify(label,fn,context){
     console.log(`PASS [${context.label}] ${label}`);
     return true;
   }catch(e){
-    const msg=String(e?.message??e).slice(0,650);
+    const location=context.page.url();
+    const msg=(String(e?.message??e)+" | URL="+location).slice(0,900);
     reports.push({viewport:context.label,case:label,result:"FAIL",error:msg});
     console.error(`FAIL [${context.label}] ${label}: ${msg}`);
     try{await context.page.screenshot({path:path.join("qa-artifacts",`${context.label}-fail-${reports.length}.png`),fullPage:true});}catch{}
@@ -76,6 +77,10 @@ for(const viewport of [
     await page.locator('input[type="email"]').fill(fixture.email);
     await page.locator('input[type="password"]').fill(fixture.password);
     await page.getByRole("button",{name:/sign in/i}).last().click();
+    // Click completion is not auth completion: wait for navigation from /auth
+    // before entering a protected route, or the sign-in fetch can be aborted.
+    await page.waitForURL(url => url.pathname !== "/auth" && !url.pathname.startsWith("/auth/"), {timeout:30000});
+    await page.waitForFunction(() => Object.keys(localStorage).some(key=>key.startsWith("sb-")&&key.endsWith("-auth-token")),null,{timeout:10000});
     await openProject(ctx);
   },ctx);
   if(!authOk){await context.close();continue;}
