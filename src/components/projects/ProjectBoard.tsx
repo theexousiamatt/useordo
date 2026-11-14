@@ -35,11 +35,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
-import type { BoardTheme } from "@/lib/boardThemes";
-import { useProjectStages, useProjectStageCommand, type StageCommand } from "@/hooks/useProjectStages";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { TaskStatus } from "@/lib/projectConstants";
+import { STAGE_THEME_STYLES, resolveStageTheme, type StageTheme } from "@/lib/stageThemes";
+import { StageThemePicker } from "@/components/projects/StageThemePicker";
+import { useProjectStages, useProjectStageCommand, useCreateCustomStage, useSetProjectStageTheme, type ProjectStage, type StageCommand } from "@/hooks/useProjectStages";
 import { stageForTaskId, stageInsertBefore, moveTaskWithinStages, hasStageTasks } from "@/lib/legacyStageBoard";
-import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
+import { OrdoTaskCard, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
   OrdoCardOverflowMenu,
@@ -98,7 +100,6 @@ interface Props {
   /** When set (e.g. from a ?task= deep link), open this task's drawer on mount. */
   initialTaskId?: string | null;
   canConfigureStages?: boolean;
-  boardTheme?: BoardTheme;
 }
 
 type PendingDelete = { type: "single"; task: TaskRow } | { type: "bulk"; ids: string[] } | null;
@@ -107,7 +108,6 @@ type InlineMode = "rename" | "labels" | "members" | "due";
 
 /** Shared inline-editing context threaded down to each card. */
 interface BoardInlineCtx {
-  boardTheme: BoardTheme;
   members: ProjectMemberProfile[];
   projectLabels: ProjectLabel[];
   labelChipsFor: (taskId: string) => TaskLabelChip[];
@@ -118,7 +118,7 @@ interface BoardInlineCtx {
   recolorLabel: (labelId: string, color: LabelColor) => void;
   deleteLabel: (labelId: string) => void;
   moveTargets: TaskMoveTarget[];
-  stages: {id:string;name:string;category:TaskStatus;position:number}[];
+  stages: ProjectStage[];
   inline: { id: string; mode: InlineMode } | null;
   setInline: (v: { id: string; mode: InlineMode } | null) => void;
   patchTask: (id: string, patch: Partial<TaskRow>) => void;
@@ -133,7 +133,7 @@ const stageCollision: CollisionDetection = (args) => {
   )});
 };
 
-export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId, canConfigureStages=false, boardTheme="neutral" }: Props) {
+export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId, canConfigureStages=false }: Props) {
   const qc = useQueryClient();
   const { role, currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -150,11 +150,15 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const stageQuery=useProjectStages(projectId);
   const stages=useMemo(()=>stageQuery.data ?? [],[stageQuery.data]);
   const stageMutation=useProjectStageCommand(projectId);
+  const createStageMutation=useCreateCustomStage(projectId);
+  const themeMutation=useSetProjectStageTheme(projectId);
   const [stageError,setStageError]=useState("");
   const [editingStageId,setEditingStageId]=useState<string|null>(null);
   const [stageName,setStageName]=useState("");
   const [creatingStage,setCreatingStage]=useState(false);
-  const [stageCategory,setStageCategory]=useState<TaskStatus>("todo");
+  const [draftStageTheme,setDraftStageTheme]=useState<StageTheme>("neutral");
+  const [themeStageId,setThemeStageId]=useState<string|null>(null);
+  const [themeDraft,setThemeDraft]=useState<StageTheme>("neutral");
   const [removingStageId,setRemovingStageId]=useState<string|null>(null);
   // Count all tasks including archived items hidden from the visible board.
   const removalTaskCount = useQuery({
@@ -184,6 +188,19 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       setStageError(error instanceof Error?error.message:"Could not save stage. Retry the same action.");
     });
   },[stageMutation]);
+  // Keep the request identity on retries so an uncertain response cannot duplicate stages.
+  const stageCreateRequest=useRef<{signature:string;requestId:string}|null>(null);
+  const createNamedStage=useCallback((name:string,theme:StageTheme,category:TaskStatus,onSuccess?:()=>void)=>{
+    if(createStageMutation.isPending)return;
+    const signature=JSON.stringify({name,theme,category});
+    if(stageCreateRequest.current?.signature!==signature){
+      stageCreateRequest.current={signature,requestId:crypto.randomUUID()};
+    }
+    setStageError("");
+    void createStageMutation.mutateAsync({name,theme,category,requestId:stageCreateRequest.current.requestId})
+      .then(()=>{stageCreateRequest.current=null;onSuccess?.();})
+      .catch(error=>setStageError(error instanceof Error?error.message:"Could not create stage. Retry the same input."));
+  },[createStageMutation]);
   const stageForTask=useCallback((task:TaskRow)=>stageForTaskId(task,stages),[stages]);
 
   // ---------------- Labels ----------------
@@ -396,6 +413,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     items.filter((t) => stageForTask(t) === id).sort((a, b) => a.position - b.position);
 
   const activeTask = items.find((t) => t.id === activeId) ?? null;
+  const activeStage = activeTask ? stages.find(stage=>stage.id===stageForTask(activeTask)) : null;
 
   const openTask = useCallback((t: TaskRow) => {
     setEditTask(t);
@@ -470,7 +488,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const liveEditTask = editTask ? items.find((t) => t.id === editTask.id) ?? editTask : null;
 
   const inlineCtx: BoardInlineCtx = {
-    boardTheme,
     members,
     projectLabels,
     labelChipsFor,
@@ -520,7 +537,10 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         setStageError("");
         setRemovingStageId(id);
       }else if(action==="Duplicate column" || action==="Duplicate stage"){
-        runStage({action:"create",name:`${stage.name.slice(0,155)} copy`,category:stage.category});
+        createNamedStage(`${stage.name.slice(0,155)} copy`,resolveStageTheme(stage.theme),stage.category);
+      }else if(action==="Change theme"){
+        setThemeStageId(stage.id);
+        setThemeDraft(resolveStageTheme(stage.theme));
       }else stub(action);
     },
   };
@@ -715,6 +735,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   if(!stages.length)return <div role="alert">This project has no stages. Please contact a workspace manager.</div>;
 
   const removableStage=stages.find(stage=>stage.id===removingStageId);
+  const themeStage=stages.find(stage=>stage.id===themeStageId);
   return (
     <>
       {stageError && <p role="alert" className="mb-3 rounded-md border border-destructive/30 p-3 text-sm text-destructive">{stageError}</p>}
