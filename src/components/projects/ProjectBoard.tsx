@@ -471,7 +471,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 
   const inlineCtx: BoardInlineCtx = {
     boardTheme,
-    boardTheme,
     members,
     projectLabels,
     labelChipsFor,
@@ -1121,6 +1120,7 @@ function SortableTask({
     patchTask,
     assigneesFor,
     setTaskAssignees,
+    boardTheme,
   } = inlineCtx;
   const assignees = assigneesFor(task);
 
