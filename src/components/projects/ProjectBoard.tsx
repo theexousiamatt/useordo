@@ -809,6 +809,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               title={col.name}
               category={col.category}
               stageTheme={resolveStageTheme(col.theme)}
+              isCompletion={isCompletionStage(col)}
               draggable={canConfigureStages && !stageMutation.isPending}
               canManageStages={canConfigureStages && !stageMutation.isPending}
               canRemoveStage={stages.length > 1}
@@ -865,6 +866,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
                 title={activeTask.title}
                 status={activeTask.status}
                 stageTheme={resolveStageTheme(activeStage?.theme)}
+                completed={isTaskCompleted(activeTask,stages)}
                 stageName={activeStage?.name}
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
@@ -972,6 +974,25 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={!!pendingCompletion} onOpenChange={open=>{if(!open)setPendingCompletion(null);}}>
+        <AlertDialogContent className="client-os rounded-panel">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finish with incomplete checklist items?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingCompletion?.unfinished} task{pendingCompletion?.unfinished===1?" has":"s have"} unfinished checklist items.
+              Moving work to “{pendingCompletion?.target}” will count it as completed in project progress,
+              but won't automatically check those items off.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep working</AlertDialogCancel>
+            <AlertDialogAction onClick={()=>{pendingCompletion?.onProceed();setPendingCompletion(null);}}>
+              Finish anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent className="client-os rounded-panel">
           <AlertDialogHeader>
@@ -1004,6 +1025,7 @@ function Column({
   title,
   category,
   stageTheme,
+  isCompletion,
   draggable,
   canManageStages,
   canRemoveStage,
@@ -1028,6 +1050,7 @@ function Column({
   title: string;
   category: TaskStatus;
   stageTheme: StageTheme;
+  isCompletion: boolean;
   draggable: boolean;
   canManageStages: boolean;
   canRemoveStage: boolean;
@@ -1068,7 +1091,7 @@ function Column({
 
   if (collapsed) {
     return (
-      <OrdoColumnContextMenu status={id} collapsed handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
+      <OrdoColumnContextMenu status={id} collapsed handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage} isCompletion={isCompletion}>
         <div ref={setStageRef} style={stageStyle} className="flex w-12 shrink-0 flex-col items-center gap-3 rounded-card border border-border bg-card py-3">
           {draggable && <button type="button" ref={setActivatorNodeRef} {...attributes} {...listeners}
             className="cursor-grab touch-none text-muted-foreground" aria-label={`Drag ${title} stage`}>
@@ -1094,7 +1117,7 @@ function Column({
 
   return (
     <div ref={setStageRef} style={stageStyle} className="flex w-72 shrink-0 flex-col">
-      <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
+      <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage} isCompletion={isCompletion}>
         <div className="mb-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full" style={{backgroundColor:theme.previewAccent}} />
@@ -1129,6 +1152,7 @@ function Column({
             <OrdoColumnOverflowMenu
               canManageStages={canManageStages}
               canRemoveStage={canRemoveStage}
+              isCompletion={isCompletion}
               status={id}
               collapsed={false}
               handlers={columnHandlers}
@@ -1303,6 +1327,7 @@ function SortableTask({
               title={task.title}
               status={task.status}
               stageTheme={resolveStageTheme(stage?.theme)}
+              completed={isTaskCompleted(task,stages)}
               stageName={stage?.name}
               description={task.description}
               dueDate={task.due_date}
