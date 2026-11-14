@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/ordo-core-experience-verify.yml'
       - 'src/**'
+      - 'supabase/migrations/**'
       - 'scripts/qa/core-experience-smoke.mjs'
   pull_request:
     paths:
@@ -43,7 +44,7 @@ jobs:
         run: npm run test
       - name: Lint modified modules
         run: |
-          npx eslint src/pages/Tasks.tsx src/lib/myTasks.ts src/lib/myTasks.test.ts src/pages/Dashboard.tsx src/pages/InboxPage.tsx src/pages/Onboarding.tsx src/hooks/useNotifications.tsx src/hooks/useClientDashboard.tsx src/components/client/NotificationButton.tsx src/components/client/ApprovalCard.tsx src/components/client/ClientReviewHistory.tsx src/pages/ClientApprovals.tsx src/pages/ClientProjectDetail.tsx src/components/navigation.ts src/components/client/clientNav.ts src/App.tsx
+          npx eslint src/pages/Tasks.tsx src/lib/myTasks.ts src/lib/myTasks.test.ts src/pages/Dashboard.tsx src/pages/InboxPage.tsx src/pages/Onboarding.tsx src/hooks/useNotifications.tsx src/hooks/useClientDashboard.tsx src/components/client/NotificationButton.tsx src/components/client/ApprovalCard.tsx src/components/client/ClientReviewHistory.tsx src/pages/ClientApprovals.tsx src/pages/ClientProjectDetail.tsx src/components/navigation.ts src/components/client/clientNav.ts src/App.tsx src/lib/mentions.ts src/lib/mentions.test.ts src/hooks/useTaskComments.tsx src/components/projects/TaskDetailDrawer.tsx
       - name: Production build
         run: npm run build
 
