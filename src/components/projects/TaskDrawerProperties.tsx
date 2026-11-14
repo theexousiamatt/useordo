@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AlertTriangle, CalendarClock, CheckCircle2, CircleDot, Pencil, Tag, UserRound } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InlineTaskTitle, InlineLabelPicker, InlineDatePicker, InlineMemberPicker } from "@/components/ordo";
+import { LabelBadge } from "@/components/ordo/LabelBadge";
 import type { LabelColor } from "@/lib/labelColors";
 import type { ProjectLabel } from "@/hooks/useLabels";
 import type { ProjectStage } from "@/hooks/useProjectStages";
@@ -133,7 +134,7 @@ export function TaskDrawerProperties({
         <div className="flex flex-wrap gap-1.5" aria-label="Task labels">
           {editor.labelIds.map(id=>{
             const label=editor.labels.find(x=>x.id===id);
-            return label ? <span key={id} className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">{label.name}</span> : null;
+            return label ? <LabelBadge key={id} name={label.name} color={label.color} size="sm" /> : null;
           })}
         </div>
       )}
