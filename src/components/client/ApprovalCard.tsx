@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Check, MessageSquareText } from "lucide-react";
+import { Check, MessageSquareText, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -47,7 +47,7 @@ export function ApprovalCard({ item }: ApprovalCardProps) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const urgent = item.status === "changes_requested" || isDueSoon(item.due_date);
+  const urgent = item.status === "changes_requested";
 
   return (
     <div className="flex flex-col items-stretch justify-between gap-4 rounded-small sm:flex-row sm:items-center border border-transparent bg-card px-5 py-4 transition-colors hover:border-border">
@@ -62,8 +62,13 @@ export function ApprovalCard({ item }: ApprovalCardProps) {
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{item.title}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {item.project_name} • {dueLabel(item.due_date)}
+            {item.project_name} · Shared for review
           </p>
+          {item.description && <p className="mt-2 line-clamp-3 max-w-xl whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{item.description}</p>}
+          <button type="button" onClick={() => navigate(`/client/projects/${item.project_id}`)}
+            className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+            <FileText className="h-3.5 w-3.5" /> View shared project files and details
+          </button>
         </div>
       </div>
 
@@ -117,17 +122,3 @@ export function ApprovalCard({ item }: ApprovalCardProps) {
   );
 }
 
-function isDueSoon(due: string | null) {
-  if (!due) return false;
-  const d = new Date(due).getTime();
-  return d - Date.now() < 1000 * 60 * 60 * 24;
-}
-
-function dueLabel(due: string | null) {
-  if (!due) return "No due date";
-  const days = Math.round((new Date(due).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  if (days < 0) return "Overdue";
-  if (days === 0) return "Due today";
-  if (days === 1) return "Due tomorrow";
-  return `Due in ${days} days`;
-}
