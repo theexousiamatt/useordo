@@ -69,6 +69,7 @@ import {
   type ProjectLabel,
 } from "@/hooks/useLabels";
 import { TaskDetailDrawer } from "@/components/projects/TaskDetailDrawer";
+import { TaskComposer } from "@/components/projects/TaskComposer";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import {
   useCreateTask,
@@ -829,7 +830,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
               onCardClick={handleCardClick}
-              onAdd={(title) => createTask.mutate({ title,stage_id:col.id })}
+              onAdd={(title) => createTask.mutateAsync({ title, stage_id: col.id })}
               adding={createTask.isPending}
             />
           ))}
@@ -1087,7 +1088,7 @@ function Column({
   inlineCtx: BoardInlineCtx;
   columnHandlers: ColumnMenuHandlers;
   onCardClick: (e: React.MouseEvent, t: TaskRow) => void;
-  onAdd: (title: string) => void;
+  onAdd: (title: string) => Promise<void>;
   adding: boolean;
 }) {
   const { setNodeRef:setDropRef, isOver } = useDroppable({ id });
@@ -1097,16 +1098,7 @@ function Column({
   }=useSortable({id:`stage:${id}`,disabled:!draggable});
   const stageStyle={transform:CSS.Transform.toString(transform),transition,opacity:isDragging ? 0.55 : 1};
   const [composing, setComposing] = useState(false);
-  const [value, setValue] = useState("");
   const theme = STAGE_THEME_STYLES[stageTheme];
-
-  const submit = () => {
-    if (value.trim()) {
-      onAdd(value.trim());
-      setValue("");
-      setComposing(false);
-    }
-  };
 
   if (collapsed) {
     return (
@@ -1137,15 +1129,15 @@ function Column({
   return (
     <div ref={setStageRef} style={stageStyle} className="flex w-72 shrink-0 flex-col">
       <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
-        <div className="mb-3 flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full" style={{backgroundColor:theme.previewAccent}} />
+        <div className="relative z-10 mb-3 flex items-center justify-between gap-2 px-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{backgroundColor:theme.previewAccent}} />
             {editing ? <Input autoFocus maxLength={160} value={draftName}
               onChange={event=>onDraftNameChange(event.target.value)}
               onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();onSaveName();}
                 if(event.key==="Escape")onCancelName();}}
               className="h-8 w-40 text-sm" aria-label={`Rename ${title} stage`}/> :
-              <span className="text-sm font-semibold text-foreground">{title}</span>}
+              <span className="truncate text-sm font-semibold text-foreground">{title}</span>}
             {editing && <>
               <Button type="button" variant="ghost" size="sm" onClick={onSaveName} disabled={!draftName.trim()}>Save</Button>
               <Button type="button" variant="ghost" size="sm" onClick={onCancelName}>Cancel</Button>
@@ -1154,15 +1146,16 @@ function Column({
               {tasks.length}
             </span>
           </div>
-          <div className="flex items-center gap-0.5">
+          <div className="flex shrink-0 items-center gap-0.5">
             {draggable && <button type="button" ref={setActivatorNodeRef}
               {...attributes} {...listeners}
-              className="cursor-grab touch-none rounded-md p-1 text-muted-foreground hover:bg-muted"
+              className="flex h-11 w-11 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:bg-muted sm:h-8 sm:w-8"
               aria-label={`Drag ${title} stage`}><GripVertical className="h-4 w-4" /></button>}
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6"
+              className="relative z-10 h-11 w-11 touch-manipulation sm:h-8 sm:w-8"
+              type="button"
               onClick={() => setComposing(true)}
               aria-label={`Add task to ${title}`}
             >
@@ -1176,7 +1169,7 @@ function Column({
               collapsed={false}
               handlers={columnHandlers}
               trigger={
-                <Button variant="ghost" size="icon" className="h-6 w-6" aria-label={`${title} column actions`}>
+                <Button type="button" variant="ghost" size="icon" className="relative z-10 h-11 w-11 touch-manipulation sm:h-8 sm:w-8" aria-label={`${title} column actions`}>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               }
@@ -1185,10 +1178,20 @@ function Column({
         </div>
       </OrdoColumnContextMenu>
 
+      {/* The form is outside the sortable card surface so cards cannot intercept its taps. */}
+      {composing && (
+        <TaskComposer
+          stageName={title}
+          onAdd={onAdd}
+          onCancel={() => setComposing(false)}
+          disabled={adding}
+        />
+      )}
+
       <div
         ref={setDropRef}
         className={cn(
-          "flex min-h-24 flex-1 flex-col gap-3 rounded-card border border-dashed border-transparent p-1.5 transition-colors",
+          "relative z-0 flex min-h-24 flex-1 flex-col gap-3 rounded-card border border-dashed border-transparent p-1.5 transition-colors",
           isOver && "border-primary/30 bg-primary/5",
         )}
       >
@@ -1206,35 +1209,7 @@ function Column({
           ))}
         </SortableContext>
 
-        {composing && (
-          <div className="rounded-card border border-border bg-card p-2">
-            <Input
-              autoFocus
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="Task title…"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") submit();
-                if (e.key === "Escape") {
-                  setComposing(false);
-                  setValue("");
-                }
-              }}
-              onBlur={() => {
-                if (!value.trim()) setComposing(false);
-              }}
-            />
-            <div className="mt-2 flex items-center gap-2">
-              <Button size="sm" onClick={submit} disabled={adding}>
-                {adding && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-                Add
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => { setComposing(false); setValue(""); }}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );
