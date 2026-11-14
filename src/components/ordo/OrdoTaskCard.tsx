@@ -7,9 +7,6 @@ import {
   Plus,
   AlertTriangle,
   Circle,
-  CircleDot,
-  Clock,
-  Eye,
   CheckCircle2,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,16 +16,6 @@ import { LabelBadge } from "@/components/ordo/LabelBadge";
 import type { TaskStatus } from "@/lib/projectConstants";
 import { STAGE_THEME_STYLES, resolveStageTheme, type StageTheme } from "@/lib/stageThemes";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
-
-/** Task status badges retain semantics regardless of the selected board theme. */
-interface StatusPresentation { label: string; pill: string; icon: string; Icon: typeof Circle; }
-const STATUS_THEME: Record<TaskStatus, StatusPresentation> = {
-  backlog: { label: "Backlog", pill: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-100", icon: "text-slate-400", Icon: Circle },
-  todo: { label: "To do", pill: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-100", icon: "text-slate-500", Icon: CircleDot },
-  in_progress: { label: "In progress", pill: "bg-[hsl(178,100%,8%)] text-white", icon: "text-white", Icon: Clock },
-  review: { label: "Review", pill: "bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-200", icon: "text-sky-500", Icon: Eye },
-  done: { label: "Done", pill: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200", icon: "text-emerald-500", Icon: CheckCircle2 },
-};
 
 export interface TaskLabelChip {
   id: string;
@@ -50,9 +37,11 @@ export function calculateSubtaskPercent(subtasks: SubtaskProgress | undefined): 
 
 export interface OrdoTaskCardProps {
   title: string;
-  status: TaskStatus;
-  /** Actual completion is derived from the stage, not from legacy status or checklist. */
+  /** Kept only for older callers; workflow presentation uses stageName. */
+  status?: TaskStatus;
+  /** Explicit task completion, independent of stage location and checklist. */
   completed?: boolean;
+  onToggleCompleted?: () => void;
   description?: string | null;
   dueDate?: string | null;
   labels?: TaskLabelChip[];
@@ -83,8 +72,8 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
   (
     {
       title,
-      status,
       completed,
+      onToggleCompleted,
       description,
       dueDate,
       labels = [],
@@ -105,12 +94,8 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
     },
     ref,
   ) => {
-    const semanticStatus = completed === true ? "done" : completed === false && status === "done" ? "todo" : status;
-    const theme = STATUS_THEME[semanticStatus];
     const tokens = STAGE_THEME_STYLES[resolveStageTheme(stageTheme)];
     const isBlocked = blocked ?? false;
-    const iconColor = isBlocked ? "text-orange-600" : theme.icon;
-    const StatusIcon = isBlocked ? AlertTriangle : theme.Icon;
     const pct = calculateSubtaskPercent(subtasks);
 
 
@@ -138,29 +123,38 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
         )}
       >
         <div className={cn("rounded-[16px] border p-4 transition-colors", tokens.surface, tokens.border)}>
-          {/* Header: status pill */}
+          {/* Stage is a name and theme only, never a completion category. */}
           <div className="flex items-center justify-between gap-2">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold",
-                theme.pill,
-              )}
-            >
-              <StatusIcon className={cn("h-3 w-3", theme.pill.includes("text-white") ? "" : iconColor)} />
-              {isBlocked ? "Blocked" : (stageName ?? theme.label)}
+            <span className="inline-flex min-w-0 max-w-[70%] items-center gap-1.5 rounded-pill bg-background/65 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+              {isBlocked ? <AlertTriangle className="h-3 w-3 shrink-0 text-orange-600" /> :
+                <Circle className="h-3 w-3 shrink-0" />}
+              <span className="truncate">{isBlocked ? "Blocked" : (stageName ?? "Stage")}</span>
             </span>
-            {dragHandleProps && (
-              <button
-                {...dragHandleProps}
-                className="cursor-grab touch-none rounded-md p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:text-muted-foreground group-hover:opacity-100"
-                aria-label="Drag task"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <GripVertical className="h-4 w-4" />
-              </button>
-            )}
+            <div className="flex shrink-0 items-center gap-1">
+              {onToggleCompleted && (
+                <button type="button"
+                  onClick={event=>{event.stopPropagation();onToggleCompleted();}}
+                  aria-label={completed ? "Reopen task" : "Mark task complete"}
+                  title={completed ? "Reopen task" : "Mark task complete"}
+                  className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {completed ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> :
+                    <Circle className="h-4 w-4" />}
+                </button>
+              )}
+              {!onToggleCompleted && completed && (
+                <span title="Task completed" aria-label="Task completed">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                </span>
+              )}
+              {dragHandleProps && (
+                <button {...dragHandleProps}
+                  className="cursor-grab touch-none rounded-md p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:text-muted-foreground group-hover:opacity-100 focus-visible:opacity-100"
+                  aria-label="Drag task" onClick={event=>event.stopPropagation()}>
+                  <GripVertical className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
-
 
           {/* Body: title + description */}
           <div className="mt-3">
@@ -265,12 +259,3 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
   },
 );
 OrdoTaskCard.displayName = "OrdoTaskCard";
-
-/** Per-column header theming exported for board composition. */
-export const COLUMN_THEME: Record<TaskStatus, { dot: string; header: string }> = {
-  backlog: { dot: "bg-slate-400", header: "text-slate-600" },
-  todo: { dot: "bg-slate-500", header: "text-slate-600" },
-  in_progress: { dot: "bg-[hsl(178,100%,8%)]", header: "text-[hsl(178,100%,8%)]" },
-  review: { dot: "bg-sky-500", header: "text-sky-700" },
-  done: { dot: "bg-emerald-500", header: "text-emerald-700" },
-};

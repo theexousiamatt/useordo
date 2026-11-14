@@ -11,9 +11,10 @@ import {
   Tag,
   Link2,
   FolderInput,
+  Circle,
+  CheckCircle2,
 } from "lucide-react";
 import { OrdoContextMenu, OrdoOverflowMenu, type OrdoMenuConfig } from "./OrdoMenu";
-import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
 import type { TaskRow } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
@@ -32,7 +33,7 @@ export interface TaskMenuHandlers {
   onEditMembers: (task: TaskRow) => void;
   /** Open the anchored due-date popover. */
   onEditDueDate: (task: TaskRow) => void;
-  onMoveStatus: (task: TaskRow, status: TaskStatus) => void;
+  onToggleCompleted: (task: TaskRow) => void;
   onMoveStage?: (task: TaskRow, stageId: string) => void;
   /** Move to another project (only shown when targets are provided). */
   onMoveProject?: (task: TaskRow, projectId: string) => void;
@@ -44,23 +45,17 @@ export interface TaskMenuHandlers {
 
 /**
  * Canonical task action menu. Production-ready actions only — quick editing
- * lives on the board via inline popovers; the drawer is reserved for deep work.
+ * is available on the board and in the drawer through shared editing actions.
  */
 export function buildTaskMenuConfig(
   task: TaskRow,
   h: TaskMenuHandlers,
   moveTargets: TaskMoveTarget[] = [],
-  stages: {id:string;name:string;category:TaskStatus}[] = [],
+  stages: {id:string;name:string}[] = [],
 ): OrdoMenuConfig {
-  const statusSub = stages.length && h.onMoveStage
-    ? stages.filter(s=>s.id!==task.stage_id).map(s=>({
-      id:`move-stage-${s.id}`,label:s.name,onSelect:()=>h.onMoveStage?.(task,s.id),
-    }))
-    : TASK_COLUMNS.filter((c) => c.id !== task.status).map((c) => ({
-      id: `move-${c.id}`,
-      label: c.title,
-      onSelect: () => h.onMoveStatus(task, c.id),
-    }));
+  const stageTargets = stages.filter(stage=>stage.id!==task.stage_id)
+    .map(stage=>({ id:`move-stage-${stage.id}`, label:stage.name,
+      onSelect:()=>h.onMoveStage?.(task,stage.id) }));
 
   const moveItem = {
     id: "move-to",
@@ -70,7 +65,7 @@ export function buildTaskMenuConfig(
     submenu:
       h.onMoveProject && moveTargets.length > 0
         ? [
-            ...statusSub,
+            ...stageTargets,
             {
               id: "move-project",
               label: "Another project",
@@ -82,7 +77,7 @@ export function buildTaskMenuConfig(
               })),
             },
           ]
-        : statusSub,
+        : stageTargets,
   };
 
   return [
@@ -90,6 +85,9 @@ export function buildTaskMenuConfig(
       id: "primary",
       items: [
         { id: "open", label: "Open task", icon: PanelRightOpen, shortcut: "↵", onSelect: () => h.onOpen(task) },
+        { id: "complete", label: task.completed_at ? "Reopen task" : "Mark complete",
+          icon: task.completed_at ? Circle : CheckCircle2,
+          onSelect:()=>h.onToggleCompleted(task) },
         { id: "rename", label: "Rename", icon: Pencil, shortcut: "E", onSelect: () => h.onRename(task) },
         { id: "labels", label: "Labels", icon: Tag, shortcut: "L", onSelect: () => h.onEditLabels(task) },
         { id: "members", label: "Members", icon: Users, shortcut: "A", onSelect: () => h.onEditMembers(task) },
@@ -119,7 +117,7 @@ export function OrdoCardContextMenu({
   task: TaskRow;
   handlers: TaskMenuHandlers;
   moveTargets?: TaskMoveTarget[];
-  stages?: {id:string;name:string;category:TaskStatus}[];
+  stages?: {id:string;name:string}[];
   children: ReactNode;
 }) {
   return (
@@ -137,7 +135,7 @@ export function OrdoCardOverflowMenu({
   task: TaskRow;
   handlers: TaskMenuHandlers;
   moveTargets?: TaskMoveTarget[];
-  stages?: {id:string;name:string;category:TaskStatus}[];
+  stages?: {id:string;name:string}[];
   trigger: ReactNode;
 }) {
   return <OrdoOverflowMenu config={buildTaskMenuConfig(task, handlers, moveTargets, stages)} trigger={trigger} />;

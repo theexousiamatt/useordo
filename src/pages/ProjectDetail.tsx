@@ -7,7 +7,6 @@ import { ArrowLeft, CalendarDays, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useProjectStages } from "@/hooks/useProjectStages";
 import { computeProjectCompletion } from "@/lib/taskCompletion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -54,9 +53,8 @@ export default function ProjectDetail() {
   const { data: members = [] } = useProjectMembers(id);
   const { data: assignableMembers = [] } = useAssignableMembers(id);
   const { data: tasks = [], isSuccess: tasksLoaded } = useProjectTasks(id);
-  const { data: stages = [], isSuccess: stagesLoaded } = useProjectStages(id ?? "");
-  const completion = computeProjectCompletion(tasks, stages);
-  const completionLoaded = tasksLoaded && stagesLoaded;
+  const completion = computeProjectCompletion(tasks);
+  const completionLoaded = tasksLoaded;
   const perms = useProjectPermissions(project);
   const archiveProject = useArchiveProject();
   const updateProject = useUpdateProject();
@@ -161,7 +159,7 @@ export default function ProjectDetail() {
                   : completionLoaded ? "No tasks" : "—"}
               </span>
             </div>
-            {stagesLoaded && completion.total > 0 && <Progress value={completion.percent} className="h-2" />}
+            {completionLoaded && completion.total > 0 && <Progress value={completion.percent} className="h-2" />}
           </div>
           {perms.canManage && <Button variant="outline" onClick={() => setProjectTeamOpen(true)}>Add teammates</Button>}
           {(role === "owner" || role === "manager") && <Button variant="outline" onClick={() => setInviteOpen(true)}>Invite client</Button>}

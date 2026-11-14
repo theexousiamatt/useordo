@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Pencil, ArrowLeftRight, ChevronsDownUp, Plus, Copy, Trash2, Palette, CheckCircle2 } from "lucide-react";
+import { Pencil, ArrowLeftRight, ChevronsDownUp, Plus, Copy, Trash2, Palette } from "lucide-react";
 import { OrdoContextMenu, OrdoOverflowMenu, type OrdoMenuConfig } from "./OrdoMenu";
 
 export interface ColumnMenuHandlers {
@@ -15,7 +15,6 @@ export function buildColumnMenuConfig(
   h: ColumnMenuHandlers,
   canManageStages = true,
   canRemoveStage = true,
-  isCompletion = false,
 ): OrdoMenuConfig {
   return [
     {
@@ -39,8 +38,6 @@ export function buildColumnMenuConfig(
       items: [
         { id: "rename", label: "Rename stage", icon: Pencil, onSelect: () => h.onAction(status, "Rename stage") },
         { id: "theme", label: "Change theme", icon: Palette, onSelect: () => h.onAction(status, "Change theme") },
-        { id: "completion", label: isCompletion ? "Use as active stage" : "Mark as completion stage", icon: CheckCircle2,
-          onSelect: () => h.onAction(status, isCompletion ? "Use as active stage" : "Mark as completion stage") },
         { id: "duplicate", label: "Duplicate stage", icon: Copy, onSelect: () => h.onAction(status, "Duplicate stage") },
         { id: "reorder", label: "Reorder stage", icon: ArrowLeftRight, onSelect: () => h.onAction(status, "Reorder stage") },
         { id: "delete", label: "Delete stage", icon: Trash2, destructive: true, disabled: !canRemoveStage,
@@ -51,7 +48,7 @@ export function buildColumnMenuConfig(
 }
 
 export function OrdoColumnContextMenu({
-  status, collapsed, handlers, children, canManageStages = true, canRemoveStage = true, isCompletion = false,
+  status, collapsed, handlers, children, canManageStages = true, canRemoveStage = true,
 }: {
   status: string;
   collapsed: boolean;
@@ -59,17 +56,16 @@ export function OrdoColumnContextMenu({
   children: ReactNode;
   canManageStages?: boolean;
   canRemoveStage?: boolean;
-  isCompletion?: boolean;
 }) {
   return (
-    <OrdoContextMenu config={buildColumnMenuConfig(status, collapsed, handlers, canManageStages, canRemoveStage, isCompletion)}>
+    <OrdoContextMenu config={buildColumnMenuConfig(status, collapsed, handlers, canManageStages, canRemoveStage)}>
       {children}
     </OrdoContextMenu>
   );
 }
 
 export function OrdoColumnOverflowMenu({
-  status, collapsed, handlers, trigger, canManageStages = true, canRemoveStage = true, isCompletion = false,
+  status, collapsed, handlers, trigger, canManageStages = true, canRemoveStage = true,
 }: {
   status: string;
   collapsed: boolean;
@@ -77,11 +73,10 @@ export function OrdoColumnOverflowMenu({
   trigger: ReactNode;
   canManageStages?: boolean;
   canRemoveStage?: boolean;
-  isCompletion?: boolean;
 }) {
   return (
     <OrdoOverflowMenu
-      config={buildColumnMenuConfig(status, collapsed, handlers, canManageStages, canRemoveStage, isCompletion)}
+      config={buildColumnMenuConfig(status, collapsed, handlers, canManageStages, canRemoveStage)}
       trigger={trigger}
       align="start"
     />

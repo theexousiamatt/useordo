@@ -15,7 +15,7 @@ export { OrdoSelect, type OrdoSelectOption } from "./OrdoSelect";
 export { OrdoMultiSelect, type OrdoMultiSelectOption } from "./OrdoMultiSelect";
 export { OrdoDatePicker } from "./OrdoDatePicker";
 export { OrdoForm, OrdoFormSection, OrdoFormRow } from "./OrdoForm";
-export { OrdoTaskCard, COLUMN_THEME, type OrdoTaskCardProps, type TaskLabelChip } from "./OrdoTaskCard";
+export { OrdoTaskCard, type OrdoTaskCardProps, type TaskLabelChip } from "./OrdoTaskCard";
 export { LabelBadge, type LabelBadgeProps } from "./LabelBadge";
 
 // Universal interaction framework — reuse across every Ordo module.

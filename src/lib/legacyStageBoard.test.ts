@@ -2,10 +2,10 @@ import { describe,expect,it } from "vitest";
 import { moveTaskWithinStages,stageForTaskId,stageInsertBefore,stageRemovalDestination,resolveStageRemovalDestination,hasStageTasks,type BoardStage } from "./legacyStageBoard";
 
 const stages:BoardStage[]=[
-  {id:"backlog",category:"backlog",position:0},
-  {id:"todo-1",category:"todo",position:1},
-  {id:"todo-2",category:"todo",position:2},
-  {id:"done",category:"done",position:3},
+  {id:"backlog",position:0},
+  {id:"todo-1",position:1},
+  {id:"todo-2",position:2},
+  {id:"done",position:3},
 ];
 const tasks=[
   {id:"a",status:"todo" as const,stage_id:"todo-1",position:0,archived_at:null},
@@ -14,9 +14,9 @@ const tasks=[
 ];
 
 describe("legacy Ordo customizable stages",()=>{
-  it("maps pre-migration tasks to the first matching reporting category",()=>{
-    expect(stageForTaskId({id:"old",status:"todo",position:0,stage_id:null},stages)).toBe("todo-1");
-    expect(stageForTaskId({id:"old",status:"review",position:0,stage_id:null},stages)).toBe("backlog");
+  it("places unassigned legacy tasks into the first stage regardless of status or its name",()=>{
+    expect(stageForTaskId({id:"old",position:0,stage_id:null},stages)).toBe("backlog");
+    expect(stageForTaskId({id:"old",position:0,stage_id:"done"},stages)).toBe("done");
   });
 
   it("places dragged stages after the target when moving right",()=>{
@@ -39,7 +39,7 @@ describe("legacy Ordo customizable stages",()=>{
     expect(stageRemovalDestination(stages,"missing")).toBeNull();
   });
 
-  it("moves one task between stages that share a reporting status",()=>{
+  it("moves one task between arbitrary user-defined stages",()=>{
     const result=moveTaskWithinStages(tasks,stages,"a","todo-2");
     expect(result).not.toBeNull();
     expect(result!.next.find(task=>task.id==="a")).toMatchObject({stage_id:"todo-2",status:"todo"});
@@ -47,10 +47,11 @@ describe("legacy Ordo customizable stages",()=>{
     expect(result!.updates.filter(task=>task.stage_id==="todo-2")).toHaveLength(2);
   });
 
-  it("changes reporting category when a task is moved to a differently classified stage",()=>{
+  it("never changes status or completion when moved to a stage named Done",()=>{
     const result=moveTaskWithinStages(tasks,stages,"a","done");
-    expect(result!.next.find(task=>task.id==="a")).toMatchObject({stage_id:"done",status:"done",position:0});
+    expect(result!.next.find(task=>task.id==="a")).toMatchObject({stage_id:"done",status:"todo",position:0});
     expect(result!.next.find(task=>task.id==="b")).toMatchObject({stage_id:"todo-1",position:0});
+    expect(result!.updates.some(update => "status" in update)).toBe(false);
   });
 
   it("reorders inside a column without duplicating cards",()=>{

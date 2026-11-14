@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
     const stageIdMap = new Map<string,string>();
     if (opts.copySettings || opts.copyTasks || opts.copyMilestones) {
       const { data: sourceStages, error: sourceStagesError } = await admin
-        .from("project_stages").select("id,name,category,position,theme,is_completion")
+        .from("project_stages").select("id,name,category,position,theme")
         .eq("project_id",opts.projectId).order("position").order("id");
       if(sourceStagesError)throw sourceStagesError;
       if(sourceStages?.length){
@@ -173,14 +173,14 @@ Deno.serve(async (req) => {
           const seed=seededStages?.[index];
           if(seed){
             const { error }=await admin.from("project_stages").update({
-              name:sourceStage.name,category:sourceStage.category,theme:sourceStage.theme,is_completion:sourceStage.is_completion,position:index,
+              name:sourceStage.name,category:sourceStage.category,theme:sourceStage.theme,position:index,
             }).eq("id",seed.id).eq("project_id",newId);
             if(error)throw error;
             stageIdMap.set(sourceStage.id,seed.id);
           }else{
             const {data:newStage,error}=await admin.from("project_stages").insert({
               workspace_id:workspaceId,project_id:newId,name:sourceStage.name,
-              category:sourceStage.category,theme:sourceStage.theme,is_completion:sourceStage.is_completion,position:index,
+              category:sourceStage.category,theme:sourceStage.theme,position:index,
             }).select("id").single();
             if(error || !newStage)throw error ?? new Error("Could not copy project stage");
             stageIdMap.set(sourceStage.id,newStage.id);

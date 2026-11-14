@@ -25,6 +25,8 @@ export interface TaskRow {
   created_by: string | null;
   due_date: string | null;
   archived_at: string | null;
+  /** Explicit task completion; never inferred from stage names or legacy status. */
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -392,14 +394,14 @@ export function useCreateTask(projectId: string, workspaceId: string) {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { title: string; status: TaskStatus; stage_id?: string | null }) => {
+    mutationFn: async (input: { title: string; status?: TaskStatus; stage_id?: string | null }) => {
       const existing = qc.getQueryData<TaskRow[]>(["project-tasks", projectId]) ?? [];
-      const position = existing.filter((t) => input.stage_id ? t.stage_id===input.stage_id : t.status===input.status).length;
+      const position = existing.filter((t) => input.stage_id ? t.stage_id===input.stage_id : !t.stage_id).length;
       const { error } = await supabase.from("tasks").insert({
         workspace_id: workspaceId,
         project_id: projectId,
         title: input.title,
-        status: input.status,
+        status: input.status ?? "todo", // legacy field only; no workflow semantics
         stage_id: input.stage_id ?? null,
         position,
         created_by: user?.id ?? null,
@@ -437,6 +439,8 @@ export function useUpdateTask(projectId: string) {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
       qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
+      qc.invalidateQueries({ queryKey: ["project", projectId] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
     },
   });
 }
@@ -446,10 +450,10 @@ export function useUpdateTask(projectId: string) {
 export function useReorderTasks(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (updates: { id: string; status: TaskStatus; stage_id?: string | null; position: number }[]) => {
+    mutationFn: async (updates: { id: string; stage_id?: string | null; position: number }[]) => {
       const results = await Promise.all(
         updates.map((u) =>
-          supabase.from("tasks").update({ status: u.status, stage_id: u.stage_id ?? null, position: u.position }).eq("id", u.id).eq("project_id",projectId),
+          supabase.from("tasks").update({ stage_id: u.stage_id ?? null, position: u.position }).eq("id", u.id).eq("project_id",projectId),
         ),
       );
       const failed = results.find((r) => r.error);
@@ -487,14 +491,15 @@ export function useDuplicateTask(projectId: string, workspaceId: string) {
   return useMutation({
     mutationFn: async (task: TaskRow & { copyAssignee?: boolean }) => {
       const existing = qc.getQueryData<TaskRow[]>(["project-tasks", projectId]) ?? [];
-      const position = existing.filter((t) => task.stage_id ? t.stage_id===task.stage_id : t.status===task.status).length;
+      const position = existing.filter((t) => task.stage_id ? t.stage_id===task.stage_id : !t.stage_id).length;
       const { data: created, error } = await supabase.from("tasks").insert({
         workspace_id: workspaceId,
         project_id: projectId,
         title: `${task.title} (Copy)`,
         description: task.description,
-        status: task.status,
+        status: task.status, // kept for old client compatibility, never determines the stage
         stage_id: task.stage_id ?? null,
+        completed_at: null, // a copy is new work, regardless of the original task's completion
         position,
         assignee_id: task.copyAssignee === false ? null : task.assignee_id,
         due_date: task.due_date,

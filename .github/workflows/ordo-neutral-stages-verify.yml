@@ -1,0 +1,39 @@
+name: Verify Ordo neutral stages and explicit task completion
+
+on:
+  push:
+    branches:
+      - codex/neutral-stages-independent-completion-20261114
+    paths:
+      - '.github/workflows/ordo-neutral-stages-verify.yml'
+      - 'src/**'
+      - 'supabase/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Strict TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Regression tests
+        run: npm run test
+      - name: Lint changed continuity modules
+        run: |
+          npx eslint src/pages/ProjectDetail.tsx src/pages/Tasks.tsx src/components/projects/ProjectBoard.tsx src/components/projects/TaskDrawerProperties.tsx src/components/ordo/OrdoTaskCard.tsx src/components/ordo/OrdoColumnContextMenu.tsx src/components/ordo/OrdoCardContextMenu.tsx src/components/ordo/OrdoBulkActionMenu.tsx src/hooks/useProjectData.tsx src/hooks/useProjectStages.ts src/lib/taskCompletion.ts src/lib/legacyStageBoard.ts
+      - name: Production build
+        run: npm run build

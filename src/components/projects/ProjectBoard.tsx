@@ -20,7 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
-import { Plus, Loader2, MoreHorizontal, ChevronRight, GripVertical, CheckCircle2 } from "lucide-react";
+import { Plus, Loader2, MoreHorizontal, ChevronRight, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,9 +39,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import type { TaskStatus } from "@/lib/projectConstants";
 import { STAGE_THEME_STYLES, resolveStageTheme, type StageTheme } from "@/lib/stageThemes";
 import { StageThemePicker } from "@/components/projects/StageThemePicker";
-import { useProjectStages, useProjectStageCommand, useCreateCustomStage, useSetProjectStageTheme, useSetProjectStageCompletion, type ProjectStage, type StageCommand } from "@/hooks/useProjectStages";
+import { useProjectStages, useProjectStageCommand, useCreateCustomStage, useSetProjectStageTheme, type ProjectStage, type StageCommand } from "@/hooks/useProjectStages";
 import { stageForTaskId, stageInsertBefore, moveTaskWithinStages, hasStageTasks } from "@/lib/legacyStageBoard";
-import { isCompletionStage, isTaskCompleted, requiresChecklistCompletionConfirmation } from "@/lib/taskCompletion";
+import { isTaskCompleted, requiresChecklistCompletionConfirmation } from "@/lib/taskCompletion";
 import { OrdoTaskCard, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
@@ -165,7 +165,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const stageMutation=useProjectStageCommand(projectId);
   const createStageMutation=useCreateCustomStage(projectId);
   const themeMutation=useSetProjectStageTheme(projectId);
-  const completionMutation=useSetProjectStageCompletion(projectId);
   const [stageError,setStageError]=useState("");
   const [editingStageId,setEditingStageId]=useState<string|null>(null);
   const [stageName,setStageName]=useState("");
@@ -173,7 +172,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const [draftStageTheme,setDraftStageTheme]=useState<StageTheme>("neutral");
   const [themeStageId,setThemeStageId]=useState<string|null>(null);
   const [themeDraft,setThemeDraft]=useState<StageTheme>("neutral");
-  const [pendingCompletion,setPendingCompletion]=useState<{target:string;unfinished:number;onProceed:()=>void}|null>(null);
+  const [pendingCompletion,setPendingCompletion]=useState<{unfinished:number;onProceed:()=>void}|null>(null);
   const [removingStageId,setRemovingStageId]=useState<string|null>(null);
   // Count all tasks including archived items hidden from the visible board.
   const removalTaskCount = useQuery({
@@ -205,7 +204,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   },[stageMutation]);
   // Keep the request identity on retries so an uncertain response cannot duplicate stages.
   const stageCreateRequest=useRef<{signature:string;requestId:string}|null>(null);
-  const createNamedStage=useCallback((name:string,theme:StageTheme,category:TaskStatus,onSuccess?:()=>void,completed=false)=>{
+  const createNamedStage=useCallback((name:string,theme:StageTheme,category:TaskStatus,onSuccess?:()=>void)=>{
     if(createStageMutation.isPending)return;
     const signature=JSON.stringify({name,theme,category});
     if(stageCreateRequest.current?.signature!==signature){
@@ -213,21 +212,10 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     }
     setStageError("");
     void createStageMutation.mutateAsync({name,theme,category,requestId:stageCreateRequest.current.requestId})
-      .then(async (id)=>{
-        if(completed) await completionMutation.mutateAsync({stageId:id,completed:true,expectedRevision:0});
-        stageCreateRequest.current=null;onSuccess?.();
-      }).catch(error=>setStageError(error instanceof Error?error.message:"Could not save stage. Retry the same input."));
-  },[createStageMutation,completionMutation]);
+      .then(()=>{stageCreateRequest.current=null;onSuccess?.();})
+      .catch(error=>setStageError(error instanceof Error?error.message:"Could not save stage. Retry the same input."));
+  },[createStageMutation]);
   const stageForTask=useCallback((task:TaskRow)=>stageForTaskId(task,stages),[stages]);
-  const confirmMove=useCallback((moving:TaskRow[],destination:ProjectStage,proceed:()=>void)=>{
-    const unfinished=moving.filter(task=>requiresChecklistCompletionConfirmation(
-      task,destination,stages,subtaskTotals.get(task.id),
-    ));
-    if(unfinished.length){
-      setPendingCompletion({target:destination.name,unfinished:unfinished.length,onProceed:proceed});
-    }else proceed();
-  },[stages,subtaskTotals]);
-
   // ---------------- Labels ----------------
   const { data: projectLabels = [] } = useProjectLabels(projectId);
   const { data: labelMap } = useTaskLabelMap(projectId);
@@ -510,6 +498,16 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     [update, qc, projectId],
   );
 
+  /** Marking a task complete is a separate user action; never a column transition. */
+  const toggleTaskComplete = useCallback((task:TaskRow)=>{
+    const complete=!isTaskCompleted(task);
+    const save=()=>patchTask(task.id,{completed_at:complete?new Date().toISOString():null});
+    const checklist=subtaskTotals.get(task.id);
+    if(complete && requiresChecklistCompletionConfirmation(task,checklist)){
+      setPendingCompletion({unfinished:checklist!.total-checklist!.completed,onProceed:save});
+    }else save();
+  },[patchTask,subtaskTotals]);
+
   const startInline = useCallback((t: TaskRow, mode: InlineMode) => setInline({ id: t.id, mode }), []);
   const closeInline = useCallback(() => setInline(null), []);
 
@@ -524,18 +522,14 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   // ---------------- Card actions ----------------
   const cardHandlers: TaskMenuHandlers = {
     onOpen: openTask,
+    onToggleCompleted: toggleTaskComplete,
     onRename: (t) => startInline(t, "rename"),
     onEditLabels: (t) => startInline(t, "labels"),
     onEditMembers: (t) => startInline(t, "members"),
     onEditDueDate: (t) => startInline(t, "due"),
-    onMoveStatus: (t, status) => {
-      const destination=stages.find(stage=>stage.category===status);
-      if(!destination){toast.error("No stage currently uses this status.");return;}
-      confirmMove([t],destination,()=>update.mutate({id:t.id,status:destination.category,stage_id:destination.id}));
-    },
     onMoveStage: (task,stageId) => {
       const destination=stages.find(stage=>stage.id===stageId);
-      if(destination)confirmMove([task],destination,()=>update.mutate({id:task.id,stage_id:destination.id,status:destination.category}));
+      if(destination && task.stage_id!==destination.id) update.mutate({id:task.id,stage_id:destination.id});
     },
     onMoveProject: (t, targetProjectId) =>
       update.mutate({ id: t.id, project_id: targetProjectId }),
@@ -575,7 +569,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const columnHandlers: ColumnMenuHandlers = {
     onAddTask: (id) => {
       const stage=stages.find(item=>item.id===id);
-      if(stage)createTask.mutate({title:"New task",status:stage.category,stage_id:stage.id});
+      if(stage)createTask.mutate({title:"New task",stage_id:stage.id});
     },
     onToggleCollapse: (id) =>
       setCollapsed((prev) => {
@@ -599,20 +593,11 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         setStageError("");
         setRemovingStageId(id);
       }else if(action==="Duplicate column" || action==="Duplicate stage"){
-        createNamedStage(`${stage.name.slice(0,155)} copy`,resolveStageTheme(stage.theme),stage.category,undefined,isCompletionStage(stage));
+        createNamedStage(`${stage.name.slice(0,155)} copy`,resolveStageTheme(stage.theme),stage.category);
       }else if(action==="Change theme"){
         setStageError("");
         setThemeStageId(stage.id);
         setThemeDraft(resolveStageTheme(stage.theme));
-      }else if(action==="Mark as completion stage" || action==="Use as active stage"){
-        const complete=action==="Mark as completion stage";
-        const save=()=>void completionMutation.mutateAsync({stageId:stage.id,completed:complete,expectedRevision:stage.revision})
-          .then(()=>toast.success(complete?"Stage now counts tasks as completed.":"Stage no longer counts tasks as completed."))
-          .catch(error=>toast.error(error instanceof Error?error.message:"Could not change stage behaviour."));
-        const unfinished=complete?items.filter(task=>stageForTask(task)===stage.id &&
-          (subtaskTotals.get(task.id)?.total ?? 0)>(subtaskTotals.get(task.id)?.completed ?? 0)).length:0;
-        if(unfinished)setPendingCompletion({target:stage.name,unfinished,onProceed:save});
-        else save();
       }else stub(action);
     },
   };
@@ -624,29 +609,21 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       selectedIds.forEach((id) => setAssignees.mutate({ taskId: id, userIds: userId ? [userId] : [] }));
       clearSelection();
     },
-    onMove: (status) => {
-      const target=stages.find(stage=>stage.category===status);
-      if(!target){toast.error("No stage currently uses this status.");return;}
-      confirmMove(items.filter(task=>selectedIds.includes(task.id)),target,()=>{
-        bulkUpdate.mutate({ ids: selectedIds, patch: { status:target.category,stage_id:target.id } });
-        clearSelection();
-      });
-    },
     onMoveStage: (stageId) => {
-      const target=stages.find(stage=>stage.id===stageId);
-      if(!target)return;
-      confirmMove(items.filter(task=>selectedIds.includes(task.id)),target,()=>{
-        bulkUpdate.mutate({ids:selectedIds,patch:{status:target.category,stage_id:target.id}});
-        clearSelection();
-      });
+      if(!stages.some(stage=>stage.id===stageId))return;
+      bulkUpdate.mutate({ids:selectedIds,patch:{stage_id:stageId}});
+      clearSelection();
     },
-    onSetStatus: (status) => {
-      const target=stages.find(stage=>stage.category===status);
-      if(!target){toast.error("No stage currently uses this status.");return;}
-      confirmMove(items.filter(task=>selectedIds.includes(task.id)),target,()=>{
-        bulkUpdate.mutate({ ids: selectedIds, patch: { status:target.category,stage_id:target.id } });
+    onSetCompleted: (completed) => {
+      const chosen=items.filter(task=>selectedIds.includes(task.id)&&isTaskCompleted(task)!==completed);
+      if(!chosen.length){clearSelection();return;}
+      const save=()=>{
+        bulkUpdate.mutate({ids:chosen.map(task=>task.id),patch:{completed_at:completed?new Date().toISOString():null}});
         clearSelection();
-      });
+      };
+      const unfinished=completed?chosen.filter(task=>requiresChecklistCompletionConfirmation(task,subtaskTotals.get(task.id))).length:0;
+      if(unfinished)setPendingCompletion({unfinished,onProceed:save});
+      else save();
     },
     onDelete: () => setPendingDelete({ type: "bulk", ids: selectedIds }),
     onAction: (action) => stub(action),
@@ -748,7 +725,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           e.preventDefault();
           const index=stages.findIndex(stage=>stage.id===stageForTask(task));
           const next=stages[(index+1)%stages.length];
-          if(next)confirmMove([task],next,()=>update.mutate({id:task.id,status:next.category,stage_id:next.id}));
+          if(next)update.mutate({id:task.id,stage_id:next.id});
           break;
         }
         default:
@@ -760,7 +737,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [items, focusedId, selected, editOpen, openTask, startInline, dup, update, clearSelection, stages, stageForTask, confirmMove]);
+  }, [items, focusedId, selected, editOpen, openTask, startInline, dup, update, clearSelection, stages, stageForTask]);
 
   // ---------------- Drag & drop ----------------
   const handleDragStart = (e: DragStartEvent) =>
@@ -784,15 +761,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 
     const move=moveTaskWithinStages(items,stages,activeId,overId);
     if(!move)return;
-    const original=items.find(task=>task.id===activeId);
-    const nextTask=move.next.find(task=>task.id===activeId);
-    const destination=nextTask?stages.find(stage=>stage.id===stageForTaskId(nextTask,stages)):undefined;
-    if(!original || !destination)return;
-    confirmMove([original],destination,()=>{
-      setItems(move.next);
-      qc.setQueryData(["project-tasks", projectId],move.next);
-      reorder.mutate(move.updates);
-    });
+    setItems(move.next);
+    qc.setQueryData(["project-tasks", projectId],move.next);
+    reorder.mutate(move.updates);
   };
 
   const confirmDelete = () => {
@@ -836,9 +807,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               key={col.id}
               id={col.id}
               title={col.name}
-              category={col.category}
               stageTheme={resolveStageTheme(col.theme)}
-              isCompletion={isCompletionStage(col)}
               draggable={canConfigureStages && !stageMutation.isPending}
               canManageStages={canConfigureStages && !stageMutation.isPending}
               canRemoveStage={stages.length > 1}
@@ -860,7 +829,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
               onCardClick={handleCardClick}
-              onAdd={(title) => createTask.mutate({ title, status: col.category,stage_id:col.id })}
+              onAdd={(title) => createTask.mutate({ title,stage_id:col.id })}
               adding={createTask.isPending}
             />
           ))}
@@ -895,7 +864,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
                 title={activeTask.title}
                 status={activeTask.status}
                 stageTheme={resolveStageTheme(activeStage?.theme)}
-                completed={isTaskCompleted(activeTask,stages)}
+                completed={isTaskCompleted(activeTask)}
                 stageName={activeStage?.name}
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
@@ -965,6 +934,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           onMoveStage: stageId => {
             if (liveEditTask) cardHandlers.onMoveStage(liveEditTask, stageId);
           },
+          onToggleComplete: () => {
+            if(liveEditTask) toggleTaskComplete(liveEditTask);
+          },
           onMembers: ids => {
             if (liveEditTask) setTaskAssignees(liveEditTask.id, ids);
           },
@@ -1030,18 +1002,16 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       <AlertDialog open={!!pendingCompletion} onOpenChange={open=>{if(!open)setPendingCompletion(null);}}>
         <AlertDialogContent className="client-os rounded-panel">
           <AlertDialogHeader>
-            <AlertDialogTitle>Finish with incomplete checklist items?</AlertDialogTitle>
+            <AlertDialogTitle>Mark complete with unfinished checklist items?</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingCompletion?.unfinished} task{pendingCompletion?.unfinished===1?" has":"s have"} unfinished checklist items.
-              Moving work to “{pendingCompletion?.target}” will count it as completed in project progress,
-              but won't automatically check those items off.
+              {pendingCompletion?.unfinished} task{pendingCompletion?.unfinished===1?" has":"s have"} unchecked checklist items.
+              Explicit completion changes project progress, but won't check those items off.
+              Moving tasks between stages has no effect on completion.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep working</AlertDialogCancel>
-            <AlertDialogAction onClick={()=>{pendingCompletion?.onProceed();setPendingCompletion(null);}}>
-              Finish anyway
-            </AlertDialogAction>
+            <AlertDialogAction onClick={()=>{pendingCompletion?.onProceed();setPendingCompletion(null);}}>Mark complete anyway</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1076,9 +1046,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 function Column({
   id,
   title,
-  category,
   stageTheme,
-  isCompletion,
   draggable,
   canManageStages,
   canRemoveStage,
@@ -1101,9 +1069,7 @@ function Column({
 }: {
   id: string;
   title: string;
-  category: TaskStatus;
   stageTheme: StageTheme;
-  isCompletion: boolean;
   draggable: boolean;
   canManageStages: boolean;
   canRemoveStage: boolean;
@@ -1144,7 +1110,7 @@ function Column({
 
   if (collapsed) {
     return (
-      <OrdoColumnContextMenu status={id} collapsed handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage} isCompletion={isCompletion}>
+      <OrdoColumnContextMenu status={id} collapsed handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
         <div ref={setStageRef} style={stageStyle} className="flex w-12 shrink-0 flex-col items-center gap-3 rounded-card border border-border bg-card py-3">
           {draggable && <button type="button" ref={setActivatorNodeRef} {...attributes} {...listeners}
             className="cursor-grab touch-none text-muted-foreground" aria-label={`Drag ${title} stage`}>
@@ -1161,7 +1127,7 @@ function Column({
           <span
             className="text-sm font-semibold [writing-mode:vertical-rl] text-foreground"
           >
-            {isCompletion ? '✓ ' : ''}{title} · {tasks.length}
+            {title} · {tasks.length}
           </span>
         </div>
       </OrdoColumnContextMenu>
@@ -1170,7 +1136,7 @@ function Column({
 
   return (
     <div ref={setStageRef} style={stageStyle} className="flex w-72 shrink-0 flex-col">
-      <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage} isCompletion={isCompletion}>
+      <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
         <div className="mb-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full" style={{backgroundColor:theme.previewAccent}} />
@@ -1184,7 +1150,6 @@ function Column({
               <Button type="button" variant="ghost" size="sm" onClick={onSaveName} disabled={!draftName.trim()}>Save</Button>
               <Button type="button" variant="ghost" size="sm" onClick={onCancelName}>Cancel</Button>
             </>}
-            {isCompletion && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-label="Completion stage" />}
             <span className="rounded-pill bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               {tasks.length}
             </span>
@@ -1206,7 +1171,7 @@ function Column({
             <OrdoColumnOverflowMenu
               canManageStages={canManageStages}
               canRemoveStage={canRemoveStage}
-              isCompletion={isCompletion}
+             
               status={id}
               collapsed={false}
               handlers={columnHandlers}
@@ -1381,13 +1346,14 @@ function SortableTask({
               title={task.title}
               status={task.status}
               stageTheme={resolveStageTheme(stage?.theme)}
-              completed={isTaskCompleted(task,stages)}
+              completed={isTaskCompleted(task)}
               stageName={stage?.name}
               description={task.description}
               dueDate={task.due_date}
               labels={labelChipsFor(task.id)}
               subtasks={subtaskTotals.get(task.id)}
               onEditLabels={() => setInline({ id: task.id, mode: "labels" })}
+              onToggleCompleted={() => handlers.onToggleCompleted(task)}
               assignees={assignees}
               interactive={false}
               dragHandleProps={renaming ? undefined : { ...attributes, ...listeners }}

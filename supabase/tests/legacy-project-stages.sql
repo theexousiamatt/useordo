@@ -39,7 +39,7 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- Existing status-only clients must continue mapping to a new stage ID.
+-- Legacy inserts without an explicit stage use the first stage; status no longer positions work.
 INSERT INTO public.tasks(id,project_id,workspace_id,title,status,position,archived_at) VALUES
  ('96000000-0000-4000-8000-000000000001','99000000-0000-4000-8000-000000000001',
   '98000000-0000-4000-8000-000000000001','Stage fixture active','todo',0,NULL),
@@ -51,6 +51,15 @@ INSERT INTO public.tasks(id,project_id,workspace_id,title,status,position,archiv
   '98000000-0000-4000-8000-000000000001','Delete fixture archived','todo',1,now()),
  ('96000000-0000-4000-8000-000000000005','99000000-0000-4000-8000-000000000003',
   '98000000-0000-4000-8000-000000000001','Preserved task in Done','done',0,NULL);
+
+-- The fixture explicitly places these tasks; no status-to-stage mapping exists.
+UPDATE public.tasks t SET stage_id=s.id FROM public.project_stages s
+WHERE s.project_id=t.project_id AND s.category='todo'
+  AND t.project_id='99000000-0000-4000-8000-000000000003'
+  AND t.id IN ('96000000-0000-4000-8000-000000000003','96000000-0000-4000-8000-000000000004');
+UPDATE public.tasks t SET stage_id=s.id FROM public.project_stages s
+WHERE s.project_id=t.project_id AND s.category='done'
+  AND t.id='96000000-0000-4000-8000-000000000005';
 
 INSERT INTO public.task_assignees(task_id,user_id,project_id,workspace_id,created_by) VALUES
  ('96000000-0000-4000-8000-000000000003','97000000-0000-4000-8000-000000000002',
@@ -150,11 +159,11 @@ BEGIN
     RAISE EXCEPTION 'Moving the stage to the beginning failed';
   END IF;
 
-  -- Updating stage identity maps to the new reporting category, not the old one.
+  -- Moving stages does not mutate any legacy status or task completion.
   UPDATE public.tasks SET stage_id=sid
     WHERE id='96000000-0000-4000-8000-000000000001';
-  IF (SELECT status FROM public.tasks WHERE id='96000000-0000-4000-8000-000000000001')<>'review' THEN
-    RAISE EXCEPTION 'Explicit stage move did not synchronize task reporting status';
+  IF (SELECT status FROM public.tasks WHERE id='96000000-0000-4000-8000-000000000001')<>'todo' THEN
+    RAISE EXCEPTION 'Explicit stage move incorrectly changed legacy task status';
   END IF;
 
   SELECT id INTO target FROM public.project_stages
@@ -165,7 +174,7 @@ BEGIN
     'remove',sid,NULL,NULL,NULL,target,rev,
     '94000000-0000-4000-8000-000000000007');
   IF EXISTS(SELECT 1 FROM public.tasks WHERE id='96000000-0000-4000-8000-000000000001'
-      AND (stage_id<>target OR status<>'done')) THEN
+      AND (stage_id<>target OR status<>'todo')) THEN
     RAISE EXCEPTION 'Populated stage removal did not move the task correctly';
   END IF;
   IF EXISTS(SELECT 1 FROM public.project_stages WHERE id=sid) THEN
@@ -213,7 +222,7 @@ BEGIN
     RAISE EXCEPTION 'Reducing two stages to one unexpectedly failed'; END IF;
   IF NOT EXISTS(SELECT 1 FROM public.tasks t
       WHERE t.id='96000000-0000-4000-8000-000000000002'
-        AND t.stage_id=destination AND t.status='backlog' AND t.archived_at IS NOT NULL) THEN
+        AND t.stage_id=destination AND t.status='todo' AND t.archived_at IS NOT NULL) THEN
     RAISE EXCEPTION 'An archived task was lost or not moved during stage removal'; END IF;
 
   SELECT s.id,s.revision INTO removing FROM public.project_stages s

@@ -1,13 +1,12 @@
 import type { TaskRow } from "@/hooks/useProjectData";
-import type { TaskStatus } from "@/lib/projectConstants";
 
-export type BoardStage = { id:string; category:TaskStatus; position:number };
-export type BoardTask = Pick<TaskRow,"id"|"status"|"stage_id"|"position">;
+export type BoardStage = { id:string; position:number };
+export type BoardTask = Pick<TaskRow,"id"|"stage_id"|"position">;
 
-/** Old tasks without stage_id still appear in a stage after an additive migration. */
+/** Legacy tasks without a stage appear in the first stage; never infer from names/status. */
 export function stageForTaskId(task:BoardTask,stages:readonly BoardStage[]):string|undefined {
   if(task.stage_id && stages.some(stage=>stage.id===task.stage_id))return task.stage_id;
-  return stages.find(stage=>stage.category===task.status)?.id ?? stages[0]?.id;
+  return [...stages].sort((a,b)=>a.position-b.position)[0]?.id;
 }
 
 /** Dropping a column on another column puts it after when moving right. */
@@ -45,7 +44,7 @@ export function resolveStageRemovalDestination(
 
 export function moveTaskWithinStages<T extends BoardTask>(
   items:readonly T[],stages:readonly BoardStage[],movingId:string,hoveredId:string,
-):{next:T[];updates:{id:string;status:TaskStatus;stage_id:string|null;position:number}[]}|null {
+):{next:T[];updates:{id:string;stage_id:string|null;position:number}[]}|null {
   const movingOriginal=items.find(task=>task.id===movingId);
   if(!movingOriginal)return null;
   const hovered=items.find(task=>task.id===hoveredId);
@@ -57,8 +56,7 @@ export function moveTaskWithinStages<T extends BoardTask>(
   const next=items.map(task=>({...task}));
   const moving=next.find(task=>task.id===movingId)!;
   moving.stage_id=destination.id;
-  moving.status=destination.category;
-  const updates:{id:string;status:TaskStatus;stage_id:string|null;position:number}[]=[];
+  const updates:{id:string;stage_id:string|null;position:number}[]=[];
 
   for(const stageId of new Set([sourceStage,destination.id])){
     if(!stageId)continue;
@@ -75,7 +73,7 @@ export function moveTaskWithinStages<T extends BoardTask>(
     }
     group.forEach((task,position)=>{
       task.position=position;
-      updates.push({id:task.id,status:task.status,stage_id:task.stage_id??stageId,position});
+      updates.push({id:task.id,stage_id:task.stage_id??stageId,position});
     });
   }
   return {next,updates};
