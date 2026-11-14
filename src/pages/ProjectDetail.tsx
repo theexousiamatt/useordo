@@ -53,9 +53,10 @@ export default function ProjectDetail() {
   const { data: project, isLoading, isError, refetch } = useProject(id);
   const { data: members = [] } = useProjectMembers(id);
   const { data: assignableMembers = [] } = useAssignableMembers(id);
-  const { data: tasks = [] } = useProjectTasks(id);
+  const { data: tasks = [], isSuccess: tasksLoaded } = useProjectTasks(id);
   const { data: stages = [], isSuccess: stagesLoaded } = useProjectStages(id ?? "");
   const completion = computeProjectCompletion(tasks, stages);
+  const completionLoaded = tasksLoaded && stagesLoaded;
   const perms = useProjectPermissions(project);
   const archiveProject = useArchiveProject();
   const updateProject = useUpdateProject();
@@ -155,9 +156,9 @@ export default function ProjectDetail() {
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="text-muted-foreground">Tasks completed</span>
               <span className="font-medium tabular-nums">
-                {stagesLoaded && completion.total > 0
+                {completionLoaded && completion.total > 0
                   ? `${completion.completed}/${completion.total} · ${completion.percent}%`
-                  : stagesLoaded ? "No tasks" : "—"}
+                  : completionLoaded ? "No tasks" : "—"}
               </span>
             </div>
             {stagesLoaded && completion.total > 0 && <Progress value={completion.percent} className="h-2" />}
