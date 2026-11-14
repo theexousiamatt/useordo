@@ -57,7 +57,7 @@ for(const viewport of [
   // Only intercept workspace discovery; task, stage, label, auth and
   // checklist API calls go to the real disposable local database.
   await page.route("**/functions/v1/list-workspaces",async route=>{
-    await route.fulfill({status:200,contentType:"application/json",headers:{"Access-Control-Allow-Origin":"*"},
+    await route.fulfill({status:200,contentType:"application/json",headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, apikey, x-client-info, content-type","Access-Control-Allow-Methods":"POST, OPTIONS, GET"},
       body:JSON.stringify({workspaces:[{
         id:fixture.workspaceId,name:"Browser QA Workspace",slug:"browser-qa",
         type:"agency",owner_id:fixture.userId,role:"owner",
@@ -109,13 +109,13 @@ for(const viewport of [
 
   await verify("open task drawer and update checklist after reload",async()=>{
     await page.getByRole("button",{name:"Task: QA Done-stage task"}).click();
-    await page.getByRole("button",{name:"Mark QA checklist two complete"}).click();
+    await page.getByRole("checkbox",{name:"Mark QA checklist two complete"}).click();
     await page.getByText("2 of 2 complete").waitFor({state:"visible"});
     await page.reload({waitUntil:"domcontentloaded"});
     await page.getByRole("button",{name:"Task: QA Done-stage task"}).click();
     await page.getByText("2 of 2 complete").waitFor({state:"visible"});
     // Restore baseline for the other viewport run.
-    await page.getByRole("button",{name:"Mark QA checklist two incomplete"}).click();
+    await page.getByRole("checkbox",{name:"Mark QA checklist two incomplete"}).click();
     await page.reload({waitUntil:"domcontentloaded"});
   },ctx);
 
