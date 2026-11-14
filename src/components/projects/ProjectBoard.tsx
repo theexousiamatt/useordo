@@ -539,6 +539,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       }else if(action==="Duplicate column" || action==="Duplicate stage"){
         createNamedStage(`${stage.name.slice(0,155)} copy`,resolveStageTheme(stage.theme),stage.category);
       }else if(action==="Change theme"){
+        setStageError("");
         setThemeStageId(stage.id);
         setThemeDraft(resolveStageTheme(stage.theme));
       }else stub(action);
@@ -789,7 +790,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
             }}>
               <label htmlFor="new-project-stage" className="text-sm font-medium">Stage name</label>
               <Input id="new-project-stage" autoFocus value={stageName} onChange={event=>setStageName(event.target.value)}
-                placeholder="e.g. Client feedback" maxLength={160} required disabled={stageMutation.isPending}/>
+                placeholder="e.g. Client feedback" maxLength={160} required disabled={createStageMutation.isPending}/>
               <StageThemePicker value={draftStageTheme} onChange={setDraftStageTheme} disabled={createStageMutation.isPending} />
               <div className="flex gap-2">
                 <Button size="sm" type="submit" disabled={createStageMutation.isPending||!stageName.trim()}>Create stage</Button>
