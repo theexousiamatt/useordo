@@ -922,6 +922,7 @@ export type Database = {
           project_id: string
           name: string
           category: string
+          theme: string
           position: number
           revision: number
           created_at: string
@@ -932,6 +933,7 @@ export type Database = {
           project_id: string
           name: string
           category: string
+          theme?: string
           position?: number
           revision?: number
           created_at?: string
@@ -942,6 +944,7 @@ export type Database = {
           project_id?: string
           name?: string
           category?: string
+          theme?: string
           position?: number
           revision?: number
           created_at?: string
@@ -1409,6 +1412,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_custom_stage: {
+        Args: {
+          _project_id: string
+          _name: string
+          _theme: string
+          _category: string
+          _request_id: string
+        }
+        Returns: string
+      }
+      set_project_stage_theme: {
+        Args: {
+          _project_id: string
+          _stage_id: string
+          _theme: string
+          _expected_revision: number
+        }
+        Returns: string
+      }
       manage_project_stage: {
         Args: {
           _project_id: string
