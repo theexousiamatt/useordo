@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrdoSidebar } from "@/components/OrdoSidebar";
 import { OrdoTopBar } from "@/components/OrdoTopBar";
+import { MobileNav } from "@/components/MobileNav";
 import { SidebarCollapseProvider, useSidebarCollapse } from "@/components/sidebar-collapse";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -24,12 +25,13 @@ function AppShell() {
       </aside>
 
       <div className={cn("flex min-h-screen flex-col transition-[margin] duration-300 ease-in-out", collapsed ? "lg:ml-[76px]" : "lg:ml-[268px]")}>
-        <div className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8">
+        <div className="mobile-nav-content flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8">
           <OrdoTopBar />
           <main className="flex min-w-0 flex-1 flex-col gap-6 sm:gap-8">
             <Outlet />
           </main>
         </div>
+        <MobileNav audience="studio" />
       </div>
     </div>
   );
