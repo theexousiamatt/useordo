@@ -32,7 +32,8 @@ function AppShell() {
           </main>
           <div
             aria-hidden="true"
-            className="mobile-nav-clearance h-[calc(80px+env(safe-area-inset-bottom,0px))] shrink-0 lg:hidden"
+            className="mobile-nav-clearance shrink-0 lg:hidden"
+            style={{ height: "calc(80px + env(safe-area-inset-bottom, 0px))" }}
           />
         </div>
         <MobileNav audience="studio" />
