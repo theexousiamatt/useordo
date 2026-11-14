@@ -128,7 +128,8 @@ export default function Onboarding() {
     : "Let's set up your execution workspace.";
 
   const goNext = () => patch({ step: Math.min(step + 1, TOTAL_STEPS) });
-  const goBack = () => patch({ step: Math.max(step - 1, 1) });
+  // Once a workspace exists, never return to the creation step and accidentally create it again.
+  const goBack = () => patch({ step: Math.max(step - 1, workspaceId ? 4 : 1) });
 
   const createWorkspace = async () => {
     if (!name.trim()) {
@@ -194,11 +195,20 @@ export default function Onboarding() {
         if (overlap) throw new Error("An email appears in both Team and Clients. Go back and choose one role for each person.");
         const results = [];
         // A retry reuses prepared invitations even if the previous batch partly completed.
-        for (const [emails, role] of [[team, "member"], [clients, "client"]] as const) {
-          results.push(await inviteWorkspacePeople(workspaceId, emails, role, role === "client" ? {
-            projectId: state.clientInviteScope === "project" ? state.projectId : null,
-          } : undefined));
-        }
+        results.push(await inviteWorkspacePeople(workspaceId, team, "member"));
+        // Client access is least-privilege by default: the selected project client
+        // gets project access, while other clients receive workspace invitations
+        // with projects shared explicitly later.
+        const projectClients = state.projectId && state.clientInviteScope === "project"
+          ? (project.client ? clients.filter((email) => email === project.client) : clients)
+          : [];
+        const generalClients = clients.filter((email) => !projectClients.includes(email));
+        if (projectClients.length) results.push(await inviteWorkspacePeople(workspaceId, projectClients, "client", {
+          projectId: state.projectId,
+        }));
+        if (generalClients.length) results.push(await inviteWorkspacePeople(workspaceId, generalClients, "client", {
+          projectId: null,
+        }));
         const summary = results.reduce<InvitationSummary>((total, result) => ({
           invitations: total.invitations + result.invitations,
           alreadyMembers: total.alreadyMembers + result.alreadyMembers,
@@ -337,7 +347,7 @@ export default function Onboarding() {
       body = (
         <InviteUsersStep
           title="Invite your clients"
-          description="Add clients to invite when setup is complete. You’ll choose project or client workspace access before sending. This step is optional."
+          description="Invite clients now or later. Their project access will be restricted to the work you share."
           placeholder="client@email.com"
           emails={clients}
           onChange={(c) => patch({ clients: c })}
@@ -360,7 +370,7 @@ export default function Onboarding() {
         <ProjectCreationStep
           draft={project}
           onChange={(p) => patch({ project: p })}
-          clientOptions={[]}
+          clientOptions={clients}
         />
       );
       footer = (
@@ -414,6 +424,11 @@ export default function Onboarding() {
     default:
       body = <div className="space-y-5">
         <CompletionScreen workspaceName={name || "Your workspace"} />
+        <div className="grid grid-cols-3 gap-2 rounded-card bg-background p-4 text-center text-sm">
+          <div><p className="text-xl font-semibold">{state.projectId ? 1 : 0}</p><p className="text-xs text-muted-foreground">Projects created</p></div>
+          <div><p className="text-xl font-semibold">{team.length}</p><p className="text-xs text-muted-foreground">Teammates to invite</p></div>
+          <div><p className="text-xl font-semibold">{clients.length}</p><p className="text-xs text-muted-foreground">Clients to invite</p></div>
+        </div>
         {clients.length > 0 && <fieldset disabled={busy || !!inviteSummary} className="space-y-3 rounded-card bg-background p-5">
           <legend className="px-1 text-sm font-semibold">Client invitation access</legend>
           {state.projectId && <label className="flex items-start gap-3 text-sm"><input type="radio" name="onboarding-client-scope" checked={state.clientInviteScope === "project"} onChange={() => patch({ clientInviteScope: "project" })} className="mt-1 accent-[hsl(var(--foreground))]" /><span>Only {project.name}<span className="block text-xs text-muted-foreground">Clients land directly in this project.</span></span></label>}
