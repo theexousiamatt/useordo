@@ -91,7 +91,7 @@ for(const config of [
   const description=`QA ${config.label} updated brief`;
   await check("direct description edit saves and survives refresh",async()=>{
     let dialog=await openTask("QA ordinary task");
-    await dialog.getByRole("button",{name:"Add a description"}).click();
+    await dialog.getByRole("button",{name:/^(Add a description|Edit task description)$/}).click();
     const field=dialog.getByRole("textbox",{name:"Task description"});
     await field.fill(description);
     await field.press("Tab");
@@ -134,8 +134,15 @@ for(const config of [
 
   await check("drawer fits viewport with direct completion control and close action",async()=>{
     const dialog=await openTask("QA ordinary task");
-    const bounds=await dialog.boundingBox();
-    if(!bounds || bounds.width>config.width+2)throw Error("Drawer wider than viewport");
+    await page.waitForTimeout(400); // Wait for the slide-in transform to settle before geometry checks.
+    const geometry=await dialog.evaluate(element=>{
+      const rect=element.getBoundingClientRect();
+      return {width:rect.width,left:rect.left,right:rect.right,innerWidth:window.innerWidth,
+        clientWidth:document.documentElement.clientWidth,visualWidth:window.visualViewport?.width};
+    });
+    console.log(`DRAWER_GEOMETRY [${config.label}] ${JSON.stringify(geometry)}`);
+    if(geometry.width>config.width+2 || geometry.right>config.width+2 || geometry.left< -2)
+      throw Error(`Drawer exceeds ${config.width}px viewport: ${JSON.stringify(geometry)}`);
     await dialog.getByRole("button",{name:"Mark task complete"}).waitFor({state:"visible"});
     await dialog.getByRole("button",{name:"Close"}).click();
     await page.getByRole("button",{name:"Task: QA ordinary task"}).waitFor({state:"visible"});
