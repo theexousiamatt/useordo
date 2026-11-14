@@ -34,6 +34,13 @@ async function openProject(ctx){
   await ctx.page.getByRole("heading",{name:"Ordo Browser QA"}).waitFor({state:"visible",timeout:30000});
   await ctx.page.getByRole("button",{name:"Task: QA Done-stage task"}).waitFor({state:"visible",timeout:30000});
 }
+async function until(check,message){
+  for(let attempt=0;attempt<40;attempt++){
+    if(await check())return;
+    await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  throw new Error(message);
+}
 async function rowFromDB(title){
   const {data,error}=await admin.from("tasks")
     .select("id,title,stage_id,completed_at,archived_at")
@@ -86,6 +93,7 @@ for(const viewport of [
     await page.getByPlaceholder("Task title…").fill(newTitle);
     await page.getByRole("button",{name:"Add",exact:true}).click();
     await page.getByRole("button",{name:`Task: ${newTitle}`}).waitFor({state:"visible"});
+    await until(async()=>Boolean(await rowFromDB(newTitle)),"Task creation not saved");
     await page.reload({waitUntil:"domcontentloaded"});
     await page.getByRole("button",{name:`Task: ${newTitle}`}).waitFor({state:"visible"});
     if(!(await rowFromDB(newTitle)))throw Error("Created task missing from server after reload");
@@ -96,6 +104,7 @@ for(const viewport of [
       .getByRole("button",{name:"Mark task complete"}).click();
     await page.getByRole("button",{name:`Task: ${newTitle}`})
       .getByRole("button",{name:"Reopen task"}).waitFor({state:"visible"});
+    await until(async()=>Boolean((await rowFromDB(newTitle))?.completed_at),"Task completion not saved");
     await page.reload({waitUntil:"domcontentloaded"});
     await page.getByRole("button",{name:`Task: ${newTitle}`})
       .getByRole("button",{name:"Reopen task"}).waitFor({state:"visible"});
@@ -103,6 +112,7 @@ for(const viewport of [
     if(!completed?.completed_at)throw Error("Completion timestamp missing in persisted DB");
     await page.getByRole("button",{name:`Task: ${newTitle}`})
       .getByRole("button",{name:"Reopen task"}).click();
+    await until(async()=>!(await rowFromDB(newTitle))?.completed_at,"Task reopen not saved");
     await page.reload({waitUntil:"domcontentloaded"});
     if((await rowFromDB(newTitle))?.completed_at)throw Error("Reopening did not persist");
   },ctx);
@@ -115,6 +125,7 @@ for(const viewport of [
     const textbox=page.getByRole("textbox",{name:"Task title"});
     await textbox.fill(editedTitle);
     await textbox.press("Enter");
+    await until(async()=>Boolean(await rowFromDB(editedTitle)),"Task rename not saved");
     await page.reload({waitUntil:"domcontentloaded"});
     await page.getByRole("button",{name:`Task: ${editedTitle}`}).waitFor({state:"visible"});
     if(!(await rowFromDB(editedTitle)))throw Error("Task rename was not stored");
@@ -124,6 +135,7 @@ for(const viewport of [
     await page.getByRole("button",{name:`Task: ${editedTitle}`}).click();
     await page.getByRole("button",{name:"Change task stage"}).click();
     await page.getByRole("button",{name:"Done",exact:true}).last().click();
+    await until(async()=>(await rowFromDB(editedTitle))?.stage_id===fixture.doneStageId,"Stage move not saved");
     await page.reload({waitUntil:"domcontentloaded"});
     const row=await rowFromDB(editedTitle);
     if(row?.stage_id!==fixture.doneStageId)throw Error("Task stage change not persisted");
@@ -136,6 +148,7 @@ for(const viewport of [
     await card.getByRole("button",{name:`Add or edit labels for ${editedTitle}`}).click();
     await page.getByPlaceholder("Search or create label…").fill(labelName);
     await page.getByRole("button",{name:`Create “${labelName}”`}).click();
+    await until(async()=>{const {data}=await admin.from("project_labels").select("id").eq("project_id",fixture.projectId).eq("name",labelName).maybeSingle();return !!data?.id;},"Label not created");
     await page.reload({waitUntil:"domcontentloaded"});
     const row=await rowFromDB(editedTitle);
     const {data:label,error}=await admin.from("project_labels").select("id")
@@ -161,6 +174,7 @@ for(const viewport of [
     await page.getByRole("button",{name:`Task actions: ${copied}`}).click({force:true});
     await page.getByRole("menuitem",{name:"Delete",exact:true}).click();
     await page.getByRole("alertdialog").getByRole("button",{name:"Delete",exact:true}).click();
+    await until(async()=>!(await rowFromDB(copied)),"Task deletion not saved");
     await page.reload({waitUntil:"domcontentloaded"});
     if(await rowFromDB(copied))throw Error("Deleted duplicate still exists on server");
   },ctx);
