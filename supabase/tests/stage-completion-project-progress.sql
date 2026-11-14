@@ -30,11 +30,11 @@ BEGIN
     ('a6000000-0000-4000-8000-000000000001',w,p,'Incomplete','todo',0),
     ('a6000000-0000-4000-8000-000000000002',w,p,'Finished','done',1);
   SELECT progress INTO pct FROM public.projects WHERE id=p;
-  IF pct <> 50 THEN RAISE EXCEPTION 'Expected 50%% after 1/2 tasks, got %%',pct; END IF;
+  IF pct <> 50 THEN RAISE EXCEPTION 'Expected 50%% after 1/2 tasks, got %',pct; END IF;
 
   UPDATE public.tasks SET stage_id=done_id, status='done' WHERE id='a6000000-0000-4000-8000-000000000001';
   SELECT progress INTO pct FROM public.projects WHERE id=p;
-  IF pct <> 100 THEN RAISE EXCEPTION 'Expected 100%% after moving to completed stage, got %%',pct; END IF;
+  IF pct <> 100 THEN RAISE EXCEPTION 'Expected 100%% after moving to completed stage, got %',pct; END IF;
 
   UPDATE public.project_stages SET is_completion=false WHERE id=done_id;
   SELECT progress INTO pct FROM public.projects WHERE id=p;
@@ -47,7 +47,7 @@ BEGIN
 
   UPDATE public.tasks SET stage_id=todo_id,status='todo' WHERE id='a6000000-0000-4000-8000-000000000001';
   SELECT progress INTO pct FROM public.projects WHERE id=p;
-  IF pct <> 0 THEN RAISE EXCEPTION 'Expected 0%% after reopening last active task, got %%',pct; END IF;
+  IF pct <> 0 THEN RAISE EXCEPTION 'Expected 0%% after reopening last active task, got %',pct; END IF;
 END $$;
 
 DO $$
