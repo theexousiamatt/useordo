@@ -81,18 +81,21 @@ try {
 
         const geometry = await footer.evaluate((element) => {
           const rect = element.getBoundingClientRect();
-          const content = document.querySelector(".mobile-nav-content");
+          const clearance = document.querySelector(".mobile-nav-clearance");
           return {
             bottom: rect.bottom,
             viewport: window.innerHeight,
             footerHeight: rect.height,
-            contentPadding: parseFloat(getComputedStyle(content).paddingBottom),
+            clearanceHeight: clearance?.getBoundingClientRect().height ?? 0,
+            clearanceVisible: clearance && getComputedStyle(clearance).display !== "none",
             horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 2,
           };
         });
-        if (Math.abs(geometry.bottom - geometry.viewport) > 2) fail("Footer is not anchored to viewport bottom");
-        if (geometry.contentPadding < geometry.footerHeight + 12) fail("Main content lacks footer clearance");
-        if (geometry.horizontalOverflow) fail("Mobile viewport has horizontal overflow");
+        if (Math.abs(geometry.bottom - geometry.viewport) > 2) fail("Footer is not anchored to viewport bottom: " + JSON.stringify(geometry));
+        if (!geometry.clearanceVisible || geometry.clearanceHeight < geometry.footerHeight + 10) {
+          fail("Main content lacks structural footer clearance: " + JSON.stringify(geometry));
+        }
+        if (geometry.horizontalOverflow) fail("Mobile viewport has horizontal overflow: " + JSON.stringify(geometry));
 
         await page.goto(root + destinations[1], { waitUntil: "domcontentloaded" });
         await footer.getByRole("link", { name: "Projects" }).waitFor({ state: "visible" });
