@@ -5,6 +5,7 @@ import {
   Users,
   UserCog,
   Activity,
+  Inbox,
   Settings,
   LucideIcon,
 } from "lucide-react";
@@ -24,6 +25,7 @@ export const navItems: NavItem[] = [
   { title: "Tasks", url: "/tasks", icon: CheckSquare, roles: ["owner", "manager", "member"] },
   { title: "Clients", url: "/clients", icon: Users, roles: ["owner", "manager"] },
   { title: "Team", url: "/team", icon: UserCog, roles: ["owner", "manager"] },
+  { title: "Inbox", url: "/inbox", icon: Inbox, roles: ["owner", "manager", "member"] },
   { title: "Activity", url: "/activity", icon: Activity, roles: ["owner", "manager", "member", "client"] },
   { title: "Settings", url: "/settings", icon: Settings, roles: ["owner"] },
 ];

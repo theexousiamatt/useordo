@@ -1,0 +1,102 @@
+name: Verify Ordo core workflows
+
+on:
+  push:
+    branches:
+      - codex/ordo-core-workflows-20261114
+    paths:
+      - 'src/**'
+      - 'scripts/qa/core-workflows.mjs'
+      - '.github/workflows/ordo-core-workflows-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ordo-core-workflows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Strict TypeScript checks
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Unit and regression tests
+        run: npm run test
+      - name: Lint modified feature modules
+        run: npx eslint src/lib/myTasks.ts src/lib/myTasks.test.ts src/pages/Tasks.tsx src/pages/Dashboard.tsx src/pages/Inbox.tsx src/components/client/ApprovalCard.tsx src/components/client/ClientReviewHistory.tsx src/pages/ClientApprovals.tsx src/pages/ClientProjectDetail.tsx src/hooks/useClientDashboard.tsx src/components/projects/DeliverableReviewHistory.tsx src/components/projects/DeliverablesTab.tsx src/pages/Onboarding.tsx src/hooks/useNotifications.tsx src/components/navigation.ts src/App.tsx
+      - name: Production build
+        run: npm run build
+
+  browser:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.1.0
+      - name: Start isolated database
+        run: supabase start
+      - name: Configure disposable QA credentials
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/ordo-core-qa.env
+          source /tmp/ordo-core-qa.env
+          : "${ANON_KEY:?Missing anon key}"
+          : "${SERVICE_ROLE_KEY:?Missing service key}"
+          echo "::add-mask::${SERVICE_ROLE_KEY}"
+          echo "QA_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "QA_SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
+          echo "QA_SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
+      - name: Seed local synthetic user and project
+        run: node scripts/qa/seed-browser.mjs
+      - name: Start isolated frontend
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/ordo-core-vite.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ordo-core-vite.log
+          exit 1
+      - name: Install browser runtime
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Browser-test tasks inbox and client feedback
+        run: node scripts/qa/core-workflows.mjs
+      - name: Save screenshots and results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordo-core-workflows-browser-qa
+          path: qa-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop disposable database
+        if: always()
+        run: supabase stop --no-backup || true

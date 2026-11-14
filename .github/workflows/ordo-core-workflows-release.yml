@@ -1,0 +1,89 @@
+name: Release Ordo core workflow improvements
+
+on:
+  push:
+    branches:
+      - codex/ordo-core-workflows-20261114
+    paths:
+      - '.github/workflows/ordo-core-workflows-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ordo-legacy-production-static-release
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout verified Ordo source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Refuse changes to browser-tested source
+        run: |
+          set -euo pipefail
+          verified="8546a6fd815a093194db002187098e9950e9fc8c"
+          git merge-base --is-ancestor "$verified" "$GITHUB_SHA"
+          git diff --exit-code "$verified" "$GITHUB_SHA" -- src index.html scripts/qa/core-workflows.mjs package.json package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Strict TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: All unit and regression tests
+        run: npm run test
+      - name: Lint modified modules
+        run: npx eslint src/lib/myTasks.ts src/lib/myTasks.test.ts src/pages/Tasks.tsx src/pages/Dashboard.tsx src/pages/Inbox.tsx src/components/client/ApprovalCard.tsx src/components/client/ClientReviewHistory.tsx src/pages/ClientApprovals.tsx src/pages/ClientProjectDetail.tsx src/hooks/useClientDashboard.tsx src/components/projects/DeliverableReviewHistory.tsx src/components/projects/DeliverablesTab.tsx src/pages/Onboarding.tsx src/hooks/useNotifications.tsx src/components/navigation.ts src/App.tsx
+      - name: Build production static site
+        env:
+          VITE_APP_URL: https://ordo.inspirarestudio.com
+        run: |
+          set -euo pipefail
+          npm run build
+          test -s dist/index.html
+          test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
+          printf '{"source_sha":"%s","environment":"production","feature":"core-workflow-improvements"}\n' "$GITHUB_SHA" > dist/release.json
+          node -e 'JSON.parse(require("fs").readFileSync("dist/release.json","utf8"))'
+          test ! -e dist/.env
+          test ! -e dist/.env.production
+          if find dist -name '*.map' | grep -q .; then
+            echo "Refusing to publish source maps"
+            exit 1
+          fi
+      - name: Checkout current Hostinger static branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/hostinger-static
+          path: production-static
+          persist-credentials: true
+      - name: Promote with rollback guard
+        run: |
+          set -euo pipefail
+          expected="ff338c6430209b8cb20b61253d898fbc1a32bdb3"
+          actual="$(git -C production-static rev-parse HEAD)"
+          if [ "$actual" != "$expected" ]; then
+            echo "Production static branch changed; refusing automatic overwrite"
+            exit 1
+          fi
+          git fetch origin codex/hostinger-static-pre-core-workflows-20261114
+          test "$(git rev-parse FETCH_HEAD)" = "$expected"
+          find production-static -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a dist/. production-static/
+          test -s production-static/index.html
+          test ! -e production-static/.env
+          git -C production-static config user.name "Ordo release automation"
+          git -C production-static config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C production-static add -A
+          git -C production-static commit -m "Deploy Ordo core workflow improvements from ${GITHUB_SHA}"
+          git -C production-static push origin HEAD:codex/hostinger-static

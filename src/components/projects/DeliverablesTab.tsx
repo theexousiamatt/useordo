@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DeliverableReviewHistory } from "@/components/projects/DeliverableReviewHistory";
 import { Package, Plus, Check, X, Send, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -119,7 +120,8 @@ export function DeliverablesTab({ projectId }: { projectId: string }) {
       </div>
       <div className="space-y-3">
         {deliverables.map((d) => (
-          <Card key={d.id} className="flex items-start justify-between gap-3 p-4">
+          <Card key={d.id} className="flex flex-col gap-4 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="font-medium">{d.title}</p>
               {d.description && (
@@ -161,6 +163,11 @@ export function DeliverablesTab({ projectId }: { projectId: string }) {
                 )}
               </div>
             </div>
+            </div>
+            <details className="rounded-lg bg-secondary/60 p-3 text-sm">
+              <summary className="cursor-pointer text-xs font-medium">Review history and feedback</summary>
+              <DeliverableReviewHistory deliverableId={d.id} projectId={projectId} />
+            </details>
           </Card>
         ))}
       </div>
