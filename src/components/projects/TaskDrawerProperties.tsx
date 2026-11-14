@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarClock, CheckCircle2, CircleDot, Pencil, Tag, UserRound } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, CircleDot, Pencil, Tag, UserRound } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InlineTaskTitle, InlineLabelPicker, InlineDatePicker, InlineMemberPicker } from "@/components/ordo";
 import type { LabelColor } from "@/lib/labelColors";
@@ -9,6 +9,7 @@ import type { TaskRow } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 import { findTaskStage, isCompletionStage } from "@/lib/taskCompletion";
 import { dateShort } from "@/lib/format";
+import { useProjectSubtasks } from "@/hooks/useSubtasks";
 import { cn } from "@/lib/utils";
 
 export interface TaskDrawerEditing {
@@ -39,6 +40,8 @@ export function TaskDrawerProperties({
   const [stageOpen, setStageOpen] = useState(false);
   const [dueOpen, setDueOpen] = useState(false);
   const currentStage = findTaskStage(task, editor.stages);
+  const { data: checklist = [] } = useProjectSubtasks(task.project_id);
+  const unfinished = checklist.filter(item => item.task_id === task.id && !item.completed).length;
   const assignedNames = assigneeIds.map(id=>members.find(member=>member.user_id===id)?.full_name??"Member");
   const propertyButton = "inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -120,6 +123,12 @@ export function TaskDrawerProperties({
           </PopoverContent>
         </Popover>
       </div>
+      {isCompletionStage(currentStage) && unfinished > 0 && (
+        <p role="status" className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          This task is marked complete with {unfinished} unfinished checklist item{unfinished===1?"":"s"}.
+        </p>
+      )}
       {editor.labelIds.length>0 && (
         <div className="flex flex-wrap gap-1.5" aria-label="Task labels">
           {editor.labelIds.map(id=>{
