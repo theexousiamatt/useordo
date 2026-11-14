@@ -182,6 +182,15 @@ async function scenario({audience,width,height,isMobile}){
     }
 
     if(isMobile){
+      if (audience === "studio") {
+        // Onboarding intentionally owns the entire screen without the workspace footer.
+        const onboardingFooter = page.getByRole("navigation",{name:"Studio mobile navigation"});
+        if (await onboardingFooter.isVisible()) {
+          throw new Error("Workspace footer must be hidden during onboarding");
+        }
+        await page.goto(base+"/inbox",{waitUntil:"domcontentloaded"});
+        await page.getByRole("heading",{name:"Inbox"}).waitFor({state:"visible"});
+      }
       const nav=page.getByRole("navigation",{name:audience==="client"?"Client mobile navigation":"Studio mobile navigation"});
       await nav.waitFor({state:"visible"});
       if(await nav.getByRole("link").count()!==3) throw new Error("Expected three mobile tabs");
