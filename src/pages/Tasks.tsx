@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle2, CalendarDays, AlertCircle, Clock3, Inbox, ListTodo, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
@@ -40,10 +40,14 @@ async function pageAll<T>(reader: (from: number, to: number) => PromiseLike<{ da
 
 export default function Tasks() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const [snapshot, setSnapshot] = useState<WorkSnapshot | null>(null);
-  const [view, setView] = useState<WorkView>("today");
+  const [view, setView] = useState<WorkView>(() => {
+    const requested = searchParams.get("view");
+    return tabs.some((tab) => tab.id === requested) ? requested as WorkView : "today";
+  });
   const [mineOnly, setMineOnly] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,7 +135,7 @@ export default function Tasks() {
       <div role="tablist" aria-label="Task views" className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-card p-1.5">
         {tabs.map(({ id, name, icon: Icon }) => (
           <button key={id} type="button" role="tab" aria-selected={view === id}
-            onClick={() => setView(id)}
+            onClick={() => { setView(id); setSearchParams({ view: id }, { replace: true }); }}
             className={cn("flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-xs font-medium transition-colors",
               view === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground")}>
             <Icon className="h-4 w-4" aria-hidden="true" />
