@@ -77,10 +77,11 @@ export function OrdoColumnOverflowMenu({
   trigger: ReactNode;
   canManageStages?: boolean;
   canRemoveStage?: boolean;
+  isCompletion?: boolean;
 }) {
   return (
     <OrdoOverflowMenu
-      config={buildColumnMenuConfig(status, collapsed, handlers, canManageStages, canRemoveStage)}
+      config={buildColumnMenuConfig(status, collapsed, handlers, canManageStages, canRemoveStage, isCompletion)}
       trigger={trigger}
       align="start"
     />
