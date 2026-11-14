@@ -124,7 +124,7 @@ for (const config of [
 
   await test("card open and menu still work after creating tasks",async()=>{
     await page.getByRole("button",{name:"Task: QA ordinary task"}).click();
-    await page.getByRole("button",{name:"Mark complete"}).waitFor({state:"visible"});
+    await page.getByRole("dialog").getByRole("button",{name:"Mark task complete"}).waitFor({state:"visible"});
   });
 
   await page.screenshot({path:path.join("qa-artifacts",`${config.label}-board-after-create.png`),fullPage:true});
