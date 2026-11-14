@@ -107,6 +107,64 @@ for(const viewport of [
     if((await rowFromDB(newTitle))?.completed_at)throw Error("Reopening did not persist");
   },ctx);
 
+  let editedTitle=newTitle;
+  await verify("edit task title in drawer and retain after refresh",async()=>{
+    await page.getByRole("button",{name:`Task: ${newTitle}`}).click();
+    await page.getByRole("button",{name:"Rename task"}).click();
+    editedTitle=`QA ${viewport.label} edited task`;
+    const textbox=page.getByRole("textbox",{name:"Task title"});
+    await textbox.fill(editedTitle);
+    await textbox.press("Enter");
+    await page.reload({waitUntil:"domcontentloaded"});
+    await page.getByRole("button",{name:`Task: ${editedTitle}`}).waitFor({state:"visible"});
+    if(!(await rowFromDB(editedTitle)))throw Error("Task rename was not stored");
+  },ctx);
+
+  await verify("move task through drawer stage picker without auto-completing",async()=>{
+    await page.getByRole("button",{name:`Task: ${editedTitle}`}).click();
+    await page.getByRole("button",{name:"Change task stage"}).click();
+    await page.getByRole("button",{name:"Done",exact:true}).last().click();
+    await page.reload({waitUntil:"domcontentloaded"});
+    const row=await rowFromDB(editedTitle);
+    if(row?.stage_id!==fixture.doneStageId)throw Error("Task stage change not persisted");
+    if(row?.completed_at)throw Error("Stage named Done incorrectly completed task");
+  },ctx);
+
+  await verify("create and assign label from card, retaining both after refresh",async()=>{
+    const labelName=`QA ${viewport.label} label`;
+    const card=page.getByRole("button",{name:`Task: ${editedTitle}`});
+    await card.getByRole("button",{name:`Add or edit labels for ${editedTitle}`}).click();
+    await page.getByPlaceholder("Search or create label…").fill(labelName);
+    await page.getByRole("button",{name:`Create “${labelName}”`}).click();
+    await page.reload({waitUntil:"domcontentloaded"});
+    const row=await rowFromDB(editedTitle);
+    const {data:label,error}=await admin.from("project_labels").select("id")
+      .eq("project_id",fixture.projectId).eq("name",labelName).single();
+    if(error||!label?.id||!row)throw Error("Label creation did not persist");
+    const {data:association,error:linkError}=await admin.from("task_labels").select("id")
+      .eq("task_id",row.id).eq("label_id",label.id).single();
+    if(linkError||!association)throw Error("New label was not assigned to card");
+    const labelOnCard=page.getByRole("button",{name:`Task: ${editedTitle}`});
+    if(!(await labelOnCard.innerText()).includes(labelName))throw Error("Saved label not visible on card");
+  },ctx);
+
+  await verify("duplicate task from card menu then persist after refresh",async()=>{
+    await page.getByRole("button",{name:`Task actions: ${editedTitle}`}).click({force:true});
+    await page.getByRole("menuitem",{name:"Duplicate",exact:true}).click();
+    await page.getByRole("button",{name:`Task: ${editedTitle} (Copy)`}).waitFor({state:"visible"});
+    await page.reload({waitUntil:"domcontentloaded"});
+    if(!(await rowFromDB(`${editedTitle} (Copy)`)))throw Error("Duplicated task missing after reload");
+  },ctx);
+
+  await verify("delete copied task with confirmation, then verify deletion after reload",async()=>{
+    const copied=`${editedTitle} (Copy)`;
+    await page.getByRole("button",{name:`Task actions: ${copied}`}).click({force:true});
+    await page.getByRole("menuitem",{name:"Delete",exact:true}).click();
+    await page.getByRole("alertdialog").getByRole("button",{name:"Delete",exact:true}).click();
+    await page.reload({waitUntil:"domcontentloaded"});
+    if(await rowFromDB(copied))throw Error("Deleted duplicate still exists on server");
+  },ctx);
+
   await verify("open task drawer and update checklist after reload",async()=>{
     await page.getByRole("button",{name:"Task: QA Done-stage task"}).click();
     await page.getByRole("checkbox",{name:"Mark QA checklist two complete"}).click();
