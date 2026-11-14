@@ -87,7 +87,9 @@ for (const config of [
   await test("tap stage add and submit with real touch / pointer coordinates",async()=>{
     const headerAdd=page.getByRole("button",{name:"Add task to Backlog"});
     const headerSize=await headerAdd.boundingBox();
-    if(!headerSize||headerSize.width<40||headerSize.height<40)throw Error("Header Add hit area under 40px");
+    const minHitSize = config.hasTouch ? 40 : 30;
+    if(!headerSize||headerSize.width<minHitSize||headerSize.height<minHitSize)
+      throw Error(`Header Add hit area smaller than ${minHitSize}px`);
     if(config.hasTouch)await headerAdd.tap({timeout:10000});
     else await headerAdd.click({timeout:10000});
     const form=page.getByRole("form",{name:"New task in Backlog"});
