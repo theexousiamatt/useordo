@@ -9,7 +9,7 @@ describe("all task stages behave identically",()=>{
       title:"Create IG account",stageName:"Done",status:"done",stageTheme:"lavender",
     }));
     expect(html).toContain("Done");
-    expect(html).toContain("bg-[#F3EDFF]");
+    expect(html).toContain("bg-[#F4EFFF]");
     expect(html).not.toContain("Task completed");
     expect(html).not.toContain('role="progressbar"');
   });
