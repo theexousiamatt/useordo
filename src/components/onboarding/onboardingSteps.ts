@@ -21,14 +21,11 @@ export interface OnboardingStepMeta {
 
 /** The canonical Ordo onboarding flow. */
 export const ONBOARDING_STEPS: OnboardingStepMeta[] = [
-  { id: 1, label: "Welcome", icon: Sparkles },
-  { id: 2, label: "Workspace", icon: Building2 },
-  { id: 3, label: "Type", icon: LayoutDashboard },
-  { id: 4, label: "Team", icon: Users },
-  { id: 5, label: "Clients", icon: UserPlus },
-  { id: 6, label: "Project", icon: FolderKanban },
-  { id: 7, label: "Tour", icon: Compass },
-  { id: 8, label: "Done", icon: CheckCircle2 },
+  { id: 1, label: "Workspace", icon: Building2 },
+  { id: 2, label: "Project", icon: FolderKanban },
+  { id: 3, label: "Team", icon: Users },
+  { id: 4, label: "Clients", icon: UserPlus },
+  { id: 5, label: "Ready", icon: CheckCircle2 },
 ];
 
 export const TOTAL_STEPS = ONBOARDING_STEPS.length;
