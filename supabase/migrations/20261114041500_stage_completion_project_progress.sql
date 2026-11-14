@@ -129,4 +129,17 @@ BEGIN
     PERFORM public.recalculate_ordo_project_progress(p.id);
   END LOOP;
 END $$;
+-- Publish only RLS-protected collaborative stage and checklist changes.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime'
+      AND schemaname='public' AND tablename='project_stages') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.project_stages;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime'
+      AND schemaname='public' AND tablename='task_subtasks') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.task_subtasks;
+  END IF;
+END $$;
+
 COMMIT;
