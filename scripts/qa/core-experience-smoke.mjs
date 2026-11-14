@@ -135,6 +135,12 @@ async function scenario({audience,width,height,isMobile}){
       const count=await must(db.from("notifications").select("id",{count:"exact"})
         .eq("user_id",teammateId).eq("entity_id",mention.entity_id),"Read deduplicated mentions");
       if(count.length!==1) throw new Error("Mention replay created duplicate notification");
+      const clientApi=createClient(url,process.env.QA_SUPABASE_ANON_KEY,{auth:{persistSession:false}});
+      await must(clientApi.auth.signInWithPassword({email:clientEmail,password:clientPassword}),"Sign in client API");
+      const unauthorized=await clientApi.rpc("notify_task_mentions",{
+        _comment_id:mention.entity_id,_mentioned_user_ids:[teammateId],
+      });
+      if(!unauthorized.error) throw new Error("Client could send mentions for another user's comment");
       await page.goto(base+"/inbox",{waitUntil:"domcontentloaded"});
       await page.getByRole("heading",{name:"Inbox"}).waitFor({state:"visible"});
       await page.goto(base+"/onboarding?create=1",{waitUntil:"domcontentloaded"});
