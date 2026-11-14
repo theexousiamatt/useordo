@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Activity, ArrowRight, CalendarClock, CheckCircle2, CheckSquare2,
-  Clock3, FolderKanban, RefreshCw, AlertCircle,
+  Clock3, FolderKanban, RefreshCw, AlertCircle, Inbox,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -44,13 +44,13 @@ function StatCard({
 }) {
   return (
     <Link to={href} className="block rounded-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-      <Card className="group h-full rounded-panel p-5 transition-colors hover:border-primary/35">
+      <Card className="group h-full rounded-panel p-4 transition-colors hover:border-primary/35">
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm text-muted-foreground">{label}</span>
           <Icon className={cn("h-4 w-4", urgent && value > 0 ? "text-destructive" : "text-muted-foreground")} aria-hidden="true" />
         </div>
-        <p className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
-        <p className="mt-2 text-xs text-muted-foreground">{hint}</p>
+        <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
       </Card>
     </Link>
   );
@@ -121,10 +121,17 @@ export default function Dashboard() {
             The work, deadlines and decisions that need your team's attention.
           </p>
         </div>
-        <Button variant="outline" size="sm" className="self-start" onClick={() => void refetch()} disabled={isFetching}>
-          <RefreshCw className={cn("mr-2 h-3.5 w-3.5", isFetching && "animate-spin")} aria-hidden="true" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate("/inbox")}>
+            <Inbox className="mr-2 h-3.5 w-3.5" /> Inbox
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate("/tasks")}>
+            <CheckSquare2 className="mr-2 h-3.5 w-3.5" /> My tasks
+          </Button>
+          <Button variant="outline" size="icon" aria-label="Refresh dashboard" onClick={() => void refetch()} disabled={isFetching}>
+            <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} aria-hidden="true" />
+          </Button>
+        </div>
       </header>
 
       {isLoading ? (
@@ -141,18 +148,14 @@ export default function Dashboard() {
         <ErrorState onRetry={() => void refetch()} />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Workspace totals">
+          <div className="grid gap-3 sm:grid-cols-3" aria-label="Workspace totals">
             <StatCard
               label="Active projects" value={overview.activeProjects.length}
               icon={FolderKanban} hint="Currently in progress" href="/projects"
             />
             <StatCard
-              label="Open tasks" value={overview.openTasks.length}
-              icon={CheckSquare2} hint="Not yet marked complete" href="/tasks"
-            />
-            <StatCard
               label="Overdue tasks" value={overview.overdueTasks.length}
-              icon={AlertCircle} hint="Past their due dates" href="/tasks" urgent
+              icon={AlertCircle} hint="Past their due dates" href="/tasks?view=overdue" urgent
             />
             <StatCard
               label="Pending approvals" value={overview.pendingApprovals.length}
@@ -184,7 +187,7 @@ export default function Dashboard() {
                     ))}
                     {overview.overdueTasks.length > 5 && (
                       <button
-                        type="button" onClick={() => navigate("/tasks")}
+                        type="button" onClick={() => navigate("/tasks?view=overdue")}
                         className="w-full px-4 py-3 text-left text-xs font-medium text-primary hover:bg-muted/30"
                       >
                         View all open tasks
