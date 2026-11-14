@@ -498,6 +498,16 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     [update, qc, projectId],
   );
 
+  /** Marking a task complete is a separate user action; never a column transition. */
+  const toggleTaskComplete = useCallback((task:TaskRow)=>{
+    const complete=!isTaskCompleted(task);
+    const save=()=>patchTask(task.id,{completed_at:complete?new Date().toISOString():null});
+    const checklist=subtaskTotals.get(task.id);
+    if(complete && requiresChecklistCompletionConfirmation(task,checklist)){
+      setPendingCompletion({unfinished:checklist!.total-checklist!.completed,onProceed:save});
+    }else save();
+  },[patchTask,subtaskTotals]);
+
   const startInline = useCallback((t: TaskRow, mode: InlineMode) => setInline({ id: t.id, mode }), []);
   const closeInline = useCallback(() => setInline(null), []);
 
@@ -512,6 +522,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   // ---------------- Card actions ----------------
   const cardHandlers: TaskMenuHandlers = {
     onOpen: openTask,
+    onToggleCompleted: toggleTaskComplete,
     onRename: (t) => startInline(t, "rename"),
     onEditLabels: (t) => startInline(t, "labels"),
     onEditMembers: (t) => startInline(t, "members"),
@@ -796,9 +807,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               key={col.id}
               id={col.id}
               title={col.name}
-              category={col.category}
               stageTheme={resolveStageTheme(col.theme)}
-              isCompletion={isCompletionStage(col)}
               draggable={canConfigureStages && !stageMutation.isPending}
               canManageStages={canConfigureStages && !stageMutation.isPending}
               canRemoveStage={stages.length > 1}
@@ -820,7 +829,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               inlineCtx={inlineCtx}
               columnHandlers={columnHandlers}
               onCardClick={handleCardClick}
-              onAdd={(title) => createTask.mutate({ title, status: col.category,stage_id:col.id })}
+              onAdd={(title) => createTask.mutate({ title,stage_id:col.id })}
               adding={createTask.isPending}
             />
           ))}
@@ -855,7 +864,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
                 title={activeTask.title}
                 status={activeTask.status}
                 stageTheme={resolveStageTheme(activeStage?.theme)}
-                completed={isTaskCompleted(activeTask,stages)}
+                completed={isTaskCompleted(activeTask)}
                 stageName={activeStage?.name}
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
@@ -924,6 +933,9 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           onRename: title => { if (liveEditTask) patchTask(liveEditTask.id, { title }); },
           onMoveStage: stageId => {
             if (liveEditTask) cardHandlers.onMoveStage(liveEditTask, stageId);
+          },
+          onToggleComplete: () => {
+            if(liveEditTask) toggleTaskComplete(liveEditTask);
           },
           onMembers: ids => {
             if (liveEditTask) setTaskAssignees(liveEditTask.id, ids);
@@ -1034,9 +1046,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
 function Column({
   id,
   title,
-  category,
   stageTheme,
-  isCompletion,
   draggable,
   canManageStages,
   canRemoveStage,
@@ -1059,9 +1069,7 @@ function Column({
 }: {
   id: string;
   title: string;
-  category: TaskStatus;
   stageTheme: StageTheme;
-  isCompletion: boolean;
   draggable: boolean;
   canManageStages: boolean;
   canRemoveStage: boolean;
@@ -1102,7 +1110,7 @@ function Column({
 
   if (collapsed) {
     return (
-      <OrdoColumnContextMenu status={id} collapsed handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage} isCompletion={isCompletion}>
+      <OrdoColumnContextMenu status={id} collapsed handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
         <div ref={setStageRef} style={stageStyle} className="flex w-12 shrink-0 flex-col items-center gap-3 rounded-card border border-border bg-card py-3">
           {draggable && <button type="button" ref={setActivatorNodeRef} {...attributes} {...listeners}
             className="cursor-grab touch-none text-muted-foreground" aria-label={`Drag ${title} stage`}>
@@ -1119,7 +1127,7 @@ function Column({
           <span
             className="text-sm font-semibold [writing-mode:vertical-rl] text-foreground"
           >
-            {isCompletion ? '✓ ' : ''}{title} · {tasks.length}
+            {title} · {tasks.length}
           </span>
         </div>
       </OrdoColumnContextMenu>
@@ -1128,7 +1136,7 @@ function Column({
 
   return (
     <div ref={setStageRef} style={stageStyle} className="flex w-72 shrink-0 flex-col">
-      <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage} isCompletion={isCompletion}>
+      <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
         <div className="mb-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full" style={{backgroundColor:theme.previewAccent}} />
@@ -1142,7 +1150,6 @@ function Column({
               <Button type="button" variant="ghost" size="sm" onClick={onSaveName} disabled={!draftName.trim()}>Save</Button>
               <Button type="button" variant="ghost" size="sm" onClick={onCancelName}>Cancel</Button>
             </>}
-            {isCompletion && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-label="Completion stage" />}
             <span className="rounded-pill bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               {tasks.length}
             </span>
@@ -1164,7 +1171,7 @@ function Column({
             <OrdoColumnOverflowMenu
               canManageStages={canManageStages}
               canRemoveStage={canRemoveStage}
-              isCompletion={isCompletion}
+             
               status={id}
               collapsed={false}
               handlers={columnHandlers}
@@ -1339,13 +1346,14 @@ function SortableTask({
               title={task.title}
               status={task.status}
               stageTheme={resolveStageTheme(stage?.theme)}
-              completed={isTaskCompleted(task,stages)}
+              completed={isTaskCompleted(task)}
               stageName={stage?.name}
               description={task.description}
               dueDate={task.due_date}
               labels={labelChipsFor(task.id)}
               subtasks={subtaskTotals.get(task.id)}
               onEditLabels={() => setInline({ id: task.id, mode: "labels" })}
+              onToggleCompleted={() => handlers.onToggleCompleted(task)}
               assignees={assignees}
               interactive={false}
               dragHandleProps={renaming ? undefined : { ...attributes, ...listeners }}
