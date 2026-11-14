@@ -472,7 +472,11 @@ export function useDeleteTask(projectId: string) {
       const { error } = await supabase.from("tasks").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
+      void qc.invalidateQueries({ queryKey: ["project-subtasks", projectId] });
+    },
+    onError: () => toast.error("Couldn't fully duplicate the task. Check for a partial copy."),
   });
 }
 
@@ -484,7 +488,7 @@ export function useDuplicateTask(projectId: string, workspaceId: string) {
     mutationFn: async (task: TaskRow & { copyAssignee?: boolean }) => {
       const existing = qc.getQueryData<TaskRow[]>(["project-tasks", projectId]) ?? [];
       const position = existing.filter((t) => task.stage_id ? t.stage_id===task.stage_id : t.status===task.status).length;
-      const { error } = await supabase.from("tasks").insert({
+      const { data: created, error } = await supabase.from("tasks").insert({
         workspace_id: workspaceId,
         project_id: projectId,
         title: `${task.title} (Copy)`,
@@ -495,8 +499,24 @@ export function useDuplicateTask(projectId: string, workspaceId: string) {
         assignee_id: task.copyAssignee === false ? null : task.assignee_id,
         due_date: task.due_date,
         created_by: user?.id ?? null,
-      });
-      if (error) throw error;
+      }).select("id").single();
+      if (error || !created) throw error ?? new Error("Failed to duplicate task");
+      // Copy checklist data with the task so the progress value is never fabricated.
+      const { data: subtasks, error: subtasksError } = await supabase.from("task_subtasks")
+        .select("title, completed, position").eq("task_id", task.id);
+      if (subtasksError) throw subtasksError;
+      if (subtasks?.length) {
+        const { error: insertError } = await supabase.from("task_subtasks").insert(
+          subtasks.map(item => ({
+            project_id: projectId,
+            task_id: created.id,
+            title: item.title,
+            completed: item.completed,
+            position: item.position,
+          })),
+        );
+        if (insertError) throw insertError;
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
   });
