@@ -140,7 +140,7 @@ for(const config of [
       const animations=element.getAnimations({subtree:false});
       await Promise.allSettled(animations.map(animation=>animation.finished));
     });
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(650);
     const geometry=await dialog.evaluate(element=>{
       const rect=element.getBoundingClientRect();
       return {width:rect.width,left:rect.left,right:rect.right,innerWidth:window.innerWidth,
