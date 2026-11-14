@@ -753,6 +753,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               id={col.id}
               title={col.name}
               category={col.category}
+              stageTheme={resolveStageTheme(col.theme)}
               draggable={canConfigureStages && !stageMutation.isPending}
               canManageStages={canConfigureStages && !stageMutation.isPending}
               canRemoveStage={stages.length > 1}
@@ -782,27 +783,21 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           {canConfigureStages && <div className="w-72 shrink-0 rounded-card border border-border bg-card p-3">
             {creatingStage ? <form className="space-y-3" onSubmit={event=>{
               event.preventDefault();if(!stageName.trim())return;
-              runStage({action:"create",name:stageName.trim(),category:stageCategory},()=>{
-                setCreatingStage(false);setStageName("");
+              createNamedStage(stageName.trim(),draftStageTheme,"todo",()=>{
+                setCreatingStage(false);setStageName("");setDraftStageTheme("neutral");
               });
             }}>
               <label htmlFor="new-project-stage" className="text-sm font-medium">Stage name</label>
               <Input id="new-project-stage" autoFocus value={stageName} onChange={event=>setStageName(event.target.value)}
                 placeholder="e.g. Client feedback" maxLength={160} required disabled={stageMutation.isPending}/>
-              <label htmlFor="stage-report-category" className="block text-xs text-muted-foreground">Reporting status</label>
-              <select id="stage-report-category" value={stageCategory}
-                onChange={event=>setStageCategory(event.target.value as TaskStatus)}
-                disabled={stageMutation.isPending}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-                {TASK_COLUMNS.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}
-              </select>
+              <StageThemePicker value={draftStageTheme} onChange={setDraftStageTheme} disabled={createStageMutation.isPending} />
               <div className="flex gap-2">
-                <Button size="sm" type="submit" disabled={stageMutation.isPending||!stageName.trim()}>Save stage</Button>
-                <Button size="sm" type="button" variant="ghost" disabled={stageMutation.isPending}
-                  onClick={()=>{setCreatingStage(false);setStageName("");}}>Cancel</Button>
+                <Button size="sm" type="submit" disabled={createStageMutation.isPending||!stageName.trim()}>Create stage</Button>
+                <Button size="sm" type="button" variant="ghost" disabled={createStageMutation.isPending}
+                  onClick={()=>{setCreatingStage(false);setStageName("");setDraftStageTheme("neutral");}}>Cancel</Button>
               </div>
             </form> :
-            <Button type="button" variant="ghost" onClick={()=>{setCreatingStage(true);setEditingStageId(null);setStageName("");setStageCategory("todo");}}>
+            <Button type="button" variant="ghost" onClick={()=>{setCreatingStage(true);setEditingStageId(null);setStageName("");setDraftStageTheme("neutral");}}>
               <Plus className="mr-2 h-4 w-4"/>Add stage
             </Button>}
           </div>}
@@ -814,7 +809,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               <OrdoTaskCard
                 title={activeTask.title}
                 status={activeTask.status}
-                boardTheme={boardTheme}
+                stageTheme={resolveStageTheme(activeStage?.theme)}
+                stageName={activeStage?.name}
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
                 labels={labelChipsFor(activeTask.id)}
@@ -918,6 +914,7 @@ function Column({
   id,
   title,
   category,
+  stageTheme,
   draggable,
   canManageStages,
   canRemoveStage,
@@ -941,6 +938,7 @@ function Column({
   id: string;
   title: string;
   category: TaskStatus;
+  stageTheme: StageTheme;
   draggable: boolean;
   canManageStages: boolean;
   canRemoveStage: boolean;
@@ -969,7 +967,7 @@ function Column({
   const stageStyle={transform:CSS.Transform.toString(transform),transition,opacity:isDragging ? 0.55 : 1};
   const [composing, setComposing] = useState(false);
   const [value, setValue] = useState("");
-  const theme = COLUMN_THEME[category];
+  const theme = STAGE_THEME_STYLES[stageTheme];
 
   const submit = () => {
     if (value.trim()) {
@@ -994,9 +992,9 @@ function Column({
           >
             <ChevronRight className="h-4 w-4" />
           </button>
-          <span className={cn("h-2 w-2 rounded-full", theme.dot)} />
+          <span className="h-2 w-2 rounded-full" style={{backgroundColor:theme.previewAccent}} />
           <span
-            className={cn("text-sm font-semibold [writing-mode:vertical-rl]", theme.header)}
+            className="text-sm font-semibold [writing-mode:vertical-rl] text-foreground"
           >
             {title} · {tasks.length}
           </span>
@@ -1010,13 +1008,13 @@ function Column({
       <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
         <div className="mb-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-            <span className={cn("h-2 w-2 rounded-full", theme.dot)} />
+            <span className="h-2 w-2 rounded-full" style={{backgroundColor:theme.previewAccent}} />
             {editing ? <Input autoFocus maxLength={160} value={draftName}
               onChange={event=>onDraftNameChange(event.target.value)}
               onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();onSaveName();}
                 if(event.key==="Escape")onCancelName();}}
               className="h-8 w-40 text-sm" aria-label={`Rename ${title} stage`}/> :
-              <span className={cn("text-sm font-semibold", theme.header)}>{title}</span>}
+              <span className="text-sm font-semibold text-foreground">{title}</span>}
             {editing && <>
               <Button type="button" variant="ghost" size="sm" onClick={onSaveName} disabled={!draftName.trim()}>Save</Button>
               <Button type="button" variant="ghost" size="sm" onClick={onCancelName}>Cancel</Button>
@@ -1141,8 +1139,8 @@ function SortableTask({
     patchTask,
     assigneesFor,
     setTaskAssignees,
-    boardTheme,
   } = inlineCtx;
+  const stage = stages.find(item => item.id === stageForTaskId(task,stages));
   const assignees = assigneesFor(task);
 
   const mode = inline?.id === task.id ? inline.mode : null;
@@ -1214,7 +1212,8 @@ function SortableTask({
             <OrdoTaskCard
               title={task.title}
               status={task.status}
-              boardTheme={boardTheme}
+              stageTheme={resolveStageTheme(stage?.theme)}
+              stageName={stage?.name}
               description={task.description}
               dueDate={task.due_date}
               labels={labelChipsFor(task.id)}
