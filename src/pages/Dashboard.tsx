@@ -17,14 +17,14 @@ import { dateShort, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 function SectionTitle({
-  title, subtitle, href, linkLabel,
+  id, title, subtitle, href, linkLabel,
 }: {
-  title: string; subtitle?: string; href?: string; linkLabel?: string;
+  id?: string; title: string; subtitle?: string; href?: string; linkLabel?: string;
 }) {
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h2 className="text-base font-semibold tracking-tight">{title}</h2>
+        <h2 id={id} className="text-base font-semibold tracking-tight">{title}</h2>
         {subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       {href && linkLabel && (
@@ -162,10 +162,10 @@ export default function Dashboard() {
 
           <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
             <section id="attention" aria-labelledby="attention-heading" className="min-w-0">
-              <SectionTitle title="Needs attention" subtitle="Outstanding tasks and client decisions" />
+              <SectionTitle id="attention-heading" title="Needs attention" subtitle="Outstanding tasks and client decisions" />
               <Card className="overflow-hidden rounded-panel">
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                  <h3 id="attention-heading" className="text-sm font-semibold">Overdue tasks</h3>
+                  <h3 className="text-sm font-semibold">Overdue tasks</h3>
                   <span className={cn(
                     "rounded-full px-2 py-0.5 text-xs font-medium",
                     overview.overdueTasks.length ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground",
@@ -217,11 +217,11 @@ export default function Dashboard() {
             </section>
 
             <section id="deadlines" aria-labelledby="deadlines-heading" className="min-w-0">
-              <SectionTitle title="Upcoming deadlines" subtitle="Today through the next 14 days" />
+              <SectionTitle id="deadlines-heading" title="Upcoming deadlines" subtitle="Today through the next 14 days" />
               <Card className="overflow-hidden rounded-panel">
                 <div className="flex items-center gap-2 border-b border-border px-4 py-3">
                   <CalendarClock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <h3 id="deadlines-heading" className="text-sm font-semibold">Schedule</h3>
+                  <h3 className="text-sm font-semibold">Schedule</h3>
                 </div>
                 <DeadlineList items={overview.upcoming} />
               </Card>
@@ -229,9 +229,9 @@ export default function Dashboard() {
           </div>
 
           <section aria-labelledby="active-projects-heading">
-            <SectionTitle title="Active projects" subtitle="Project progress is based on completed tasks, not board stages" href="/projects" linkLabel="All projects" />
+            <SectionTitle id="active-projects-heading" title="Active projects" subtitle="Project progress is based on completed tasks, not board stages" href="/projects" linkLabel="All projects" />
             {overview.featuredProjects.length ? (
-              <div id="active-projects-heading" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {overview.featuredProjects.slice(0, 6).map((project) => {
                   const progress = overview.projectProgress(project.id);
                   return (
@@ -264,7 +264,7 @@ export default function Dashboard() {
                 })}
               </div>
             ) : (
-              <Card id="active-projects-heading" className="rounded-panel px-5 py-8 text-center">
+              <Card className="rounded-panel px-5 py-8 text-center">
                 <FolderKanban className="mx-auto h-5 w-5 text-muted-foreground" aria-hidden="true" />
                 <p className="mt-2 text-sm font-medium">No active projects</p>
                 <p className="mt-1 text-xs text-muted-foreground">Projects marked active will appear here.</p>
@@ -274,10 +274,10 @@ export default function Dashboard() {
           </section>
 
           <section aria-labelledby="activity-heading">
-            <SectionTitle title="Recent activity" subtitle="The latest updates across visible projects" href="/activity" linkLabel="Full activity" />
+            <SectionTitle id="activity-heading" title="Recent activity" subtitle="The latest updates across visible projects" />
             <Card className="overflow-hidden rounded-panel">
               {overview.recentActivity.length ? (
-                <div id="activity-heading" className="divide-y divide-border">
+                <div className="divide-y divide-border">
                   {overview.recentActivity.map((item) => (
                     <DashboardRow
                       key={item.id} title={activityDescription(item)}
@@ -288,7 +288,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <div id="activity-heading" className="px-5 py-10 text-center">
+                <div className="px-5 py-10 text-center">
                   <Activity className="mx-auto h-5 w-5 text-muted-foreground" aria-hidden="true" />
                   <p className="mt-2 text-sm font-medium">No project activity yet</p>
                   <p className="mt-1 text-xs text-muted-foreground">Updates will appear as your team works on projects.</p>
