@@ -51,6 +51,8 @@ export function calculateSubtaskPercent(subtasks: SubtaskProgress | undefined): 
 export interface OrdoTaskCardProps {
   title: string;
   status: TaskStatus;
+  /** Actual completion is derived from the stage, not from legacy status or checklist. */
+  completed?: boolean;
   description?: string | null;
   dueDate?: string | null;
   labels?: TaskLabelChip[];
@@ -82,6 +84,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
     {
       title,
       status,
+      completed,
       description,
       dueDate,
       labels = [],
@@ -102,7 +105,8 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
     },
     ref,
   ) => {
-    const theme = STATUS_THEME[status];
+    const semanticStatus = completed === true ? "done" : completed === false && status === "done" ? "todo" : status;
+    const theme = STATUS_THEME[semanticStatus];
     const tokens = STAGE_THEME_STYLES[resolveStageTheme(stageTheme)];
     const isBlocked = blocked ?? false;
     const iconColor = isBlocked ? "text-orange-600" : theme.icon;
