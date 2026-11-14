@@ -1,0 +1,82 @@
+name: Release Ordo stage completion and task editing continuity
+
+on:
+  push:
+    branches:
+      - codex/project-task-continuity-20261114
+    paths:
+      - '.github/workflows/ordo-project-continuity-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ordo-legacy-production-static-release
+  cancel-in-progress: false
+
+jobs:
+  ship-verified-task-continuity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout updated legacy Ordo source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check application TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Run regression tests
+        run: npm run test
+      - name: Lint project, stage and task continuity modules
+        run: |
+          npx eslint src/pages/ProjectDetail.tsx src/components/projects/ProjectBoard.tsx src/components/projects/TaskDetailDrawer.tsx src/components/projects/TaskDrawerProperties.tsx src/components/ordo/OrdoTaskCard.tsx src/components/ordo/OrdoColumnContextMenu.tsx src/hooks/useProjectStages.ts src/lib/taskCompletion.ts
+      - name: Build production static files
+        env:
+          VITE_APP_URL: https://ordo.inspirarestudio.com
+        run: |
+          set -euo pipefail
+          npm run build
+          test -s dist/index.html
+          test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
+          printf '{"source_sha":"%s","environment":"production","feature":"project-task-continuity"}\n' "$GITHUB_SHA" > dist/release.json
+          test ! -e dist/.env
+          test ! -e dist/.env.production
+          if find dist -name '*.map' | grep -q .; then
+            echo "Refusing to publish source maps"
+            exit 1
+          fi
+      - name: Checkout current static site branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/hostinger-static
+          path: production-static
+          persist-credentials: true
+      - name: Publish only if rollback anchor remains unchanged
+        run: |
+          set -euo pipefail
+          expected="04b9cda804d5bead4e42c0e9fcdd93539c21d31c"
+          actual="$(git -C production-static rev-parse HEAD)"
+          if [ "$actual" != "$expected" ]; then
+            echo "Production site has changed; refusing overwrite"
+            exit 1
+          fi
+          git fetch origin codex/hostinger-static-pre-task-continuity-20261114
+          test "$(git rev-parse FETCH_HEAD)" = "$expected"
+          find production-static -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a dist/. production-static/
+          test -s production-static/index.html
+          test ! -e production-static/.env
+          git -C production-static config user.name "Ordo release automation"
+          git -C production-static config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C production-static add -A
+          git -C production-static commit -m "Deploy Ordo project-task continuity from ${GITHUB_SHA}"
+          git -C production-static push origin HEAD:codex/hostinger-static

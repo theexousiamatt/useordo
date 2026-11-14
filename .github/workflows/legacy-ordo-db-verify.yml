@@ -9,6 +9,7 @@ on:
       - 'supabase/tests/legacy-project-stages.sql'
       - 'supabase/tests/stage-themes.sql'
       - 'supabase/tests/task-subtasks.sql'
+      - 'supabase/tests/stage-completion-project-progress.sql'
       - '.github/workflows/legacy-ordo-db-verify.yml'
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - 'supabase/tests/legacy-project-stages.sql'
       - 'supabase/tests/stage-themes.sql'
       - 'supabase/tests/task-subtasks.sql'
+      - 'supabase/tests/stage-completion-project-progress.sql'
       - '.github/workflows/legacy-ordo-db-verify.yml'
   workflow_dispatch:
 
@@ -58,6 +60,10 @@ jobs:
         run: |
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres \
             -f supabase/tests/task-subtasks.sql
+      - name: Verify project completion aggregation and manager permissions
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -f supabase/tests/stage-completion-project-progress.sql
       - name: Stop and destroy disposable database containers
         if: always()
         run: supabase stop --no-backup || true
