@@ -195,7 +195,7 @@ export default function Onboarding() {
         if (overlap) throw new Error("An email appears in both Team and Clients. Go back and choose one role for each person.");
         const results = [];
         // A retry reuses prepared invitations even if the previous batch partly completed.
-        results.push(await inviteWorkspacePeople(workspaceId, team, "member"));
+        results.push(await inviteWorkspacePeople(workspaceId, team, "member", undefined));
         // Client access is least-privilege by default: the selected project client
         // gets project access, while other clients receive workspace invitations
         // with projects shared explicitly later.
