@@ -90,6 +90,8 @@ import { sendAppEmail } from "@/lib/email";
 import { projectUrl } from "@/lib/appUrl";
 import { dateShort } from "@/lib/format";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useProjectSubtasks } from "@/hooks/useSubtasks";
+import type { SubtaskProgress } from "@/components/ordo/OrdoTaskCard";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -113,12 +115,13 @@ interface BoardInlineCtx {
   labelChipsFor: (taskId: string) => TaskLabelChip[];
   labelIdsFor: (taskId: string) => string[];
   toggleLabel: (taskId: string, labelId: string) => void;
-  createLabel: (name: string, color: LabelColor) => void;
+  createLabel: (taskId: string, name: string, color: LabelColor) => void;
   renameLabel: (labelId: string, name: string) => void;
   recolorLabel: (labelId: string, color: LabelColor) => void;
   deleteLabel: (labelId: string) => void;
   moveTargets: TaskMoveTarget[];
   stages: ProjectStage[];
+  subtaskTotals: Map<string, SubtaskProgress>;
   inline: { id: string; mode: InlineMode } | null;
   setInline: (v: { id: string; mode: InlineMode } | null) => void;
   patchTask: (id: string, patch: Partial<TaskRow>) => void;
@@ -147,6 +150,15 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const bulkDelete = useBulkDeleteTasks(projectId);
   const { data: assigneesMap } = useTaskAssignees(projectId);
   const setAssignees = useSetTaskAssignees(projectId);
+  const { data: taskSubtasks = [] } = useProjectSubtasks(projectId);
+  const subtaskTotals = useMemo(() => {
+    const totals = new Map<string, SubtaskProgress>();
+    for (const row of taskSubtasks) {
+      const previous = totals.get(row.task_id) ?? { total: 0, completed: 0 };
+      totals.set(row.task_id, { total: previous.total + 1, completed: previous.completed + Number(row.completed) });
+    }
+    return totals;
+  }, [taskSubtasks]);
   const stageQuery=useProjectStages(projectId);
   const stages=useMemo(()=>stageQuery.data ?? [],[stageQuery.data]);
   const stageMutation=useProjectStageCommand(projectId);
@@ -240,8 +252,15 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     [labelMap, setTaskLabels],
   );
   const createLabel = useCallback(
-    (name: string, color: LabelColor) => createLabelMut.mutate({ name, color }),
-    [createLabelMut],
+    (taskId: string, name: string, color: LabelColor) => {
+      void createLabelMut.mutateAsync({ name, color }).then((labelId) => {
+        // Assign a new label to the card where it was created, without opening task details.
+        const cache = qc.getQueryData<Map<string, string[]>>(["task-label-map", projectId]);
+        const selected = cache?.get(taskId) ?? [];
+        if (!selected.includes(labelId)) setTaskLabels.mutate({ taskId, labelIds: [...selected, labelId] });
+      }).catch(() => { /* useCreateLabel already displays the error */ });
+    },
+    [createLabelMut, setTaskLabels, qc, projectId],
   );
   const renameLabel = useCallback(
     (labelId: string, name: string) => updateLabelMut.mutate({ id: labelId, name }),
@@ -499,6 +518,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     deleteLabel,
     moveTargets,
     stages,
+    subtaskTotals,
     inline,
     setInline,
     patchTask,
@@ -815,6 +835,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
                 labels={labelChipsFor(activeTask.id)}
+                subtasks={subtaskTotals.get(activeTask.id)}
                 assignees={assigneesFor(activeTask)}
                 interactive={false}
                 overlay
@@ -843,7 +864,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           <StageThemePicker value={themeDraft} onChange={setThemeDraft} disabled={themeMutation.isPending} />
           <div className="mx-auto w-full max-w-xs">
             <OrdoTaskCard title="Example task" status={themeStage?.category ?? "todo"}
-              stageName={themeStage?.name} stageTheme={themeDraft} progress={65} interactive={false} />
+              stageName={themeStage?.name} stageTheme={themeDraft} subtasks={{completed:3,total:4}} interactive={false} />
           </div>
           {stageError && <p role="alert" className="text-xs text-destructive">{stageError}</p>}
           <DialogFooter className="gap-2">
@@ -1168,6 +1189,7 @@ function SortableTask({
     deleteLabel,
     moveTargets,
     stages,
+    subtaskTotals,
     inline,
     setInline,
     patchTask,
@@ -1251,6 +1273,8 @@ function SortableTask({
               description={task.description}
               dueDate={task.due_date}
               labels={labelChipsFor(task.id)}
+              subtasks={subtaskTotals.get(task.id)}
+              onEditLabels={() => setInline({ id: task.id, mode: "labels" })}
               assignees={assignees}
               interactive={false}
               dragHandleProps={renaming ? undefined : { ...attributes, ...listeners }}
@@ -1297,7 +1321,7 @@ function SortableTask({
               labels={projectLabels}
               value={labelIdsFor(task.id)}
               onToggle={(labelId) => toggleLabel(task.id, labelId)}
-              onCreate={createLabel}
+              onCreate={(name, color) => createLabel(task.id, name, color)}
               onRename={renameLabel}
               onRecolor={recolorLabel}
               onDelete={deleteLabel}
