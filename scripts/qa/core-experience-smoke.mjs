@@ -27,6 +27,22 @@ const client=await must(db.auth.admin.createUser({
   user_metadata:{full_name:"QA Client"},
 }),"Create client");
 const clientId=client.user.id;
+
+const teammateEmail=`ordo-core-member-${suffix}@example.invalid`;
+const teammate=await must(db.auth.admin.createUser({
+  email:teammateEmail,password:`QA-member-${randomUUID()}!`,email_confirm:true,
+  user_metadata:{full_name:"QA Teammate"},
+}),"Create teammate");
+const teammateId=teammate.user.id;
+await must(db.from("profiles").upsert({
+  id:teammateId,full_name:"QA Teammate",email:teammateEmail,
+}),"Register teammate profile");
+await must(db.from("workspace_members").insert({
+  workspace_id:fixture.workspaceId,user_id:teammateId,role:"member",status:"active",
+}),"Create teammate workspace membership");
+await must(db.from("project_members").insert({
+  workspace_id:fixture.workspaceId,project_id:fixture.projectId,user_id:teammateId,role:"member",
+}),"Share project with teammate");
 await must(db.from("workspace_members").insert({
   workspace_id:fixture.workspaceId,user_id:clientId,role:"client",status:"active",
 }),"Create client workspace membership");
@@ -74,18 +90,51 @@ async function scenario({audience,width,height,isMobile}){
   try{
     // Each browser scenario starts with the same disposable fixture state.
     if(audience==="studio"){
-      await must(db.from("tasks").update({completed_at:null}).eq("id",fixture.normalTaskId), "Reset QA task");
+      await must(db.from("tasks").update({
+        completed_at:null,due_date:new Date().toISOString().slice(0,10),
+      }).eq("id",fixture.normalTaskId), "Reset QA task");
+      const {data:linked}=await db.from("task_assignees").select("id")
+        .eq("task_id",fixture.normalTaskId).eq("user_id",fixture.userId).maybeSingle();
+      if(!linked){
+        await must(db.from("task_assignees").insert({
+          workspace_id:fixture.workspaceId,project_id:fixture.projectId,
+          task_id:fixture.normalTaskId,user_id:fixture.userId,created_by:fixture.userId,
+        }),"Assign owner with multi-assignee table");
+      }
       await signIn(page,fixture.email,fixture.password);
       await page.goto(base+"/",{waitUntil:"domcontentloaded"});
       await page.getByRole("heading",{name:"Your studio, at a glance."}).waitFor({state:"visible"});
       await page.goto(base+"/tasks",{waitUntil:"domcontentloaded"});
       await page.getByRole("heading",{name:"My tasks"}).waitFor({state:"visible"});
-      await page.getByRole("button",{name:"Team tasks"}).click();
-      await page.getByRole("tab",{name:"All"}).click();
       await page.getByText("QA ordinary task").first().waitFor({state:"visible"});
       await page.getByRole("button",{name:"Mark QA ordinary task complete"}).click();
       const done=await must(db.from("tasks").select("completed_at").eq("id",fixture.normalTaskId).single(),"Read completion");
       if(!done.completed_at) throw new Error("Task completion did not persist");
+
+      await page.goto(base+`/projects/${fixture.projectId}`,{waitUntil:"domcontentloaded"});
+      await page.getByRole("button",{name:"Task: QA ordinary task"}).waitFor({state:"visible"});
+      await page.getByRole("button",{name:"Task: QA ordinary task"}).click();
+      const drawer=page.getByRole("dialog");
+      await drawer.getByRole("textbox",{name:"Write a comment"}).fill("@QA");
+      await drawer.getByRole("option",{name:"QA Teammate"}).click();
+      await drawer.getByRole("button",{name:"Post comment"}).click();
+      await page.waitForFunction(()=>{
+        const comment=Array.from(document.querySelectorAll('[aria-label="Task comments"] li')).find(el=>el.textContent.includes("@QA Teammate"));
+        return !!comment;
+      },{timeout:20000});
+      const mention=await must(db.from("notifications").select("id,entity_id")
+        .eq("user_id",teammateId).eq("type","task_mention").order("created_at",{ascending:false}).limit(1).single(),"Read task mention notification");
+      if(!mention?.entity_id) throw new Error("Mention notification was not created");
+
+      // Replaying the same authenticated request must not duplicate a notification.
+      const ownerApi=createClient(url,process.env.QA_SUPABASE_ANON_KEY,{auth:{persistSession:false}});
+      await must(ownerApi.auth.signInWithPassword({email:fixture.email,password:fixture.password}),"Sign in owner API");
+      await must(ownerApi.rpc("notify_task_mentions",{
+        _comment_id:mention.entity_id,_mentioned_user_ids:[teammateId],
+      }),"Replay mention");
+      const count=await must(db.from("notifications").select("id",{count:"exact"})
+        .eq("user_id",teammateId).eq("entity_id",mention.entity_id),"Read deduplicated mentions");
+      if(count.length!==1) throw new Error("Mention replay created duplicate notification");
       await page.goto(base+"/inbox",{waitUntil:"domcontentloaded"});
       await page.getByRole("heading",{name:"Inbox"}).waitFor({state:"visible"});
       await page.goto(base+"/onboarding?create=1",{waitUntil:"domcontentloaded"});
