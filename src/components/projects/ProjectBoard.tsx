@@ -927,7 +927,31 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         members={members}
         open={editOpen}
         onOpenChange={setEditOpen}
-        onSaveDescription={(id, description) => update.mutate({ id, description })}
+        onSaveDescription={(id, description) => patchTask(id, { description })}
+        editor={{
+          stages,
+          labels: projectLabels,
+          labelIds: liveEditTask ? labelIdsFor(liveEditTask.id) : [],
+          onRename: title => { if (liveEditTask) patchTask(liveEditTask.id, { title }); },
+          onMoveStage: stageId => {
+            if (liveEditTask) cardHandlers.onMoveStage(liveEditTask, stageId);
+          },
+          onMembers: ids => {
+            if (liveEditTask) setTaskAssignees(liveEditTask.id, ids);
+          },
+          onDueDate: date => {
+            if (liveEditTask) patchTask(liveEditTask.id, { due_date: date });
+          },
+          onToggleLabel: labelId => {
+            if (liveEditTask) toggleLabel(liveEditTask.id, labelId);
+          },
+          onCreateLabel: (name, color) => {
+            if (liveEditTask) createLabel(liveEditTask.id, name, color);
+          },
+          onRenameLabel: renameLabel,
+          onRecolorLabel: recolorLabel,
+          onDeleteLabel: deleteLabel,
+        }}
       />
 
 
