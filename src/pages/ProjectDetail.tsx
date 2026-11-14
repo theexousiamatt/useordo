@@ -7,6 +7,8 @@ import { ArrowLeft, CalendarDays, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useProjectStages } from "@/hooks/useProjectStages";
+import { computeProjectCompletion } from "@/lib/taskCompletion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ErrorState } from "@/components/states/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,6 +54,8 @@ export default function ProjectDetail() {
   const { data: members = [] } = useProjectMembers(id);
   const { data: assignableMembers = [] } = useAssignableMembers(id);
   const { data: tasks = [] } = useProjectTasks(id);
+  const { data: stages = [], isSuccess: stagesLoaded } = useProjectStages(id ?? "");
+  const completion = computeProjectCompletion(tasks, stages);
   const perms = useProjectPermissions(project);
   const archiveProject = useArchiveProject();
   const updateProject = useUpdateProject();
@@ -148,11 +152,15 @@ export default function ProjectDetail() {
 
         <div className="flex items-start gap-3">
           <div className="w-full max-w-xs space-y-1.5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{project.progress}%</span>
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted-foreground">Tasks completed</span>
+              <span className="font-medium tabular-nums">
+                {stagesLoaded && completion.total > 0
+                  ? `${completion.completed}/${completion.total} · ${completion.percent}%`
+                  : stagesLoaded ? "No tasks" : "—"}
+              </span>
             </div>
-            <Progress value={project.progress} className="h-2" />
+            {stagesLoaded && completion.total > 0 && <Progress value={completion.percent} className="h-2" />}
           </div>
           {perms.canManage && <Button variant="outline" onClick={() => setProjectTeamOpen(true)}>Add teammates</Button>}
           {(role === "owner" || role === "manager") && <Button variant="outline" onClick={() => setInviteOpen(true)}>Invite client</Button>}
