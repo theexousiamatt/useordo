@@ -1,0 +1,83 @@
+name: Release Ordo studio dashboard to production
+
+on:
+  push:
+    branches:
+      - codex/studio-dashboard-overview-20261114
+    paths:
+      - '.github/workflows/ordo-studio-dashboard-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ordo-legacy-production-static-release
+  cancel-in-progress: false
+
+jobs:
+  ship-verified-dashboard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout verified Ordo source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Run regression tests
+        run: npm run test
+      - name: Lint dashboard and deep-link modules
+        run: |
+          npx eslint src/hooks/useStudioDashboard.ts src/lib/studioDashboard.ts src/lib/studioDashboard.test.ts src/pages/Dashboard.tsx src/pages/ProjectDetail.tsx
+      - name: Build production static files
+        env:
+          VITE_APP_URL: https://ordo.inspirarestudio.com
+        run: |
+          set -euo pipefail
+          npm run build
+          test -s dist/index.html
+          test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
+          printf '{"source_sha":"%s","environment":"production","feature":"studio-dashboard-overview"}\n' "$GITHUB_SHA" > dist/release.json
+          node -e 'JSON.parse(require("fs").readFileSync("dist/release.json","utf8"))'
+          test ! -e dist/.env
+          test ! -e dist/.env.production
+          if find dist -name '*.map' | grep -q .; then
+            echo "Refusing to publish source maps"
+            exit 1
+          fi
+      - name: Checkout current production static artifacts
+        uses: actions/checkout@v4
+        with:
+          ref: codex/hostinger-static
+          path: production-static
+          persist-credentials: true
+      - name: Publish with verified rollback anchor and concurrency guard
+        run: |
+          set -euo pipefail
+          expected="a6ac041309695d75ea92d478d439b888917e91e6"
+          actual="$(git -C production-static rev-parse HEAD)"
+          if [ "$actual" != "$expected" ]; then
+            echo "Production static site changed since release was prepared; refusing overwrite"
+            exit 1
+          fi
+          git fetch origin codex/hostinger-static-pre-studio-dashboard-20261114
+          test "$(git rev-parse FETCH_HEAD)" = "$expected"
+          find production-static -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a dist/. production-static/
+          test -s production-static/index.html
+          test ! -e production-static/.env
+          git -C production-static config user.name "Ordo release automation"
+          git -C production-static config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C production-static add -A
+          git -C production-static commit -m "Deploy Ordo studio overview from ${GITHUB_SHA}"
+          git -C production-static push origin HEAD:codex/hostinger-static
