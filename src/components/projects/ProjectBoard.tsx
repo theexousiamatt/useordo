@@ -343,7 +343,36 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         "postgres_changes",
         { event: "*", schema: "public", table: "task_assignees", filter: `project_id=eq.${projectId}` },
         () => {
-          qc.invalidateQueries({ queryKey: ["task-assignees", projectId] });
+          void qc.invalidateQueries({ queryKey: ["task-assignees", projectId] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_stages", filter: `project_id=eq.${projectId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["project-stages", projectId] });
+          void qc.invalidateQueries({ queryKey: ["project", projectId] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_subtasks", filter: `project_id=eq.${projectId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["project-subtasks", projectId] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_labels", filter: `project_id=eq.${projectId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["task-label-map", projectId] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_labels", filter: `project_id=eq.${projectId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["project-labels", projectId] });
         },
       )
       .subscribe();
