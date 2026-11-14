@@ -120,7 +120,7 @@ CREATE OR REPLACE FUNCTION public.qa_abort_task_label_copy()
 RETURNS trigger LANGUAGE plpgsql SET search_path=public,pg_temp AS $qa$
 BEGIN
  RAISE EXCEPTION 'qa-copy-label-failure';
-END $qa$;
+END; $qa$;
 CREATE TRIGGER qa_abort_task_label_copy BEFORE INSERT ON public.task_labels
 FOR EACH ROW EXECUTE FUNCTION public.qa_abort_task_label_copy();
 SET LOCAL ROLE authenticated;
