@@ -1453,6 +1453,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      duplicate_ordo_task: {
+        Args: { _task_id: string; _copy_assignees?: boolean }
+        Returns: string
+      }
       create_custom_stage: {
         Args: {
           _project_id: string
