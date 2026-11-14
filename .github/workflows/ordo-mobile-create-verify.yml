@@ -1,0 +1,42 @@
+name: Verify mobile task creation and touch isolation
+
+on:
+  push:
+    branches:
+      - codex/fix-mobile-task-create-taps-20261114
+    paths:
+      - '.github/workflows/ordo-mobile-create-verify.yml'
+      - 'src/components/projects/ProjectBoard.tsx'
+      - 'src/components/projects/TaskComposer.tsx'
+      - 'src/components/projects/TaskComposer.test.tsx'
+      - 'scripts/qa/mobile-task-create.mjs'
+      - 'scripts/qa/seed-browser.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript strict checks
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Task composer and full regression suite
+        run: npm test
+      - name: Lint updated board and composer
+        run: npx eslint src/components/projects/ProjectBoard.tsx src/components/projects/TaskComposer.tsx src/components/projects/TaskComposer.test.tsx
+      - name: Production build
+        run: npm run build
