@@ -93,18 +93,33 @@ for(const viewport of [
   },ctx);
 
   const newTitle=`QA ${viewport.label} created task`;
-  await verify("create task in Backlog and persist after reload",async()=>{
+  let creationPassed=false;
+  creationPassed=await verify("create task via the visible Add button; persist after reload",async()=>{
+    await openProject(ctx);
     await page.getByRole("button",{name:"Add task to Backlog"}).click();
     await page.getByPlaceholder("Task title…").fill(newTitle);
-    await page.getByRole("button",{name:"Add",exact:true}).click();
-    await page.getByRole("button",{name:`Task: ${newTitle}`}).waitFor({state:"visible"});
+    // Never force mobile clicks: interception by another card must be reported.
+    await page.getByRole("button",{name:"Add",exact:true}).click({timeout:6000});
     await until(async()=>Boolean(await rowFromDB(newTitle)),"Task creation not saved");
-    await page.reload({waitUntil:"domcontentloaded"});
+    await openProject(ctx);
     await page.getByRole("button",{name:`Task: ${newTitle}`}).waitFor({state:"visible"});
-    if(!(await rowFromDB(newTitle)))throw Error("Created task missing from server after reload");
   },ctx);
+  if(!creationPassed && !(await rowFromDB(newTitle))){
+    await verify("recovery: create task using keyboard Enter",async()=>{
+      const input=page.getByPlaceholder("Task title…");
+      if(!(await input.isVisible())) {
+        await openProject(ctx);
+        await page.getByRole("button",{name:"Add task to Backlog"}).click();
+        await page.getByPlaceholder("Task title…").fill(newTitle);
+      }
+      await page.getByPlaceholder("Task title…").press("Enter");
+      await until(async()=>Boolean(await rowFromDB(newTitle)),"Keyboard creation did not persist");
+      await openProject(ctx);
+    },ctx);
+  }
 
   await verify("complete/reopen task independently of stage; persist after refresh",async()=>{
+    await openProject(ctx);
     await page.getByRole("button",{name:`Task: ${newTitle}`})
       .getByRole("button",{name:"Mark task complete"}).click();
     await page.getByRole("button",{name:`Task: ${newTitle}`})
@@ -124,19 +139,22 @@ for(const viewport of [
 
   let editedTitle=newTitle;
   await verify("edit task title in drawer and retain after refresh",async()=>{
+    await openProject(ctx);
     await page.getByRole("button",{name:`Task: ${newTitle}`}).click();
     await page.getByRole("button",{name:"Rename task"}).click();
-    editedTitle=`QA ${viewport.label} edited task`;
-    const textbox=page.getByRole("textbox",{name:"Task title"});
-    await textbox.fill(editedTitle);
+    const proposal=`QA ${viewport.label} edited task`;
+    const textbox=page.getByRole("textbox",{name:"Task title",exact:true});
+    await textbox.fill(proposal);
     await textbox.press("Enter");
-    await until(async()=>Boolean(await rowFromDB(editedTitle)),"Task rename not saved");
+    await until(async()=>Boolean(await rowFromDB(proposal)),"Task rename not saved");
+    editedTitle=proposal;
     await page.reload({waitUntil:"domcontentloaded"});
     await page.getByRole("button",{name:`Task: ${editedTitle}`}).waitFor({state:"visible"});
     if(!(await rowFromDB(editedTitle)))throw Error("Task rename was not stored");
   },ctx);
 
   await verify("move task through drawer stage picker without auto-completing",async()=>{
+    await openProject(ctx);
     await page.getByRole("button",{name:`Task: ${editedTitle}`}).click();
     await page.getByRole("button",{name:"Change task stage"}).click();
     await page.getByRole("button",{name:"Done",exact:true}).last().click();
@@ -148,6 +166,7 @@ for(const viewport of [
   },ctx);
 
   await verify("create and assign label from card, retaining both after refresh",async()=>{
+    await openProject(ctx);
     const labelName=`QA ${viewport.label} label`;
     const card=page.getByRole("button",{name:`Task: ${editedTitle}`});
     await card.getByRole("button",{name:`Add or edit labels for ${editedTitle}`}).click();
@@ -167,6 +186,7 @@ for(const viewport of [
   },ctx);
 
   await verify("duplicate task from card menu then persist after refresh",async()=>{
+    await openProject(ctx);
     await page.getByRole("button",{name:`Task actions: ${editedTitle}`}).click({force:true});
     await page.getByRole("menuitem",{name:"Duplicate",exact:true}).click();
     await page.getByRole("button",{name:`Task: ${editedTitle} (Copy)`}).waitFor({state:"visible"});
@@ -175,6 +195,7 @@ for(const viewport of [
   },ctx);
 
   await verify("delete copied task with confirmation, then verify deletion after reload",async()=>{
+    await openProject(ctx);
     const copied=`${editedTitle} (Copy)`;
     await page.getByRole("button",{name:`Task actions: ${copied}`}).click({force:true});
     await page.getByRole("menuitem",{name:"Delete",exact:true}).click();
@@ -185,6 +206,7 @@ for(const viewport of [
   },ctx);
 
   await verify("open task drawer and update checklist after reload",async()=>{
+    await openProject(ctx);
     await page.getByRole("button",{name:"Task: QA Done-stage task"}).click();
     await page.getByRole("checkbox",{name:"Mark QA checklist two complete"}).click();
     await page.getByText("2 of 2 complete").waitFor({state:"visible"});
@@ -197,6 +219,7 @@ for(const viewport of [
   },ctx);
 
   await verify("create a custom stage and retain it after refresh",async()=>{
+    await openProject(ctx);
     await page.getByRole("button",{name:"Add stage"}).click();
     await page.getByLabel("Stage name").fill(`QA ${viewport.label} review`);
     await page.getByRole("button",{name:"Create stage"}).click();
