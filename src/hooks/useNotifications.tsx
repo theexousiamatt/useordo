@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -19,6 +19,9 @@ export interface AppNotification {
  */
 export function useNotifications() {
   const { user } = useAuth();
+  // Every consumer (header bell, Inbox) must use a distinct Realtime channel.
+  // Supabase refuses to append bindings to an already subscribed topic.
+  const channelId = useId().replace(/:/g, "-");
   const { currentWorkspace } = useWorkspace();
   const workspaceId = currentWorkspace?.id;
   const [items, setItems] = useState<AppNotification[]>([]);
@@ -56,7 +59,7 @@ export function useNotifications() {
   useEffect(() => {
     if (!user || !workspaceId) return;
     const channel = supabase
-      .channel("notifications-feed")
+      .channel(`notifications-feed-${channelId}`)
       .on(
         "postgres_changes",
         {
@@ -74,7 +77,7 @@ export function useNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, workspaceId]);
+  }, [user, workspaceId, channelId]);
 
   const unreadCount = items.filter((n) => !n.read_at).length;
 
