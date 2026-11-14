@@ -172,3 +172,18 @@
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+
+
+/* Mobile navigation: reserve content space for the footer + iOS home indicator.
+   The same breakpoint as the desktop sidebar avoids duplicate navigation. */
+@media (max-width: 1023px) {
+  .mobile-nav-content {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Keep editing surfaces clear when the mobile keyboard or a modal is open. */
+  body:has(input:focus, textarea:focus, [contenteditable="true"]:focus) .mobile-bottom-nav,
+  body:has([role="dialog"][data-state="open"]) .mobile-bottom-nav {
+    display: none;
+  }
+}
