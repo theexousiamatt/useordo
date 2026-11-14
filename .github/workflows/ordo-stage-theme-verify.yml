@@ -1,0 +1,39 @@
+name: Verify Ordo stage-theme UI and legacy integration
+
+on:
+  push:
+    branches:
+      - codex/stage-themes-20261114
+    paths:
+      - '.github/workflows/ordo-stage-theme-verify.yml'
+      - 'src/**'
+      - 'supabase/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-stage-theme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Full application TypeScript typecheck
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Complete regression tests
+        run: npm run test
+      - name: Stage-themed components lint
+        run: |
+          npx eslint src/components/projects/ProjectBoard.tsx src/components/projects/StageThemePicker.tsx src/components/ordo/OrdoTaskCard.tsx src/components/ordo/OrdoColumnContextMenu.tsx src/hooks/useProjectStages.ts src/lib/stageThemes.ts
+      - name: Production compile
+        run: npm run build

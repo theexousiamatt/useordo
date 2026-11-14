@@ -76,7 +76,6 @@ Deno.serve(async (req) => {
         status: "draft",
         health: opts.copySettings ? source.health : "on_track",
         visibility: opts.copySettings ? source.visibility : "workspace",
-        theme: opts.copySettings ? (source.theme ?? "neutral") : "neutral",
         start_date: opts.copySettings && opts.copyDueDates ? source.start_date : null,
         due_date: opts.copySettings && opts.copyDueDates ? source.due_date : null,
         owner_id: userId,
@@ -161,7 +160,7 @@ Deno.serve(async (req) => {
     const stageIdMap = new Map<string,string>();
     if (opts.copySettings || opts.copyTasks || opts.copyMilestones) {
       const { data: sourceStages, error: sourceStagesError } = await admin
-        .from("project_stages").select("id,name,category,position")
+        .from("project_stages").select("id,name,category,position,theme")
         .eq("project_id",opts.projectId).order("position").order("id");
       if(sourceStagesError)throw sourceStagesError;
       if(sourceStages?.length){
@@ -174,14 +173,14 @@ Deno.serve(async (req) => {
           const seed=seededStages?.[index];
           if(seed){
             const { error }=await admin.from("project_stages").update({
-              name:sourceStage.name,category:sourceStage.category,position:index,
+              name:sourceStage.name,category:sourceStage.category,theme:sourceStage.theme,position:index,
             }).eq("id",seed.id).eq("project_id",newId);
             if(error)throw error;
             stageIdMap.set(sourceStage.id,seed.id);
           }else{
             const {data:newStage,error}=await admin.from("project_stages").insert({
               workspace_id:workspaceId,project_id:newId,name:sourceStage.name,
-              category:sourceStage.category,position:index,
+              category:sourceStage.category,theme:sourceStage.theme,position:index,
             }).select("id").single();
             if(error || !newStage)throw error ?? new Error("Could not copy project stage");
             stageIdMap.set(sourceStage.id,newStage.id);

@@ -35,11 +35,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
-import type { BoardTheme } from "@/lib/boardThemes";
-import { useProjectStages, useProjectStageCommand, type StageCommand } from "@/hooks/useProjectStages";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { TaskStatus } from "@/lib/projectConstants";
+import { STAGE_THEME_STYLES, resolveStageTheme, type StageTheme } from "@/lib/stageThemes";
+import { StageThemePicker } from "@/components/projects/StageThemePicker";
+import { useProjectStages, useProjectStageCommand, useCreateCustomStage, useSetProjectStageTheme, type ProjectStage, type StageCommand } from "@/hooks/useProjectStages";
 import { stageForTaskId, stageInsertBefore, moveTaskWithinStages, hasStageTasks } from "@/lib/legacyStageBoard";
-import { OrdoTaskCard, COLUMN_THEME, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
+import { OrdoTaskCard, type TaskLabelChip } from "@/components/ordo/OrdoTaskCard";
 import {
   OrdoCardContextMenu,
   OrdoCardOverflowMenu,
@@ -98,7 +100,6 @@ interface Props {
   /** When set (e.g. from a ?task= deep link), open this task's drawer on mount. */
   initialTaskId?: string | null;
   canConfigureStages?: boolean;
-  boardTheme?: BoardTheme;
 }
 
 type PendingDelete = { type: "single"; task: TaskRow } | { type: "bulk"; ids: string[] } | null;
@@ -107,7 +108,6 @@ type InlineMode = "rename" | "labels" | "members" | "due";
 
 /** Shared inline-editing context threaded down to each card. */
 interface BoardInlineCtx {
-  boardTheme: BoardTheme;
   members: ProjectMemberProfile[];
   projectLabels: ProjectLabel[];
   labelChipsFor: (taskId: string) => TaskLabelChip[];
@@ -118,7 +118,7 @@ interface BoardInlineCtx {
   recolorLabel: (labelId: string, color: LabelColor) => void;
   deleteLabel: (labelId: string) => void;
   moveTargets: TaskMoveTarget[];
-  stages: {id:string;name:string;category:TaskStatus;position:number}[];
+  stages: ProjectStage[];
   inline: { id: string; mode: InlineMode } | null;
   setInline: (v: { id: string; mode: InlineMode } | null) => void;
   patchTask: (id: string, patch: Partial<TaskRow>) => void;
@@ -133,7 +133,7 @@ const stageCollision: CollisionDetection = (args) => {
   )});
 };
 
-export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId, canConfigureStages=false, boardTheme="neutral" }: Props) {
+export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId, canConfigureStages=false }: Props) {
   const qc = useQueryClient();
   const { role, currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -150,11 +150,15 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const stageQuery=useProjectStages(projectId);
   const stages=useMemo(()=>stageQuery.data ?? [],[stageQuery.data]);
   const stageMutation=useProjectStageCommand(projectId);
+  const createStageMutation=useCreateCustomStage(projectId);
+  const themeMutation=useSetProjectStageTheme(projectId);
   const [stageError,setStageError]=useState("");
   const [editingStageId,setEditingStageId]=useState<string|null>(null);
   const [stageName,setStageName]=useState("");
   const [creatingStage,setCreatingStage]=useState(false);
-  const [stageCategory,setStageCategory]=useState<TaskStatus>("todo");
+  const [draftStageTheme,setDraftStageTheme]=useState<StageTheme>("neutral");
+  const [themeStageId,setThemeStageId]=useState<string|null>(null);
+  const [themeDraft,setThemeDraft]=useState<StageTheme>("neutral");
   const [removingStageId,setRemovingStageId]=useState<string|null>(null);
   // Count all tasks including archived items hidden from the visible board.
   const removalTaskCount = useQuery({
@@ -184,6 +188,19 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
       setStageError(error instanceof Error?error.message:"Could not save stage. Retry the same action.");
     });
   },[stageMutation]);
+  // Keep the request identity on retries so an uncertain response cannot duplicate stages.
+  const stageCreateRequest=useRef<{signature:string;requestId:string}|null>(null);
+  const createNamedStage=useCallback((name:string,theme:StageTheme,category:TaskStatus,onSuccess?:()=>void)=>{
+    if(createStageMutation.isPending)return;
+    const signature=JSON.stringify({name,theme,category});
+    if(stageCreateRequest.current?.signature!==signature){
+      stageCreateRequest.current={signature,requestId:crypto.randomUUID()};
+    }
+    setStageError("");
+    void createStageMutation.mutateAsync({name,theme,category,requestId:stageCreateRequest.current.requestId})
+      .then(()=>{stageCreateRequest.current=null;onSuccess?.();})
+      .catch(error=>setStageError(error instanceof Error?error.message:"Could not create stage. Retry the same input."));
+  },[createStageMutation]);
   const stageForTask=useCallback((task:TaskRow)=>stageForTaskId(task,stages),[stages]);
 
   // ---------------- Labels ----------------
@@ -396,6 +413,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     items.filter((t) => stageForTask(t) === id).sort((a, b) => a.position - b.position);
 
   const activeTask = items.find((t) => t.id === activeId) ?? null;
+  const activeStage = activeTask ? stages.find(stage=>stage.id===stageForTask(activeTask)) : null;
 
   const openTask = useCallback((t: TaskRow) => {
     setEditTask(t);
@@ -470,7 +488,6 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const liveEditTask = editTask ? items.find((t) => t.id === editTask.id) ?? editTask : null;
 
   const inlineCtx: BoardInlineCtx = {
-    boardTheme,
     members,
     projectLabels,
     labelChipsFor,
@@ -520,7 +537,11 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         setStageError("");
         setRemovingStageId(id);
       }else if(action==="Duplicate column" || action==="Duplicate stage"){
-        runStage({action:"create",name:`${stage.name.slice(0,155)} copy`,category:stage.category});
+        createNamedStage(`${stage.name.slice(0,155)} copy`,resolveStageTheme(stage.theme),stage.category);
+      }else if(action==="Change theme"){
+        setStageError("");
+        setThemeStageId(stage.id);
+        setThemeDraft(resolveStageTheme(stage.theme));
       }else stub(action);
     },
   };
@@ -715,6 +736,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   if(!stages.length)return <div role="alert">This project has no stages. Please contact a workspace manager.</div>;
 
   const removableStage=stages.find(stage=>stage.id===removingStageId);
+  const themeStage=stages.find(stage=>stage.id===themeStageId);
   return (
     <>
       {stageError && <p role="alert" className="mb-3 rounded-md border border-destructive/30 p-3 text-sm text-destructive">{stageError}</p>}
@@ -732,6 +754,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               id={col.id}
               title={col.name}
               category={col.category}
+              stageTheme={resolveStageTheme(col.theme)}
               draggable={canConfigureStages && !stageMutation.isPending}
               canManageStages={canConfigureStages && !stageMutation.isPending}
               canRemoveStage={stages.length > 1}
@@ -761,27 +784,21 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
           {canConfigureStages && <div className="w-72 shrink-0 rounded-card border border-border bg-card p-3">
             {creatingStage ? <form className="space-y-3" onSubmit={event=>{
               event.preventDefault();if(!stageName.trim())return;
-              runStage({action:"create",name:stageName.trim(),category:stageCategory},()=>{
-                setCreatingStage(false);setStageName("");
+              createNamedStage(stageName.trim(),draftStageTheme,"todo",()=>{
+                setCreatingStage(false);setStageName("");setDraftStageTheme("neutral");
               });
             }}>
               <label htmlFor="new-project-stage" className="text-sm font-medium">Stage name</label>
               <Input id="new-project-stage" autoFocus value={stageName} onChange={event=>setStageName(event.target.value)}
-                placeholder="e.g. Client feedback" maxLength={160} required disabled={stageMutation.isPending}/>
-              <label htmlFor="stage-report-category" className="block text-xs text-muted-foreground">Reporting status</label>
-              <select id="stage-report-category" value={stageCategory}
-                onChange={event=>setStageCategory(event.target.value as TaskStatus)}
-                disabled={stageMutation.isPending}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-                {TASK_COLUMNS.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}
-              </select>
+                placeholder="e.g. Client feedback" maxLength={160} required disabled={createStageMutation.isPending}/>
+              <StageThemePicker value={draftStageTheme} onChange={setDraftStageTheme} disabled={createStageMutation.isPending} />
               <div className="flex gap-2">
-                <Button size="sm" type="submit" disabled={stageMutation.isPending||!stageName.trim()}>Save stage</Button>
-                <Button size="sm" type="button" variant="ghost" disabled={stageMutation.isPending}
-                  onClick={()=>{setCreatingStage(false);setStageName("");}}>Cancel</Button>
+                <Button size="sm" type="submit" disabled={createStageMutation.isPending||!stageName.trim()}>Create stage</Button>
+                <Button size="sm" type="button" variant="ghost" disabled={createStageMutation.isPending}
+                  onClick={()=>{setCreatingStage(false);setStageName("");setDraftStageTheme("neutral");}}>Cancel</Button>
               </div>
             </form> :
-            <Button type="button" variant="ghost" onClick={()=>{setCreatingStage(true);setEditingStageId(null);setStageName("");setStageCategory("todo");}}>
+            <Button type="button" variant="ghost" onClick={()=>{setCreatingStage(true);setEditingStageId(null);setStageName("");setDraftStageTheme("neutral");}}>
               <Plus className="mr-2 h-4 w-4"/>Add stage
             </Button>}
           </div>}
@@ -793,7 +810,8 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
               <OrdoTaskCard
                 title={activeTask.title}
                 status={activeTask.status}
-                boardTheme={boardTheme}
+                stageTheme={resolveStageTheme(activeStage?.theme)}
+                stageName={activeStage?.name}
                 description={activeTask.description}
                 dueDate={activeTask.due_date}
                 labels={labelChipsFor(activeTask.id)}
@@ -813,6 +831,39 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         handlers={bulkHandlers}
         onClear={clearSelection}
       />
+
+      <Dialog open={!!themeStage} onOpenChange={open=>{if(!open&&!themeMutation.isPending)setThemeStageId(null);}}>
+        <DialogContent className="client-os max-w-md rounded-panel">
+          <DialogHeader>
+            <DialogTitle>Stage theme</DialogTitle>
+            <DialogDescription>
+              Choose the appearance for {themeStage?.name ?? "this stage"}. Other stages and task labels won't change.
+            </DialogDescription>
+          </DialogHeader>
+          <StageThemePicker value={themeDraft} onChange={setThemeDraft} disabled={themeMutation.isPending} />
+          <div className="mx-auto w-full max-w-xs">
+            <OrdoTaskCard title="Example task" status={themeStage?.category ?? "todo"}
+              stageName={themeStage?.name} stageTheme={themeDraft} progress={65} interactive={false} />
+          </div>
+          {stageError && <p role="alert" className="text-xs text-destructive">{stageError}</p>}
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="ghost" disabled={themeMutation.isPending}
+              onClick={()=>{setThemeStageId(null);setStageError("");}}>Cancel</Button>
+            <Button type="button" disabled={themeMutation.isPending || !themeStage}
+              onClick={()=>{
+                if(!themeStage)return;
+                setStageError("");
+                void themeMutation.mutateAsync({
+                  stageId:themeStage.id,theme:themeDraft,expectedRevision:themeStage.revision,
+                }).then(()=>{setThemeStageId(null);toast.success("Stage theme updated.");})
+                  .catch(error=>setStageError(error instanceof Error?error.message:"Could not save stage theme."));
+              }}>
+              {themeMutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Apply theme
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <TaskDetailDrawer
         task={liveEditTask}
@@ -897,6 +948,7 @@ function Column({
   id,
   title,
   category,
+  stageTheme,
   draggable,
   canManageStages,
   canRemoveStage,
@@ -920,6 +972,7 @@ function Column({
   id: string;
   title: string;
   category: TaskStatus;
+  stageTheme: StageTheme;
   draggable: boolean;
   canManageStages: boolean;
   canRemoveStage: boolean;
@@ -948,7 +1001,7 @@ function Column({
   const stageStyle={transform:CSS.Transform.toString(transform),transition,opacity:isDragging ? 0.55 : 1};
   const [composing, setComposing] = useState(false);
   const [value, setValue] = useState("");
-  const theme = COLUMN_THEME[category];
+  const theme = STAGE_THEME_STYLES[stageTheme];
 
   const submit = () => {
     if (value.trim()) {
@@ -973,9 +1026,9 @@ function Column({
           >
             <ChevronRight className="h-4 w-4" />
           </button>
-          <span className={cn("h-2 w-2 rounded-full", theme.dot)} />
+          <span className="h-2 w-2 rounded-full" style={{backgroundColor:theme.previewAccent}} />
           <span
-            className={cn("text-sm font-semibold [writing-mode:vertical-rl]", theme.header)}
+            className="text-sm font-semibold [writing-mode:vertical-rl] text-foreground"
           >
             {title} · {tasks.length}
           </span>
@@ -989,13 +1042,13 @@ function Column({
       <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
         <div className="mb-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-            <span className={cn("h-2 w-2 rounded-full", theme.dot)} />
+            <span className="h-2 w-2 rounded-full" style={{backgroundColor:theme.previewAccent}} />
             {editing ? <Input autoFocus maxLength={160} value={draftName}
               onChange={event=>onDraftNameChange(event.target.value)}
               onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();onSaveName();}
                 if(event.key==="Escape")onCancelName();}}
               className="h-8 w-40 text-sm" aria-label={`Rename ${title} stage`}/> :
-              <span className={cn("text-sm font-semibold", theme.header)}>{title}</span>}
+              <span className="text-sm font-semibold text-foreground">{title}</span>}
             {editing && <>
               <Button type="button" variant="ghost" size="sm" onClick={onSaveName} disabled={!draftName.trim()}>Save</Button>
               <Button type="button" variant="ghost" size="sm" onClick={onCancelName}>Cancel</Button>
@@ -1120,8 +1173,8 @@ function SortableTask({
     patchTask,
     assigneesFor,
     setTaskAssignees,
-    boardTheme,
   } = inlineCtx;
+  const stage = stages.find(item => item.id === stageForTaskId(task,stages));
   const assignees = assigneesFor(task);
 
   const mode = inline?.id === task.id ? inline.mode : null;
@@ -1193,7 +1246,8 @@ function SortableTask({
             <OrdoTaskCard
               title={task.title}
               status={task.status}
-              boardTheme={boardTheme}
+              stageTheme={resolveStageTheme(stage?.theme)}
+              stageName={stage?.name}
               description={task.description}
               dueDate={task.due_date}
               labels={labelChipsFor(task.id)}

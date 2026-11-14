@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
-import type { BoardTheme } from "@/lib/boardThemes";
 import type {
   ProjectHealth,
   ProjectMemberRole,
@@ -24,7 +23,6 @@ export interface ProjectRow {
   created_by: string | null;
   archived_at: string | null;
   visibility: "workspace" | "restricted";
-  theme?: BoardTheme | null;
   created_at: string;
   updated_at: string;
 }
@@ -251,7 +249,6 @@ export interface UpdateProjectInput {
   client_id?: string | null;
   status?: ProjectStatus;
   owner_id?: string | null;
-  theme?: BoardTheme;
 }
 
 /** Edit core project settings (rename, description, due date, client, status, owner). */

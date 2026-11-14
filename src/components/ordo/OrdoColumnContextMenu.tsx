@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Pencil, ArrowLeftRight, ChevronsDownUp, Plus, Copy, Trash2 } from "lucide-react";
+import { Pencil, ArrowLeftRight, ChevronsDownUp, Plus, Copy, Trash2, Palette } from "lucide-react";
 import { OrdoContextMenu, OrdoOverflowMenu, type OrdoMenuConfig } from "./OrdoMenu";
 
 export interface ColumnMenuHandlers {
@@ -37,6 +37,7 @@ export function buildColumnMenuConfig(
       label: "Manage stage",
       items: [
         { id: "rename", label: "Rename stage", icon: Pencil, onSelect: () => h.onAction(status, "Rename stage") },
+        { id: "theme", label: "Change theme", icon: Palette, onSelect: () => h.onAction(status, "Change theme") },
         { id: "duplicate", label: "Duplicate stage", icon: Copy, onSelect: () => h.onAction(status, "Duplicate stage") },
         { id: "reorder", label: "Reorder stage", icon: ArrowLeftRight, onSelect: () => h.onAction(status, "Reorder stage") },
         { id: "delete", label: "Delete stage", icon: Trash2, destructive: true, disabled: !canRemoveStage,

@@ -1,8 +1,7 @@
 /**
- * Board-wide appearance. Never infer this from a task's label, priority,
- * completion status, or stage: those properties have separate meanings.
+ * Stage-specific appearance. It never represents a task's label, priority, or status.
  */
-export const BOARD_THEME_OPTIONS = [
+export const STAGE_THEME_OPTIONS = [
   { value: "neutral", label: "Neutral" },
   { value: "forest", label: "Forest" },
   { value: "ocean", label: "Ocean" },
@@ -12,10 +11,10 @@ export const BOARD_THEME_OPTIONS = [
   { value: "slate", label: "Slate" },
 ] as const;
 
-export type BoardTheme = (typeof BOARD_THEME_OPTIONS)[number]["value"];
-export const DEFAULT_BOARD_THEME: BoardTheme = "neutral";
+export type StageTheme = (typeof STAGE_THEME_OPTIONS)[number]["value"];
+export const DEFAULT_STAGE_THEME: StageTheme = "neutral";
 
-interface BoardThemeStyle {
+interface StageThemeStyle {
   surface: string;
   border: string;
   track: string;
@@ -26,7 +25,7 @@ interface BoardThemeStyle {
 }
 
 /** Static Tailwind tokens for the card and its light/dark variations. */
-export const BOARD_THEME_STYLES: Record<BoardTheme, BoardThemeStyle> = {
+export const STAGE_THEME_STYLES: Record<StageTheme, StageThemeStyle> = {
   neutral: {
     surface: "bg-white dark:bg-zinc-900",
     border: "border-slate-100 dark:border-zinc-700",
@@ -85,7 +84,7 @@ export const BOARD_THEME_STYLES: Record<BoardTheme, BoardThemeStyle> = {
   },
 };
 
-/** Existing records without a theme should gracefully render as Neutral. */
-export function resolveBoardTheme(value: string | null | undefined): BoardTheme {
-  return BOARD_THEME_OPTIONS.find((option) => option.value === value)?.value ?? DEFAULT_BOARD_THEME;
+/** Stages without a theme should gracefully render as Neutral. */
+export function resolveStageTheme(value: string | null | undefined): StageTheme {
+  return STAGE_THEME_OPTIONS.find((option) => option.value === value)?.value ?? DEFAULT_STAGE_THEME;
 }

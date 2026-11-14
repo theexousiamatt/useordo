@@ -16,9 +16,6 @@ import {
   type ProjectRow,
 } from "@/hooks/useProjects";
 import { PROJECT_STATUSES } from "@/lib/projectConstants";
-import { BOARD_THEME_OPTIONS, BOARD_THEME_STYLES, resolveBoardTheme, type BoardTheme } from "@/lib/boardThemes";
-import { OrdoTaskCard } from "@/components/ordo/OrdoTaskCard";
-import { cn } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -41,7 +38,6 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
   const [clientId, setClientId] = useState(project.client_id ?? "none");
   const [status, setStatus] = useState(project.status);
   const [ownerId, setOwnerId] = useState(project.owner_id ?? "");
-  const [boardTheme, setBoardTheme] = useState<BoardTheme>(resolveBoardTheme(project.theme));
 
   // Re-sync when a different project is opened.
   useEffect(() => {
@@ -52,7 +48,6 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
       setClientId(project.client_id ?? "none");
       setStatus(project.status);
       setOwnerId(project.owner_id ?? "");
-      setBoardTheme(resolveBoardTheme(project.theme));
     }
   }, [open, project]);
 
@@ -100,7 +95,6 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
         client_id: clientId && clientId !== "none" ? clientId : null,
         status,
         owner_id: ownerId || null,
-        theme: boardTheme,
       });
       toast.success("Project updated.");
       onOpenChange(false);
@@ -185,41 +179,6 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
             disabled={!canManage}
           />
         </OrdoField>
-      </OrdoFormSection>
-      <div className="my-6 border-t border-border" />
-      <OrdoFormSection title="Board appearance"
-        description="One theme for all cards. Labels, stages and priorities stay independent.">
-        <div role="radiogroup" aria-label="Board theme" className="grid grid-cols-4 gap-2">
-          {BOARD_THEME_OPTIONS.map((option) => {
-            const selected = boardTheme === option.value;
-            const colors = BOARD_THEME_STYLES[option.value];
-            return (
-              <button key={option.value} type="button" role="radio" aria-checked={selected}
-                disabled={!canManage} onClick={() => setBoardTheme(option.value)}
-                className={cn(
-                  "flex min-w-0 flex-col items-center gap-1.5 rounded-xl border px-1.5 py-2.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60",
-                  selected ? "border-foreground bg-muted/50 shadow-sm" : "border-border hover:border-foreground/40 hover:bg-muted/30",
-                )}>
-                <span className="flex h-9 w-11 items-center justify-center rounded-lg border border-black/5"
-                  style={{ backgroundColor: colors.previewSurface }} aria-hidden="true">
-                  <span className="h-1.5 w-6 rounded-full" style={{ backgroundColor: colors.previewAccent }} />
-                </span>
-                <span className="truncate">{option.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Card preview</span>
-            <span>{BOARD_THEME_OPTIONS.find(o => o.value === boardTheme)?.label}</span>
-          </div>
-          <div className="mx-auto max-w-xs">
-            <OrdoTaskCard title="Create IG account" description="Create and find a manager"
-              status="done" progress={100} boardTheme={boardTheme} interactive={false} />
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">Save changes to apply this theme to all cards on the board.</p>
       </OrdoFormSection>
     </OrdoDrawer>
   );

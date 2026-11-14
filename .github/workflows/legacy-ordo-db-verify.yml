@@ -7,11 +7,13 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/tests/legacy-project-stages.sql'
+      - 'supabase/tests/stage-themes.sql'
       - '.github/workflows/legacy-ordo-db-verify.yml'
   pull_request:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/tests/legacy-project-stages.sql'
+      - 'supabase/tests/stage-themes.sql'
       - '.github/workflows/legacy-ordo-db-verify.yml'
   workflow_dispatch:
 
@@ -46,6 +48,10 @@ jobs:
         run: |
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres \
             -f supabase/tests/legacy-project-stages.sql
+      - name: Verify stage-theme schema and RPC grants
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -f supabase/tests/stage-themes.sql
       - name: Stop and destroy disposable database containers
         if: always()
         run: supabase stop --no-backup || true
