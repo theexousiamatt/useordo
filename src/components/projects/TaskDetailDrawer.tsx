@@ -38,7 +38,7 @@ export function TaskDetailDrawer({ task, members, open, onOpenChange, onSaveDesc
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="client-os flex h-[100dvh] w-full flex-col gap-0 border-l border-border/70 bg-card p-0 shadow-hover sm:max-w-[620px]"
+        className="client-os flex h-[100dvh] w-screen max-w-[100vw] min-w-0 flex-col gap-0 overflow-x-hidden border-l border-border/70 bg-card p-0 shadow-hover sm:w-full sm:max-w-[620px]"
       >
         <SheetTitle className="sr-only">{task ? `Task details: ${task.title}` : "Task details"}</SheetTitle>
         {task && <DrawerBody key={task.id} task={task} members={members} onSaveDescription={onSaveDescription} editor={editor} />}
