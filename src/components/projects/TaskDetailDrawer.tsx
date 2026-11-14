@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { OrdoTextarea } from "@/components/ordo/OrdoTextarea";
 import { initials, timeAgo } from "@/lib/format";
 import { useAuth } from "@/hooks/useAuth";
+import { displayMentions, mentionToken } from "@/lib/mentions";
+import { toast } from "sonner";
 import type { TaskRow } from "@/hooks/useProjectData";
 import { useProjectActivity, useTaskAssignees } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
@@ -72,7 +74,7 @@ function DrawerBody({
           <TaskAttachmentsSection taskId={task.id} projectId={task.project_id} />
         </section>
         <section className="border-t border-border/70 pt-5" aria-label="Discussion">
-          <TaskDiscussion task={task} />
+          <TaskDiscussion task={task} members={members} />
         </section>
         <section className="border-t border-border/70 pt-2">
           <ActivityHistory task={task} members={members} />
@@ -164,17 +166,35 @@ export function TaskDescriptionSection({
   );
 }
 
-function TaskDiscussion({ task }: { task: TaskRow }) {
+function TaskDiscussion({ task, members }: { task: TaskRow; members: ProjectMemberProfile[] }) {
   const { user } = useAuth();
   const { data: comments, isLoading, isError, refetch } = useTaskComments(task.id);
   const add = useAddTaskComment(task.id, task.project_id);
   const del = useDeleteTaskComment(task.id);
   const [draft, setDraft] = useState("");
+  const mentionMatch = draft.match(/(?:^|\s)@([^\s@]*)$/);
+  const mentionQuery = mentionMatch?.[1].toLowerCase() ?? "";
+  const suggestions = mentionMatch
+    ? members.filter(member => member.role !== "client" && member.user_id !== user?.id)
+        .filter(member => (member.full_name ?? member.email ?? "Teammate").toLowerCase().includes(mentionQuery))
+        .slice(0, 5)
+    : [];
+
+  const insertMention = (member: ProjectMemberProfile) => {
+    const match = draft.match(/(?:^|\s)@([^\s@]*)$/);
+    if (!match || match.index === undefined) return;
+    const at = match.index + match[0].lastIndexOf("@");
+    const label = member.full_name || member.email?.split("@")[0] || "Teammate";
+    setDraft(draft.slice(0, at) + mentionToken(label, member.user_id) + " ");
+  };
 
   const submit = () => {
     const content = draft.trim();
     if (!content || add.isPending) return;
-    add.mutate(content, { onSuccess: () => setDraft("") });
+    add.mutate(content, {
+      onSuccess: () => setDraft(""),
+      onError: error => toast.error(error instanceof Error ? error.message : "Could not post comment"),
+    });
   };
 
   return (
@@ -216,7 +236,7 @@ function TaskDiscussion({ task }: { task: TaskRow }) {
                     </button>
                   )}
                 </div>
-                <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">{comment.content}</p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/90">{displayMentions(comment.content)}</p>
               </div>
             </li>
           ))}
@@ -233,11 +253,27 @@ function TaskDiscussion({ task }: { task: TaskRow }) {
             }
           }}
           aria-label="Write a comment"
-          placeholder="Share an update or leave feedback…"
+          placeholder="Share an update or type @ to mention a teammate…"
           rows={2}
           className="min-h-[84px]"
         />
-        <div className="flex justify-end">
+        {suggestions.length>0 && (
+          <div className="overflow-hidden rounded-small border border-border bg-card" role="listbox" aria-label="Mention a teammate">
+            {suggestions.map(member=>(
+              <button key={member.user_id} type="button" role="option" aria-selected={false}
+                onMouseDown={event=>event.preventDefault()}
+                onClick={()=>insertMention(member)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted/50 focus-visible:outline-none focus-visible:bg-muted/50">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
+                  {initials(member.full_name || member.email)}
+                </span>
+                <span className="truncate">{member.full_name || member.email || "Teammate"}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] text-muted-foreground">Type @ to notify a teammate</p>
           <Button type="button" size="sm" onClick={submit} disabled={!draft.trim() || add.isPending} className="gap-1.5">
             {add.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Send className="h-3.5 w-3.5" aria-hidden="true" />}
             Post comment
