@@ -45,9 +45,10 @@ jobs:
         run: |
           set -euo pipefail
           npm run build
+          node -e 'JSON.parse(require("fs").readFileSync("dist/release.json","utf8"))'
           test -s dist/index.html
           test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
-          printf '{"source_sha":"%s","environment":"production","feature":"quiet-checklist-warning""}\n' "$GITHUB_SHA" > dist/release.json
+          printf '{"source_sha":"%s","environment":"production","feature":"quiet-checklist-warning"}\n' "$GITHUB_SHA" > dist/release.json
           test ! -e dist/.env
           test ! -e dist/.env.production
           if find dist -name '*.map' | grep -q .; then
@@ -63,13 +64,13 @@ jobs:
       - name: Publish only if rollback anchor remains unchanged
         run: |
           set -euo pipefail
-          expected="dda4b8a40fd53d80140d67e8be7cec7cd272fae4"
+          expected="f1dd802e0b868fda189aedde747956abfa177ed2"
           actual="$(git -C production-static rev-parse HEAD)"
           if [ "$actual" != "$expected" ]; then
             echo "Production site has changed; refusing overwrite"
             exit 1
           fi
-          git fetch origin codex/hostinger-static-pre-quiet-warning-20261114
+          git fetch origin codex/hostinger-static-pre-manifest-fix-20261114
           test "$(git rev-parse FETCH_HEAD)" = "$expected"
           find production-static -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a dist/. production-static/
