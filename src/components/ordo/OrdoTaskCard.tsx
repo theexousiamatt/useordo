@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { dateShort, initials } from "@/lib/format";
 import { LabelBadge } from "@/components/ordo/LabelBadge";
 import type { TaskStatus } from "@/lib/projectConstants";
-import { BOARD_THEME_STYLES, resolveBoardTheme, type BoardTheme } from "@/lib/boardThemes";
+import { STAGE_THEME_STYLES, resolveStageTheme, type StageTheme } from "@/lib/stageThemes";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
 /** Task status badges retain semantics regardless of the selected board theme. */
@@ -57,8 +57,10 @@ export interface OrdoTaskCardProps {
   attachmentCount?: number;
   /** Marks the card with the orange "blocked" treatment. */
   blocked?: boolean;
-  /** Inherited from board; never stored on a task. */
-  boardTheme?: BoardTheme;
+  /** Inherited from the column stage. */
+  stageTheme?: StageTheme;
+  /** Visible workflow name; reporting status stays an internal compatibility field. */
+  stageName?: string;
   interactive?: boolean;
   onOpen?: () => void;
   /** When provided, replaces the title with an inline editor. */
@@ -82,7 +84,8 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
       commentCount = 0,
       attachmentCount = 0,
       blocked,
-      boardTheme = "neutral",
+      stageTheme = "neutral",
+      stageName,
       interactive = true,
       onOpen,
       titleEditor,
@@ -93,7 +96,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
     ref,
   ) => {
     const theme = STATUS_THEME[status];
-    const tokens = BOARD_THEME_STYLES[resolveBoardTheme(boardTheme)];
+    const tokens = STAGE_THEME_STYLES[resolveStageTheme(stageTheme)];
     const isBlocked = blocked ?? false;
     const iconColor = isBlocked ? "text-orange-600" : theme.icon;
     const StatusIcon = isBlocked ? AlertTriangle : theme.Icon;
@@ -133,7 +136,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
               )}
             >
               <StatusIcon className={cn("h-3 w-3", theme.pill.includes("text-white") ? "" : iconColor)} />
-              {isBlocked ? "Blocked" : theme.label}
+              {isBlocked ? "Blocked" : (stageName ?? theme.label)}
             </span>
             {dragHandleProps && (
               <button
