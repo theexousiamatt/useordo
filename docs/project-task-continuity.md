@@ -1,23 +1,33 @@
-# Ordo task completion and editor continuity (2026-11-14)
+# Ordo — every stage is equal
 
-## Authoritative semantics
+## Product contract
 
-- **Stage** is the actual workflow location (`tasks.stage_id`). `project_stages.is_completion` tells Ordo whether tasks placed there count as finished. Stage name is user-defined and stage colour is cosmetic.
-- Existing `Done` stages (`category='done'`) are migrated to `is_completion=true`; newly seeded projects have the same default. Other stages may be marked as completion stages through their own menu.
-- The existing `tasks.status` field remains as a legacy compatibility category, **not** a second completion source. The board and drawer display actual stage details, not a guessed reporting category.
-- **Checklist progress** is computed as completed checklist items / all items only when any exist. It is intentionally independent of task completion. A task in a completion stage with unfinished checklist items is permitted, but the user must confirm before moving it there.
-- **Project progress** = completed unarchived tasks / all unarchived tasks, rounded to the nearest integer. Empty projects show “No tasks”. An additive database trigger maintains the existing `projects.progress` field for dashboards and other clients; the project page also displays a locally derived breakdown of completed/total tasks.
-- Moving to a completion stage with unfinished checklist items opens a confirmation. “Finish anyway” changes only the stage, never checks unfinished items. This is shared across card menus, keyboard, dragging, and bulk operations.
-- Existing projects and tasks are not deleted, reset, or reparented by the migration.
+A project stage is **only** a customizable container: `id`, user-editable `name`, order, theme, and tasks. Names such as Done, Review, Backlog, and Design are text only. Stages do not determine task completion, change checklist items, or affect project progress. Duplicating, renaming, moving between, or recolouring stages never adds a hidden completion rule.
 
-## Shared editing
+`project_stages.category` and `tasks.status` are historical compatibility fields, not application workflow state. All visible stage information is derived from `stage_id`, the user-defined stage name, and the chosen theme. New tasks do not inherit any completion state based on where they are created.
 
-The task drawer reuses the same `InlineTaskTitle`, `InlineLabelPicker`, `InlineMemberPicker` and `InlineDatePicker` controls as the board and routes mutations through the parent board. The drawer also exposes an actual stage picker. Stage, title, assignees, labels, and due date are all editable in either view and update the same query cache.
+Task completion uses the explicit `tasks.completed_at` timestamp. Users can **Mark complete** or **Reopen** from the card, its menu, the drawer, and bulk actions. Users may deliberately finish a task with unfinished checklist items after confirmation; this never checks the items off.
 
-## Rollout & verification
+Checklist completion is an independent `completed/total` value and a progress bar is shown **only when items exist**.
 
-1. Apply `20261114041500_stage_completion_project_progress.sql` only after isolated legacy schema and task migration tests pass.
-2. Verify project progress for existing projects, task creation, drag-and-drop, bulk moves, task deletion/archive and moving a task back out of Done.
-3. Verify completion-stage toggle with concurrent revision checks and manager permissions; stage duplication carries completion semantics.
-4. Test task editors in board and drawer, custom stage names, label updates and mobile popovers. Verify no remaining “To do” reporting label leaks into the custom stage UI.
-5. Deploy the matching frontend and updated duplicate-project Edge Function after all checks pass, retaining a rollback build.
+Project progress is `round(100 × explicitly completed active tasks / active tasks)`, or zero for projects without tasks. The same database trigger maintains `projects.progress` for other views.
+
+The workspace Tasks screen groups open work by **real project and stage names** and excludes only tasks whose `completed_at` is set. A stage named Done never hides tasks from that screen.
+
+## Migration behaviour
+
+The old completion-stage RPC, column, trigger, and automatic stage-to-status mapping are removed. All project, stage, task and checklist records remain untouched, but legacy auto-completion is **not** copied to `completed_at` because doing so would incorrectly assume users intended those stages to mark work as finished. Existing project progress is recalculated from explicit task completion, which may reset old automatically derived percentages to 0%. No tasks or checklist items are deleted.
+
+New projects may still start with sample stage **names**, but these names are entirely ordinary user-editable labels. This is a default layout template, not an application workflow.
+
+## Release acceptance criteria
+
+- Rename a stage to Done, Design, or anything else: no task becomes complete.
+- Move and reorder tasks between any stages: completion, checklist and project progress unchanged.
+- Mark a task complete in any stage: project progress updates; reopen reverses it.
+- Incomplete checklist when clicking Mark complete: confirmation; no automatic checklist changes.
+- New tasks created in any stage begin incomplete.
+- Stage theme changes presentation only; task labels remain independent.
+- Consolidated Tasks view displays custom stage names, including incomplete work under Done.
+- Duplicated projects preserve stage names/themes/layout but no stage-completion semantics.
+- Database migration passes isolated verification and RLS rules before production update.
