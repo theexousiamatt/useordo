@@ -6,10 +6,7 @@ import {
   Send,
   Trash2,
   Loader2,
-  CalendarClock,
   
-  CircleDot,
-  User as UserIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,14 +14,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { OrdoTextarea } from "@/components/ordo/OrdoTextarea";
 import { EmptyState } from "@/components/states/EmptyState";
-import { cn } from "@/lib/utils";
-import { dateShort, initials, timeAgo } from "@/lib/format";
-import { TASK_COLUMNS } from "@/lib/projectConstants";
+import { initials, timeAgo } from "@/lib/format";
 import { useAuth } from "@/hooks/useAuth";
 import type { TaskRow } from "@/hooks/useProjectData";
 import { useProjectActivity, useTaskAssignees } from "@/hooks/useProjectData";
-import { useProjectLabels, useTaskLabelMap } from "@/hooks/useLabels";
-import { LabelBadge } from "@/components/ordo/LabelBadge";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 import {
   useTaskComments,
@@ -33,8 +26,8 @@ import {
 } from "@/hooks/useTaskComments";
 import { TaskAttachmentsSection } from "@/components/projects/TaskAttachmentsSection";
 import { TaskSubtaskChecklist } from "@/components/projects/TaskSubtaskChecklist";
+import { TaskDrawerProperties, type TaskDrawerEditing } from "@/components/projects/TaskDrawerProperties";
 
-const STATUS_LABEL = Object.fromEntries(TASK_COLUMNS.map((c) => [c.id, c.title]));
 
 interface Props {
   task: TaskRow | null;
@@ -43,22 +36,22 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   /** Persist a description change (optimistic upstream). */
   onSaveDescription: (id: string, description: string | null) => void;
+  editor: TaskDrawerEditing;
 }
 
 /**
  * TaskDetailDrawer — Level 2 deep-work workspace for a single task.
- * Reserved for detailed collaboration: description, comments, and activity.
- * Quick property edits (rename, labels, members, due, move) live inline on the
- * board — they are NOT duplicated here.
+ * Full task workspace. Title, stage, labels, people and dates reuse the board's
+ * editors and shared mutations so a task never has two different sets of rules.
  */
-export function TaskDetailDrawer({ task, members, open, onOpenChange, onSaveDescription }: Props) {
+export function TaskDetailDrawer({ task, members, open, onOpenChange, onSaveDescription, editor }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
         className="client-os flex w-full flex-col gap-0 border-none bg-card p-0 shadow-hover sm:max-w-xl"
       >
-        {task && <DrawerBody key={task.id} task={task} members={members} onSaveDescription={onSaveDescription} />}
+        {task && <DrawerBody key={task.id} task={task} members={members} onSaveDescription={onSaveDescription} editor={editor} />}
       </SheetContent>
     </Sheet>
   );
@@ -68,58 +61,21 @@ function DrawerBody({
   task,
   members,
   onSaveDescription,
+  editor,
 }: {
   task: TaskRow;
   members: ProjectMemberProfile[];
   onSaveDescription: (id: string, description: string | null) => void;
+  editor: TaskDrawerEditing;
 }) {
   const { data: assigneesMap } = useTaskAssignees(task.project_id);
   const assigneeIds = assigneesMap?.get(task.id) ?? (task.assignee_id ? [task.assignee_id] : []);
-  const assignees = assigneeIds
-    .map((id) => members.find((m) => m.user_id === id))
-    .filter(Boolean) as ProjectMemberProfile[];
-
-  const { data: projectLabels = [] } = useProjectLabels(task.project_id);
-  const { data: labelMap } = useTaskLabelMap(task.project_id);
-  const taskLabels = (labelMap?.get(task.id) ?? [])
-    .map((id) => projectLabels.find((l) => l.id === id))
-    .filter((l): l is (typeof projectLabels)[number] => !!l);
 
   return (
     <Tabs defaultValue="overview" className="flex h-full flex-col">
       {/* Header */}
       <div className="space-y-3 border-b border-border px-6 pb-0 pt-5">
-        <h2 className="text-xl font-semibold leading-tight tracking-tight text-foreground">
-          {task.title}
-        </h2>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <CircleDot className="h-3.5 w-3.5" />
-            {STATUS_LABEL[task.status]}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <UserIcon className="h-3.5 w-3.5" />
-            {assignees.length === 0
-              ? "Unassigned"
-              : assignees.length <= 2
-                ? assignees.map((a) => a.full_name ?? "Member").join(", ")
-                : `${assignees[0].full_name ?? "Member"} +${assignees.length - 1}`}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <CalendarClock className="h-3.5 w-3.5" />
-            {task.due_date ? dateShort(task.due_date) : "No due date"}
-          </span>
-        </div>
-        {taskLabels.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pb-1">
-            {taskLabels.map((l) => (
-              <LabelBadge key={l.id} name={l.name} color={l.color} />
-            ))}
-          </div>
-        )}
-        <p className="text-[11px] text-muted-foreground/70">
-          Tip: rename, assign, relabel, reschedule and move from the board — no need to open here.
-        </p>
+        <TaskDrawerProperties task={task} members={members} assigneeIds={assigneeIds} editor={editor} />
         <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-none bg-transparent p-0">
           <DrawerTab value="overview" icon={AlignLeft} label="Overview" />
           <DrawerTab value="comments" icon={MessageSquare} label="Comments" />
@@ -292,7 +248,7 @@ function ActivityTabPanel({ task, members }: { task: TaskRow; members: ProjectMe
   // Project-level feed, filtered to entries referencing this task when possible.
   const rows = (activity ?? []).filter((a) => {
     const meta = a.metadata as Record<string, unknown>;
-    return !meta?.task_id || meta.task_id === task.id;
+    return meta?.task_id === task.id;
   });
 
   if (isLoading) {
@@ -308,7 +264,7 @@ function ActivityTabPanel({ task, members }: { task: TaskRow; members: ProjectMe
       <EmptyState
         icon={History}
         title="No activity yet"
-        description="Changes to this task and project will appear here as a timeline."
+        description="Task-specific changes will appear here as a timeline."
       />
     );
   }
