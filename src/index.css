@@ -174,13 +174,9 @@
 }
 
 
-/* Mobile navigation: reserve content space for the footer + iOS home indicator.
-   The same breakpoint as the desktop sidebar avoids duplicate navigation. */
+/* Mobile navigation shares the desktop sidebar's breakpoint.
+   Structural spacers in each shell reserve safe-area space for page content. */
 @media (max-width: 1023px) {
-  .mobile-nav-content {
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
-  }
-
   /* Keep editing surfaces clear when the mobile keyboard or a modal is open. */
   body:has(input:focus, textarea:focus, [contenteditable="true"]:focus) .mobile-bottom-nav,
   body:has([role="dialog"][data-state="open"]) .mobile-bottom-nav {
