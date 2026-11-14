@@ -831,6 +831,39 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         onClear={clearSelection}
       />
 
+      <Dialog open={!!themeStage} onOpenChange={open=>{if(!open&&!themeMutation.isPending)setThemeStageId(null);}}>
+        <DialogContent className="client-os max-w-md rounded-panel">
+          <DialogHeader>
+            <DialogTitle>Stage theme</DialogTitle>
+            <DialogDescription>
+              Choose the appearance for {themeStage?.name ?? "this stage"}. Other stages and task labels won't change.
+            </DialogDescription>
+          </DialogHeader>
+          <StageThemePicker value={themeDraft} onChange={setThemeDraft} disabled={themeMutation.isPending} />
+          <div className="mx-auto w-full max-w-xs">
+            <OrdoTaskCard title="Example task" status={themeStage?.category ?? "todo"}
+              stageName={themeStage?.name} stageTheme={themeDraft} progress={65} interactive={false} />
+          </div>
+          {stageError && <p role="alert" className="text-xs text-destructive">{stageError}</p>}
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="ghost" disabled={themeMutation.isPending}
+              onClick={()=>{setThemeStageId(null);setStageError("");}}>Cancel</Button>
+            <Button type="button" disabled={themeMutation.isPending || !themeStage}
+              onClick={()=>{
+                if(!themeStage)return;
+                setStageError("");
+                void themeMutation.mutateAsync({
+                  stageId:themeStage.id,theme:themeDraft,expectedRevision:themeStage.revision,
+                }).then(()=>{setThemeStageId(null);toast.success("Stage theme updated.");})
+                  .catch(error=>setStageError(error instanceof Error?error.message:"Could not save stage theme."));
+              }}>
+              {themeMutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Apply theme
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <TaskDetailDrawer
         task={liveEditTask}
         members={members}
