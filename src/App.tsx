@@ -21,6 +21,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import Unsubscribe from "@/pages/Unsubscribe";
 import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
+import InboxPage from "@/pages/InboxPage";
 import Projects from "@/pages/Projects";
 import ProjectDetail from "@/pages/ProjectDetail";
 import Tasks from "@/pages/Tasks";
@@ -77,6 +78,7 @@ const App = () => (
                   <Route path="projects/:id" element={<ClientProjectDetail />} />
                   <Route path="approvals" element={<ClientApprovals />} />
                   <Route path="activity" element={<ClientActivity />} />
+                  <Route path="inbox" element={<InboxPage />} />
                   <Route
                     path="deliverables"
                     element={
@@ -120,6 +122,7 @@ const App = () => (
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/team" element={<Team />} />
                   <Route path="/activity" element={<ActivityPage />} />
+                  <Route path="/inbox" element={<InboxPage />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />

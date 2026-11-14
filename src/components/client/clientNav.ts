@@ -4,6 +4,7 @@ import {
   Package,
   CheckCircle2,
   Activity,
+  Inbox,
   MessageSquare,
   Settings,
   LucideIcon,
@@ -22,6 +23,7 @@ export const clientNavItems: ClientNavItem[] = [
   { title: "Projects", url: "/client/projects", icon: FolderKanban },
   { title: "Deliverables", url: "/client/deliverables", icon: Package },
   { title: "Approvals", url: "/client/approvals", icon: CheckCircle2, badgeKey: "approvals" },
+  { title: "Inbox", url: "/client/inbox", icon: Inbox },
   { title: "Activity", url: "/client/activity", icon: Activity },
   { title: "Messages", url: "/client/messages", icon: MessageSquare },
 ];

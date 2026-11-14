@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
+
+// The top-bar bell and Inbox may mount this hook concurrently.
+// Supabase rejects adding callbacks to an already-subscribed channel topic.
+let notificationChannelSequence = 0;
 
 export interface AppNotification {
   id: string;
@@ -10,77 +16,93 @@ export interface AppNotification {
   url: string | null;
   read_at: string | null;
   created_at: string;
+  workspace_id: string | null;
 }
 
-/**
- * Live in-app notifications for the signed-in user. Subscribes to realtime
- * inserts so the bell updates without a refresh.
- */
+/** Never navigate to an arbitrary URL stored in a notification row. */
+export function notificationDestination(url: string | null, client: boolean): string | null {
+  if (!url || !url.startsWith("/") || url.startsWith("//") || url.includes("\\")) return null;
+  if (client) {
+    const project = url.match(/^\/projects\/([a-f0-9-]{36})(?:\?.*)?$/i);
+    if (project) return `/client/projects/${project[1]}`;
+    if (url === "/client" || url.startsWith("/client/")) return url;
+    if (url.startsWith("/auth/")) return url;
+    return "/client";
+  }
+  if (url.startsWith("/client/")) return "/";
+  if (/^\/(?:projects|tasks|inbox|activity|team|clients|settings)(?:\/|\?|$)/.test(url)) return url;
+  if (url.startsWith("/auth/")) return url;
+  return "/";
+}
+
+/** User and workspace scoped, with one shared cache across bell and Inbox. */
 export function useNotifications() {
   const { user } = useAuth();
-  const [items, setItems] = useState<AppNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { currentWorkspace } = useWorkspace();
+  const qc = useQueryClient();
+  const userId = user?.id;
+  const workspaceId = currentWorkspace?.id;
+  const key = ["notifications", userId, workspaceId];
 
-  const load = useCallback(async () => {
-    if (!user) {
-      setItems([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(false);
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("id, type, title, body, url, read_at, created_at")
-      .order("created_at", { ascending: false })
-      .limit(30);
-    if (error) {
-      setError(true);
-      setLoading(false);
-      return;
-    }
-    setItems((data ?? []) as AppNotification[]);
-    setLoading(false);
-  }, [user]);
+  const query = useQuery({
+    queryKey: key,
+    enabled: !!userId && !!workspaceId,
+    staleTime: 15_000,
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<AppNotification[]> => {
+      if (!userId || !workspaceId) return [];
+      const { data, error } = await supabase.from("notifications")
+        .select("id,type,title,body,url,read_at,created_at,workspace_id")
+        .eq("user_id", userId)
+        .or(`workspace_id.eq.${workspaceId},workspace_id.is.null`)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return (data ?? []) as AppNotification[];
+    },
+  });
 
   useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("notifications-feed")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          setItems((prev) => [payload.new as AppNotification, ...prev].slice(0, 30));
-        },
-      )
+    if (!userId || !workspaceId) return;
+    const channel = supabase.channel(`notifications-${userId}-${workspaceId}-${++notificationChannelSequence}`)
+      .on("postgres_changes", {
+        event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}`,
+      }, () => { void qc.invalidateQueries({ queryKey: key }); })
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
+    return () => { void supabase.removeChannel(channel); };
+  }, [userId, workspaceId, qc]);
 
-  const unreadCount = items.filter((n) => !n.read_at).length;
+  const markRead = useCallback(async (id: string) => {
+    if (!userId) return;
+    const { data, error } = await supabase.from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("id",id).eq("user_id",userId).is("read_at",null).select("id");
+    if (error) throw error;
+    // A previously-read notification is not an error.
+    if (!data?.length && !(query.data ?? []).some(item => item.id === id && item.read_at)) {
+      throw new Error("Could not mark this notification as read.");
+    }
+    await qc.invalidateQueries({ queryKey: ["notifications", userId] });
+  }, [userId, qc, query.data]);
 
   const markAllRead = useCallback(async () => {
-    const unread = items.filter((n) => !n.read_at).map((n) => n.id);
-    if (unread.length === 0) return;
-    setItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
-    await supabase
-      .from("notifications")
+    if (!userId) return;
+    const unread = (query.data ?? []).filter(n => !n.read_at).map(n => n.id);
+    if (!unread.length) return;
+    const { error } = await supabase.from("notifications")
       .update({ read_at: new Date().toISOString() })
-      .in("id", unread);
-  }, [items]);
+      .eq("user_id", userId).in("id",unread);
+    if (error) throw error;
+    await qc.invalidateQueries({ queryKey: ["notifications", userId] });
+  }, [query.data, userId, qc]);
 
-  return { items, loading, error, unreadCount, reload: load, markAllRead };
+  return {
+    items: query.data ?? [],
+    loading: query.isPending,
+    error: query.isError,
+    unreadCount: (query.data ?? []).filter(item=>!item.read_at).length,
+    reload: query.refetch,
+    markRead,
+    markAllRead,
+  };
 }

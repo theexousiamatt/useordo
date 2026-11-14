@@ -1575,6 +1575,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      notify_task_mentions: {
+        Args: { _comment_id: string; _mentioned_user_ids: string[] }
+        Returns: number
+      }
       review_deliverable: {
         Args: { _decision: string; _id: string; _note?: string }
         Returns: string

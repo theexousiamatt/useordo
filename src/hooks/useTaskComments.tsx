@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { mentionUserIds } from "@/lib/mentions";
+import { toast } from "sonner";
 
 export interface TaskComment {
   id: string;
@@ -49,18 +51,34 @@ export function useAddTaskComment(taskId: string, projectId: string) {
     mutationFn: async (content: string) => {
       if (!user) throw new Error("You must be signed in to comment.");
       if (!currentWorkspace) throw new Error("No active workspace.");
-      const { error } = await supabase.from("project_comments").insert({
+      const { data: comment, error } = await supabase.from("project_comments").insert({
         task_id: taskId,
         project_id: projectId,
         workspace_id: currentWorkspace.id,
         author_id: user.id,
         content,
-      });
-      if (error) throw error;
+      }).select("id").single();
+      if (error || !comment?.id) throw error ?? new Error("Comment was not saved");
+
+      // Posting succeeded. Mention notification failures must not make users
+      // retry and accidentally duplicate their already-saved comment.
+      const ids = mentionUserIds(content);
+      let mentionWarning = false;
+      if (ids.length) {
+        const { error: notifyError } = await supabase.rpc("notify_task_mentions", {
+          _comment_id: comment.id,
+          _mentioned_user_ids: ids,
+        });
+        mentionWarning = Boolean(notifyError);
+      }
+      return { mentionWarning };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["task-comments", taskId] });
       qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
+      if (result.mentionWarning) {
+        toast.warning("Comment posted, but mention notifications could not be delivered.");
+      }
     },
   });
 }
