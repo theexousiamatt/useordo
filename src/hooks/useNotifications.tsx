@@ -4,6 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
+// The top-bar bell and Inbox may mount this hook concurrently.
+// Supabase rejects adding callbacks to an already-subscribed channel topic.
+let notificationChannelSequence = 0;
+
 export interface AppNotification {
   id: string;
   type: string;
@@ -60,7 +64,7 @@ export function useNotifications() {
 
   useEffect(() => {
     if (!userId || !workspaceId) return;
-    const channel = supabase.channel(`notifications-${userId}-${workspaceId}`)
+    const channel = supabase.channel(`notifications-${userId}-${workspaceId}-${++notificationChannelSequence}`)
       .on("postgres_changes", {
         event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}`,
       }, () => { void qc.invalidateQueries({ queryKey: key }); })
