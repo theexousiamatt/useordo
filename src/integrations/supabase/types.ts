@@ -915,6 +915,44 @@ export type Database = {
           },
         ]
       }
+      task_subtasks: {
+        Row: {
+          id: string
+          project_id: string
+          task_id: string
+          title: string
+          completed: boolean
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          task_id: string
+          title: string
+          completed?: boolean
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          task_id?: string
+          title?: string
+          completed?: boolean
+          position?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_subtasks_parent_task_fk"
+            columns: ["project_id", "task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["project_id", "id"]
+          },
+        ]
+      }
       project_stages: {
         Row: {
           id: string

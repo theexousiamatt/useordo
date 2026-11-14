@@ -1,0 +1,39 @@
+name: Verify Ordo subtasks and card labels
+
+on:
+  push:
+    branches:
+      - codex/task-subtask-progress-inline-labels-20261114
+    paths:
+      - '.github/workflows/ordo-task-subtasks-verify.yml'
+      - 'src/**'
+      - 'supabase/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-stage-theme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Full application TypeScript typecheck
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Complete regression tests
+        run: npm run test
+      - name: Task and label components lint
+        run: |
+          npx eslint src/components/projects/ProjectBoard.tsx src/components/projects/TaskSubtaskChecklist.tsx src/components/projects/TaskDetailDrawer.tsx src/components/ordo/OrdoTaskCard.tsx src/components/ordo/LabelBadge.tsx src/hooks/useSubtasks.ts src/hooks/useLabels.tsx
+      - name: Production compile
+        run: npm run build

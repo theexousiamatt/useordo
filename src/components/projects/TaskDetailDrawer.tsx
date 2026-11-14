@@ -3,7 +3,6 @@ import {
   AlignLeft,
   MessageSquare,
   History,
-  CheckSquare,
   Send,
   Trash2,
   Loader2,
@@ -33,6 +32,7 @@ import {
   useDeleteTaskComment,
 } from "@/hooks/useTaskComments";
 import { TaskAttachmentsSection } from "@/components/projects/TaskAttachmentsSection";
+import { TaskSubtaskChecklist } from "@/components/projects/TaskSubtaskChecklist";
 
 const STATUS_LABEL = Object.fromEntries(TASK_COLUMNS.map((c) => [c.id, c.title]));
 
@@ -193,33 +193,9 @@ function OverviewTab({
         <p className="mt-1.5 text-[11px] text-muted-foreground/70">Saves when you click away.</p>
       </section>
 
-      <ReservedSection
-        icon={CheckSquare}
-        title="Checklist & subtasks"
-        note="Break this task into steps. Coming soon."
-      />
+      <TaskSubtaskChecklist projectId={task.project_id} taskId={task.id} />
       <TaskAttachmentsSection taskId={task.id} projectId={task.project_id} />
     </div>
-  );
-}
-
-function ReservedSection({
-  icon: Icon,
-  title,
-  note,
-}: {
-  icon: typeof CheckSquare;
-  title: string;
-  note: string;
-}) {
-  return (
-    <section className="rounded-card border border-dashed border-border p-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <Icon className="h-4 w-4" />
-        {title}
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground/70">{note}</p>
-    </section>
   );
 }
 

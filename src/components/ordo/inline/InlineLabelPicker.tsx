@@ -106,7 +106,7 @@ export function InlineLabelPicker({
                 type="button"
                 onClick={() => setEditing(label.id)}
                 aria-label={`Edit ${label.name}`}
-                className="mr-1 shrink-0 rounded-small p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover/row:opacity-100"
+                className="mr-1 shrink-0 rounded-small p-1 text-muted-foreground opacity-100 transition-opacity hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover/row:opacity-100 sm:focus:opacity-100"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
