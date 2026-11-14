@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Clock3, CheckCircle2, MessageSquareText } from "lucide-react";
+import { CheckCircle2, MessageSquareText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { timeAgo } from "@/lib/format";
