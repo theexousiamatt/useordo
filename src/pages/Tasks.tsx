@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight, CalendarDays, Check, CheckCircle2, Clock3, ListTodo,
@@ -80,11 +80,18 @@ function useTaskFeed() {
 
 export default function Tasks() {
   const navigate=useNavigate();
+  const [searchParams,setSearchParams]=useSearchParams();
   const qc=useQueryClient();
   const { user }=useAuth();
   const { data,isPending,isError,refetch }=useTaskFeed();
   const [audience,setAudience]=useState<TaskAudience>("mine");
-  const [view,setView]=useState<TaskView>("today");
+  const requestedView = searchParams.get("view");
+  const view: TaskView = views.some(item=>item.id===requestedView) ? requestedView as TaskView : "today";
+  const selectView=(next:TaskView)=>{
+    const params=new URLSearchParams(searchParams);
+    params.set("view",next);
+    setSearchParams(params);
+  };
   const [search,setSearch]=useState("");
   const [saving,setSaving]=useState<string|null>(null);
   const [confirmTask,setConfirmTask]=useState<FeedTask|null>(null);
@@ -151,7 +158,7 @@ export default function Tasks() {
       <div role="tablist" aria-label="Task schedule" className="flex min-w-0 gap-1 overflow-x-auto border-b border-border pb-px">
         {views.map(item=>(
           <button key={item.id} type="button" role="tab" aria-selected={view===item.id}
-            onClick={()=>setView(item.id)}
+            onClick={()=>selectView(item.id)}
             className={cn("shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm transition-colors",
               view===item.id?"border-primary font-semibold text-foreground":"border-transparent text-muted-foreground hover:text-foreground")}>
             {item.label}
