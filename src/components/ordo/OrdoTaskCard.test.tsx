@@ -11,6 +11,7 @@ describe("all task stages behave identically",()=>{
     expect(html).toContain("Done");
     expect(html).toContain("bg-[#F4EFFF]");
     expect(html).not.toContain("Task completed");
+    expect(html).not.toContain('lucide-circle"'); // no circle beside the stage name
     expect(html).not.toContain('role="progressbar"');
   });
 
@@ -39,11 +40,15 @@ describe("all task stages behave identically",()=>{
     const html=renderToStaticMarkup(createElement(OrdoTaskCard,{
       title:"Work",stageName:"Review",completed:true,subtasks:{total:2,completed:1},
     }));
-    expect(html).toContain("Completed with unfinished checklist items");
+    expect(html).toContain('role="note"');
+    expect(html).toContain('title="1 unfinished checklist item"');
+    expect(html).toContain("Subtasks · 1/2");
+    expect(html).not.toContain("Completed with unfinished checklist items");
     const moved=renderToStaticMarkup(createElement(OrdoTaskCard,{
       title:"Work",stageName:"Done",subtasks:{total:2,completed:1},
     }));
-    expect(moved).not.toContain("Completed with unfinished checklist items");
+    expect(moved).not.toContain('role="note"');
+    expect(moved).not.toContain("unfinished checklist item");
   });
 
   it("clamps invalid checklist counts and hides empty progress",()=>{
