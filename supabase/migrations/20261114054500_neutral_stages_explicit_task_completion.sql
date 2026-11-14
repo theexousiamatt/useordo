@@ -29,10 +29,15 @@ END $$;
 -- Assign the first available stage only when a task has no stage (legacy fallback)
 -- or is explicitly moved to another project.
 CREATE OR REPLACE FUNCTION public.legacy_sync_task_stage()
-RETURNS trigger LANGUAGE plpgsql SET search_path=public,pg_temp AS $$
+RETURNS trigger LANGUAGE plpgsql SET search_path=public,pg_temp AS $
+DECLARE needs_stage boolean;
 BEGIN
-  IF NEW.stage_id IS NULL
-     OR (TG_OP='UPDATE' AND NEW.project_id IS DISTINCT FROM OLD.project_id) THEN
+  IF TG_OP='INSERT' THEN
+    needs_stage:=NEW.stage_id IS NULL;
+  ELSE
+    needs_stage:=NEW.stage_id IS NULL OR NEW.project_id IS DISTINCT FROM OLD.project_id;
+  END IF;
+  IF needs_stage THEN
     SELECT s.id INTO NEW.stage_id FROM public.project_stages s
       WHERE s.project_id=NEW.project_id ORDER BY s.position,s.id LIMIT 1;
     IF NEW.stage_id IS NULL THEN
