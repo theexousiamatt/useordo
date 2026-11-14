@@ -130,9 +130,9 @@ export function TaskDrawerProperties({
         </Popover>
       </div>
       {isTaskCompleted(task) && unfinished > 0 && (
-        <p role="status" className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          This task is marked complete with {unfinished} unfinished checklist item{unfinished===1?"":"s"}.
+        <p role="note" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <AlertTriangle className="h-3 w-3 shrink-0 text-amber-600/75 dark:text-amber-400/75" aria-hidden="true" />
+          {unfinished} checklist item{unfinished===1?"":"s"} still unfinished
         </p>
       )}
       {editor.labelIds.length>0 && (
