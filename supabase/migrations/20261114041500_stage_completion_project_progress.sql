@@ -51,10 +51,6 @@ BEGIN
   WHERE id = _project_id;
 END $$;
 
--- Do not expose privileged trigger functions as callable RPCs.
-REVOKE ALL ON FUNCTION public.ordo_task_progress_trigger() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.ordo_stage_progress_trigger() FROM PUBLIC, anon, authenticated;
-
 -- Do not make security-definer recomputation callable by browser clients.
 REVOKE ALL ON FUNCTION public.recalculate_ordo_project_progress(uuid) FROM PUBLIC, anon, authenticated;
 
@@ -91,6 +87,10 @@ FOR EACH ROW WHEN (OLD.is_completion IS DISTINCT FROM NEW.is_completion)
 EXECUTE FUNCTION public.ordo_stage_progress_trigger();
 
 -- Keep a manager-only setting separate from the stage's visual theme.
+-- Do not expose privileged trigger functions as callable RPCs.
+REVOKE ALL ON FUNCTION public.ordo_task_progress_trigger() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.ordo_stage_progress_trigger() FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.set_project_stage_completion(
   _project_id uuid, _stage_id uuid, _is_completion boolean, _expected_revision integer
 ) RETURNS uuid
