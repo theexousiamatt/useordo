@@ -960,7 +960,6 @@ export type Database = {
           project_id: string
           name: string
           category: string
-          is_completion: boolean
           theme: string
           position: number
           revision: number
@@ -972,7 +971,6 @@ export type Database = {
           project_id: string
           name: string
           category: string
-          is_completion?: boolean
           theme?: string
           position?: number
           revision?: number
@@ -984,7 +982,6 @@ export type Database = {
           project_id?: string
           name?: string
           category?: string
-          is_completion?: boolean
           theme?: string
           position?: number
           revision?: number
@@ -1223,6 +1220,7 @@ export type Database = {
       tasks: {
         Row: {
           archived_at: string | null
+          completed_at: string | null
           assignee_id: string | null
           created_at: string
           created_by: string | null
@@ -1239,6 +1237,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          completed_at?: string | null
           assignee_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -1255,6 +1254,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          completed_at?: string | null
           assignee_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -1460,15 +1460,6 @@ export type Database = {
           _theme: string
           _category: string
           _request_id: string
-        }
-        Returns: string
-      }
-      set_project_stage_completion: {
-        Args: {
-          _project_id: string
-          _stage_id: string
-          _is_completion: boolean
-          _expected_revision: number
         }
         Returns: string
       }
