@@ -1,0 +1,115 @@
+name: Verify Ordo mobile footer navigation
+
+on:
+  push:
+    branches:
+      - codex/mobile-footer-navigation-20261114
+    paths:
+      - '.github/workflows/ordo-mobile-footer-verify.yml'
+      - 'src/components/MobileNav.tsx'
+      - 'src/components/MobileNav.test.tsx'
+      - 'src/components/AppLayout.tsx'
+      - 'src/components/client/ClientLayout.tsx'
+      - 'src/index.css'
+      - 'index.html'
+      - 'scripts/qa/mobile-footer-nav.mjs'
+  pull_request:
+    paths:
+      - '.github/workflows/ordo-mobile-footer-verify.yml'
+      - 'src/components/MobileNav.tsx'
+      - 'src/components/MobileNav.test.tsx'
+      - 'src/components/AppLayout.tsx'
+      - 'src/components/client/ClientLayout.tsx'
+      - 'src/index.css'
+      - 'index.html'
+      - 'scripts/qa/mobile-footer-nav.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Strict TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Regression tests
+        run: npm run test
+      - name: Lint footer and layouts
+        run: npx eslint src/components/MobileNav.tsx src/components/MobileNav.test.tsx src/components/AppLayout.tsx src/components/client/ClientLayout.tsx
+      - name: Production build
+        run: npm run build
+
+  browser:
+    needs: frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.1.0
+      - name: Start disposable Supabase database
+        run: supabase start
+      - name: Configure isolated browser test environment
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/ordo-footer-qa-supabase.env
+          source /tmp/ordo-footer-qa-supabase.env
+          : "${ANON_KEY:?Missing anon key}"
+          : "${SERVICE_ROLE_KEY:?Missing service key}"
+          echo "::add-mask::${SERVICE_ROLE_KEY}"
+          echo "QA_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "QA_SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
+          echo "QA_SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
+      - name: Seed synthetic project and user
+        run: node scripts/qa/seed-browser.mjs
+      - name: Serve Ordo against disposable backend
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/ordo-footer-qa-vite.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ordo-footer-qa-vite.log
+          exit 1
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Verify footer across staff, client, mobile and desktop viewports
+        run: node scripts/qa/mobile-footer-nav.mjs
+      - name: Store responsive screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordo-mobile-footer-qa
+          path: qa-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Destroy synthetic database
+        if: always()
+        run: supabase stop --no-backup || true
