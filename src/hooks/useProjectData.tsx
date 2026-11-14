@@ -473,57 +473,62 @@ export function useDeleteTask(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      const { data, error } = await supabase.from("tasks")
+        .delete().eq("id", id).eq("project_id", projectId).select("id");
       if (error) throw error;
+      // RLS may silently match zero rows. Never imply that deletion succeeded.
+      if (!data?.length) {
+        throw new Error("Task not found or you don't have permission to delete it.");
+      }
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
-      void qc.invalidateQueries({ queryKey: ["project-subtasks", projectId] });
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+        qc.invalidateQueries({ queryKey: ["project-subtasks", projectId] }),
+        qc.invalidateQueries({ queryKey: ["task-label-map", projectId] }),
+        qc.invalidateQueries({ queryKey: ["task-assignees", projectId] }),
+        qc.invalidateQueries({ queryKey: ["project-activity", projectId] }),
+        qc.invalidateQueries({ queryKey: ["project", projectId] }),
+        qc.invalidateQueries({ queryKey: ["projects"] }),
+      ]);
     },
-    onError: () => toast.error("Couldn't fully duplicate the task. Check for a partial copy."),
+    onError: (error: Error) => toast.error(
+      error.message.includes("Task not found")
+        ? error.message
+        : "Couldn't delete this task. No other tasks were changed.",
+    ),
   });
 }
 
-/** Duplicate a task into the same column, just after the original. */
-export function useDuplicateTask(projectId: string, workspaceId: string) {
-  const { user } = useAuth();
+/**
+ * Duplicate within one database transaction: description, due date, stage,
+ * checklist progress, project label assignments, and all chosen assignees.
+ * The copy is deliberately NOT marked complete even if the source is.
+ */
+export function useDuplicateTask(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (task: TaskRow & { copyAssignee?: boolean }) => {
-      const existing = qc.getQueryData<TaskRow[]>(["project-tasks", projectId]) ?? [];
-      const position = existing.filter((t) => task.stage_id ? t.stage_id===task.stage_id : !t.stage_id).length;
-      const { data: created, error } = await supabase.from("tasks").insert({
-        workspace_id: workspaceId,
-        project_id: projectId,
-        title: `${task.title} (Copy)`,
-        description: task.description,
-        status: task.status, // kept for old client compatibility, never determines the stage
-        stage_id: task.stage_id ?? null,
-        completed_at: null, // a copy is new work, regardless of the original task's completion
-        position,
-        assignee_id: task.copyAssignee === false ? null : task.assignee_id,
-        due_date: task.due_date,
-        created_by: user?.id ?? null,
-      }).select("id").single();
-      if (error || !created) throw error ?? new Error("Failed to duplicate task");
-      // Copy checklist data with the task so the progress value is never fabricated.
-      const { data: subtasks, error: subtasksError } = await supabase.from("task_subtasks")
-        .select("title, completed, position").eq("task_id", task.id);
-      if (subtasksError) throw subtasksError;
-      if (subtasks?.length) {
-        const { error: insertError } = await supabase.from("task_subtasks").insert(
-          subtasks.map(item => ({
-            project_id: projectId,
-            task_id: created.id,
-            title: item.title,
-            completed: item.completed,
-            position: item.position,
-          })),
-        );
-        if (insertError) throw insertError;
-      }
+    mutationFn: async (task: { id: string; copyAssignee?: boolean }): Promise<string> => {
+      const { data, error } = await supabase.rpc("duplicate_ordo_task", {
+        _task_id: task.id,
+        _copy_assignees: task.copyAssignee !== false,
+      });
+      if (error) throw error;
+      if (!data) throw new Error("The copied task could not be confirmed.");
+      return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+    onSuccess: () => {
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+        qc.invalidateQueries({ queryKey: ["project-subtasks", projectId] }),
+        qc.invalidateQueries({ queryKey: ["task-label-map", projectId] }),
+        qc.invalidateQueries({ queryKey: ["task-assignees", projectId] }),
+        qc.invalidateQueries({ queryKey: ["project-activity", projectId] }),
+        qc.invalidateQueries({ queryKey: ["project", projectId] }),
+        qc.invalidateQueries({ queryKey: ["projects"] }),
+      ]);
+    },
+    onError: () => toast.error("Couldn't duplicate this task. Nothing was copied. Please try again."),
   });
 }
 
