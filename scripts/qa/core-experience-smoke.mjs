@@ -72,7 +72,9 @@ async function scenario({audience,width,height,isMobile}){
     });
   });
   try{
+    // Each browser scenario starts with the same disposable fixture state.
     if(audience==="studio"){
+      await must(db.from("tasks").update({completed_at:null}).eq("id",fixture.normalTaskId), "Reset QA task");
       await signIn(page,fixture.email,fixture.password);
       await page.goto(base+"/",{waitUntil:"domcontentloaded"});
       await page.getByRole("heading",{name:"Your studio, at a glance."}).waitFor({state:"visible"});
@@ -89,6 +91,7 @@ async function scenario({audience,width,height,isMobile}){
       await page.goto(base+"/onboarding?create=1",{waitUntil:"domcontentloaded"});
       await page.getByText("Set up your workspace").waitFor({state:"visible"});
     }else{
+      await must(db.from("deliverables").update({status:"submitted",approved_at:null,approved_by:null}).eq("id",deliverable.id),"Reset QA review");
       await signIn(page,clientEmail,clientPassword);
       await page.goto(base+"/client/approvals",{waitUntil:"domcontentloaded"});
       await page.getByRole("heading",{name:"Approvals"}).waitFor({state:"visible"});
