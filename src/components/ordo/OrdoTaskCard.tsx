@@ -210,6 +210,13 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
             </div>
           )}
 
+          {completed === true && pct !== null && pct < 100 && (
+            <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              Completed with unfinished checklist items
+            </p>
+          )}
+
           {/* Footer: assignees + meta */}
           <div className={cn("mt-4 flex items-center justify-between border-t pt-3", tokens.divider)}>
             <div className="flex -space-x-2">
