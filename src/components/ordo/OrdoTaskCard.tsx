@@ -4,6 +4,7 @@ import {
   MessageSquare,
   Paperclip,
   GripVertical,
+  Plus,
   AlertTriangle,
   Circle,
   CircleDot,
@@ -35,14 +36,17 @@ export interface TaskLabelChip {
   color: string;
 }
 
-/** Sensible default fill when a task carries no explicit progress. */
-const DEFAULT_PROGRESS: Record<TaskStatus, number> = {
-  backlog: 0,
-  todo: 0,
-  in_progress: 50,
-  review: 80,
-  done: 100,
-};
+/** Progress is meaningful only for tasks containing at least one subtask. */
+export interface SubtaskProgress {
+  completed: number;
+  total: number;
+}
+
+export function calculateSubtaskPercent(subtasks: SubtaskProgress | undefined): number | null {
+  if (!subtasks || subtasks.total <= 0) return null;
+  const completed = Math.min(subtasks.total, Math.max(0, subtasks.completed));
+  return Math.round((completed / subtasks.total) * 100);
+}
 
 export interface OrdoTaskCardProps {
   title: string;
@@ -50,8 +54,10 @@ export interface OrdoTaskCardProps {
   description?: string | null;
   dueDate?: string | null;
   labels?: TaskLabelChip[];
-  /** 0–100. Falls back to a status-derived default. */
-  progress?: number;
+  /** Only tasks with one or more subtasks show a progress bar. */
+  subtasks?: SubtaskProgress;
+  /** Opens the lightweight board label picker instead of task details. */
+  onEditLabels?: () => void;
   assignees?: ProjectMemberProfile[];
   commentCount?: number;
   attachmentCount?: number;
@@ -79,7 +85,8 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
       description,
       dueDate,
       labels = [],
-      progress,
+      subtasks,
+      onEditLabels,
       assignees = [],
       commentCount = 0,
       attachmentCount = 0,
@@ -100,7 +107,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
     const isBlocked = blocked ?? false;
     const iconColor = isBlocked ? "text-orange-600" : theme.icon;
     const StatusIcon = isBlocked ? AlertTriangle : theme.Icon;
-    const pct = Math.max(0, Math.min(100, progress ?? DEFAULT_PROGRESS[status]));
+    const pct = calculateSubtaskPercent(subtasks);
 
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -165,28 +172,39 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
                 {description}
               </p>
             )}
-            {labels.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
+            {(labels.length > 0 || onEditLabels) && (
+              <div className="mt-2 flex flex-wrap items-center gap-1">
                 {labels.map((label) => (
-                  <LabelBadge key={label.id} name={label.name} color={label.color} size="sm" />
+                  <LabelBadge key={label.id} name={label.name} color={label.color} size="sm"
+                    onClick={onEditLabels} />
                 ))}
+                {onEditLabels && (
+                  <button type="button"
+                    onClick={(event) => { event.stopPropagation(); onEditLabels(); }}
+                    aria-label={`Add or edit labels for ${title}`}
+                    className="inline-flex h-6 items-center gap-1 rounded-pill border border-dashed border-border/70 px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <Plus className="h-3 w-3" aria-hidden="true" />
+                    {labels.length === 0 ? "Add label" : <span className="sr-only">Edit labels</span>}
+                  </button>
+                )}
               </div>
             )}
           </div>
 
-          {/* Progress */}
-          <div className="mt-4">
-            <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
-              <span>Progress</span>
-              <span className="tabular-nums text-foreground">{pct}%</span>
+          {/* A single task has no artificial percentage; only actual subtasks contribute. */}
+          {pct !== null && (
+            <div className="mt-4" aria-label={`Subtasks: ${subtasks!.completed} of ${subtasks!.total} complete`}>
+              <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                <span>Subtasks · {subtasks!.completed}/{subtasks!.total}</span>
+                <span className="tabular-nums text-foreground">{pct}%</span>
+              </div>
+              <div className={cn("h-1.5 w-full overflow-hidden rounded-pill", tokens.track)}
+                role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Subtask completion">
+                <div className={cn("h-full rounded-pill transition-all", tokens.bar)}
+                  style={{ width: `${pct}%` }} />
+              </div>
             </div>
-            <div className={cn("h-1.5 w-full overflow-hidden rounded-pill", tokens.track)}>
-              <div
-                className={cn("h-full rounded-pill transition-all", tokens.bar)}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          </div>
+          )}
 
           {/* Footer: assignees + meta */}
           <div className={cn("mt-4 flex items-center justify-between border-t pt-3", tokens.divider)}>
