@@ -1,7 +1,8 @@
 import {
   UserPlus,
   ArrowRightLeft,
-  CircleDot,
+  CheckCircle2,
+  Circle,
   Tag,
   Archive,
   Trash2,
@@ -9,14 +10,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrdoOverflowMenu, type OrdoMenuConfig } from "./OrdoMenu";
-import { TASK_COLUMNS, type TaskStatus } from "@/lib/projectConstants";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
 export interface BulkActionHandlers {
   onAssign: (userId: string | null) => void;
-  onMove: (status: TaskStatus) => void;
   onMoveStage?: (stageId: string) => void;
-  onSetStatus: (status: TaskStatus) => void;
+  onSetCompleted: (completed: boolean) => void;
   onDelete: () => void;
   onAction: (action: string) => void;
 }
@@ -54,18 +53,9 @@ export function OrdoBulkActionMenu({
     },
   ];
 
-  const moveMenu: OrdoMenuConfig = [
-    {
-      id: "move",
-      items: stages.length && handlers.onMoveStage
-        ? stages.map(stage=>({id:stage.id,label:stage.name,onSelect:()=>handlers.onMoveStage?.(stage.id)}))
-        : TASK_COLUMNS.map(c=>({id:c.id,label:c.title,onSelect:()=>handlers.onMove(c.id)})),
-    },
-  ];
-  const statusMenu:OrdoMenuConfig=[{
-    id:"status",items:TASK_COLUMNS.map(c=>({
-      id:c.id,label:c.title,onSelect:()=>handlers.onSetStatus(c.id),
-    })),
+  const moveMenu: OrdoMenuConfig = [{
+    id:"move",
+    items:stages.map(stage=>({id:stage.id,label:stage.name,onSelect:()=>handlers.onMoveStage?.(stage.id)})),
   }];
 
   const trigger = (cls: string, icon: React.ReactNode, label: string) => (
@@ -89,7 +79,10 @@ export function OrdoBulkActionMenu({
 
       <OrdoOverflowMenu config={assignMenu} trigger={trigger(btnCls, <UserPlus className="h-4 w-4" />, "Assign")} />
       <OrdoOverflowMenu config={moveMenu} trigger={trigger(btnCls, <ArrowRightLeft className="h-4 w-4" />, "Move")} />
-      <OrdoOverflowMenu config={statusMenu} trigger={trigger(btnCls, <CircleDot className="h-4 w-4" />, "Status")} />
+      <OrdoOverflowMenu config={[{id:"completion",items:[
+        {id:"complete",label:"Mark complete",icon:CheckCircle2,onSelect:()=>handlers.onSetCompleted(true)},
+        {id:"reopen",label:"Reopen",icon:Circle,onSelect:()=>handlers.onSetCompleted(false)},
+      ]}]} trigger={trigger(btnCls, <CheckCircle2 className="h-4 w-4" />, "Completion")} />
       
 
       <Button variant="ghost" size="sm" className={btnCls} onClick={() => handlers.onAction("Add label")}>
