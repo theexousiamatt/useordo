@@ -1,1 +1,0 @@
-import{j as t,n as s}from"./index-C_1S1m5k.js";import{C as a}from"./ClientHeader-DtQZKiUb.js";function x({title:e,subtitle:n,icon:o,description:r}){return t.jsxs(t.Fragment,{children:[t.jsx(a,{title:e,subtitle:n}),t.jsx(s,{icon:o,title:`${e} is on the way`,description:r})]})}export{x as default};
