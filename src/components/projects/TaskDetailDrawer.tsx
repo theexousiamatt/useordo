@@ -64,7 +64,7 @@ function DrawerBody({
         <TaskDrawerProperties task={task} members={members} assigneeIds={assigneeIds} editor={editor} />
       </header>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 pb-12 pt-5 sm:px-7 sm:pt-6" aria-label="Task details">
-        <DescriptionSection task={task} onSaveDescription={onSaveDescription} />
+        <TaskDescriptionSection task={task} onSaveDescription={onSaveDescription} />
         <section className="border-t border-border/70 pt-5">
           <TaskSubtaskChecklist projectId={task.project_id} taskId={task.id} />
         </section>
@@ -82,7 +82,7 @@ function DrawerBody({
   );
 }
 
-function DescriptionSection({
+export function TaskDescriptionSection({
   task, onSaveDescription,
 }: {
   task: TaskRow;
