@@ -20,7 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
-import { Plus, Loader2, MoreHorizontal, ChevronRight, GripVertical } from "lucide-react";
+import { Plus, Loader2, MoreHorizontal, ChevronRight, GripVertical, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1132,7 +1132,7 @@ function Column({
           <span
             className="text-sm font-semibold [writing-mode:vertical-rl] text-foreground"
           >
-            {title} · {tasks.length}
+            {isCompletion ? '✓ ' : ''}{title} · {tasks.length}
           </span>
         </div>
       </OrdoColumnContextMenu>
@@ -1155,6 +1155,7 @@ function Column({
               <Button type="button" variant="ghost" size="sm" onClick={onSaveName} disabled={!draftName.trim()}>Save</Button>
               <Button type="button" variant="ghost" size="sm" onClick={onCancelName}>Cancel</Button>
             </>}
+            {isCompletion && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-label="Completion stage" />}
             <span className="rounded-pill bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               {tasks.length}
             </span>
