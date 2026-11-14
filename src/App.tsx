@@ -27,6 +27,7 @@ import Tasks from "@/pages/Tasks";
 import Clients from "@/pages/Clients";
 import Team from "@/pages/Team";
 import ActivityPage from "@/pages/ActivityPage";
+import Inbox from "@/pages/Inbox";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import { ClientLayout } from "@/components/client/ClientLayout";
@@ -120,6 +121,7 @@ const App = () => (
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/team" element={<Team />} />
                   <Route path="/activity" element={<ActivityPage />} />
+                  <Route path="/inbox" element={<Inbox />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
