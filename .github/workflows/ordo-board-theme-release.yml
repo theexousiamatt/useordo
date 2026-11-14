@@ -6,6 +6,7 @@ on:
       - codex/board-themes-20261114
     paths:
       - '.github/workflows/ordo-board-theme-release.yml'
+      - 'src/components/projects/ProjectBoard.tsx'
   workflow_dispatch:
 
 permissions:
