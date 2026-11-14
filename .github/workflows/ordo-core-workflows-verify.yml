@@ -1,0 +1,41 @@
+name: Verify Ordo core workflows
+
+on:
+  push:
+    branches:
+      - codex/ordo-core-workflows-20261114
+    paths:
+      - 'src/**'
+      - '.github/workflows/ordo-core-workflows-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ordo-core-workflows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Strict TypeScript checks
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Unit and regression tests
+        run: npm run test
+      - name: Lint modified feature modules
+        run: npx eslint src/lib/myTasks.ts src/lib/myTasks.test.ts src/pages/Tasks.tsx src/pages/Dashboard.tsx src/pages/Inbox.tsx src/components/client/ApprovalCard.tsx src/components/projects/DeliverableReviewHistory.tsx src/components/projects/DeliverablesTab.tsx src/pages/Onboarding.tsx src/hooks/useNotifications.tsx src/components/navigation.ts src/App.tsx
+      - name: Production build
+        run: npm run build
