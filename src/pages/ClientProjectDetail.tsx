@@ -5,6 +5,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientHeader } from "@/components/client/ClientHeader";
 import { ActionCenter } from "@/components/client/ActionCenter";
+import { ClientReviewHistory } from "@/components/client/ClientReviewHistory";
 import { FilesTab } from "@/components/projects/FilesTab";
 import { ErrorState } from "@/components/states/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,7 +50,7 @@ export default function ClientProjectDetail() {
     </section>
     <Tabs defaultValue="review" className="min-w-0">
       <TabsList className="mb-5 w-full sm:w-auto"><TabsTrigger value="review" className="flex-1">Review</TabsTrigger><TabsTrigger value="files" className="flex-1">Files</TabsTrigger><TabsTrigger value="milestones" className="flex-1">Milestones</TabsTrigger></TabsList>
-      <TabsContent value="review"><ActionCenter projectId={project.id} /></TabsContent>
+      <TabsContent value="review"><div className="space-y-4"><ActionCenter projectId={project.id} /><ClientReviewHistory projectId={project.id} /></div></TabsContent>
       <TabsContent value="files"><FilesTab projectId={project.id} readOnly /></TabsContent>
       <TabsContent value="milestones"><section className="rounded-panel bg-card p-5 sm:p-6"><h2 className="mb-4 text-lg font-semibold">Project milestones</h2>
         {milestones.isPending ? <p role="status">Loading milestones…</p> : milestones.error ? <ErrorState onRetry={() => milestones.refetch()} /> : !milestones.data?.length ? <p className="text-sm text-muted-foreground">Your agency will share milestones here as the project takes shape.</p> : <ul className="divide-y divide-border">{milestones.data.map(milestone => <li key={milestone.id} className="flex items-start justify-between gap-3 py-4"><div className="min-w-0"><p className="break-words text-sm font-medium">{milestone.title}</p>{milestone.due_date && <p className="mt-1 text-xs text-muted-foreground">{dateShort(milestone.due_date)}</p>}</div><span className="shrink-0 text-xs text-muted-foreground">{milestone.completed ? <span className="inline-flex items-center gap-1"><CheckCircle2 className="h-4 w-4" />Complete</span> : "Upcoming"}</span></li>)}</ul>}
