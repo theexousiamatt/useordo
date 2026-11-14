@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, CalendarClock, CheckCircle2, CircleDot, Pencil, Tag, UserRound } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, Circle, CircleDot, Pencil, Tag, UserRound } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InlineTaskTitle, InlineLabelPicker, InlineDatePicker, InlineMemberPicker } from "@/components/ordo";
 import { LabelBadge } from "@/components/ordo/LabelBadge";
@@ -8,7 +8,7 @@ import type { ProjectLabel } from "@/hooks/useLabels";
 import type { ProjectStage } from "@/hooks/useProjectStages";
 import type { TaskRow } from "@/hooks/useProjectData";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
-import { findTaskStage, isCompletionStage } from "@/lib/taskCompletion";
+import { isTaskCompleted } from "@/lib/taskCompletion";
 import { dateShort } from "@/lib/format";
 import { useProjectSubtasks } from "@/hooks/useSubtasks";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ export interface TaskDrawerEditing {
   labels: ProjectLabel[];
   labelIds: string[];
   onRename: (title: string) => void;
+  onToggleComplete: () => void;
   onMoveStage: (stageId: string) => void;
   onMembers: (ids: string[]) => void;
   onDueDate: (date: string | null) => void;
@@ -40,7 +41,7 @@ export function TaskDrawerProperties({
   const [renaming, setRenaming] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
   const [dueOpen, setDueOpen] = useState(false);
-  const currentStage = findTaskStage(task, editor.stages);
+  const currentStage = editor.stages.find(stage=>stage.id===task.stage_id) ?? editor.stages[0];
   const { data: checklist = [] } = useProjectSubtasks(task.project_id);
   const unfinished = checklist.filter(item => item.task_id === task.id && !item.completed).length;
   const assignedNames = assigneeIds.map(id=>members.find(member=>member.user_id===id)?.full_name??"Member");
@@ -62,11 +63,16 @@ export function TaskDrawerProperties({
       )}
 
       <div className="flex flex-wrap items-center gap-2" aria-label="Editable task properties">
+        <button type="button" onClick={editor.onToggleComplete}
+          aria-label={isTaskCompleted(task) ? "Reopen task" : "Mark task complete"}
+          className={cn(propertyButton, isTaskCompleted(task) && "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200")}>
+          {isTaskCompleted(task) ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
+          {isTaskCompleted(task) ? "Completed" : "Mark complete"}
+        </button>
         <Popover open={stageOpen} onOpenChange={setStageOpen}>
           <PopoverTrigger asChild>
             <button type="button" className={propertyButton} aria-label="Change task stage">
-              {isCompletionStage(currentStage) ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> :
-                <CircleDot className="h-3.5 w-3.5 text-muted-foreground" />}
+              <CircleDot className="h-3.5 w-3.5 text-muted-foreground" />
               {currentStage?.name ?? "Choose stage"}
             </button>
           </PopoverTrigger>
@@ -77,8 +83,7 @@ export function TaskDrawerProperties({
                 onClick={()=>{setStageOpen(false);if(currentStage?.id!==stage.id)editor.onMoveStage(stage.id);}}
                 className={cn("flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-muted",
                   stage.id===currentStage?.id&&"bg-muted font-semibold")}>
-                {isCompletionStage(stage) ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> :
-                  <CircleDot className="h-4 w-4 text-muted-foreground" />}
+                <CircleDot className="h-4 w-4 text-muted-foreground" />
                 <span className="flex-1 truncate">{stage.name}</span>
               </button>
             ))}
@@ -124,7 +129,7 @@ export function TaskDrawerProperties({
           </PopoverContent>
         </Popover>
       </div>
-      {isCompletionStage(currentStage) && unfinished > 0 && (
+      {isTaskCompleted(task) && unfinished > 0 && (
         <p role="status" className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
           <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
           This task is marked complete with {unfinished} unfinished checklist item{unfinished===1?"":"s"}.
