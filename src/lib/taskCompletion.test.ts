@@ -18,8 +18,10 @@ describe("independent completion with fully customizable stages", () => {
 
   it("does not change task completion when a task is moved between stages", () => {
     const original = task("t", "research", finished);
-    expect(isTaskCompleted({...original,stage_id:"done",status:"done"})).toBe(true);
-    expect(isTaskCompleted({...original,stage_id:"backlog"})).toBe(true);
+    const movedToDone:TaskRow={...original,stage_id:"done",status:"done"};
+    expect(isTaskCompleted(movedToDone)).toBe(true);
+    const movedBack:TaskRow={...original,stage_id:"backlog"};
+    expect(isTaskCompleted(movedBack)).toBe(true);
     expect(isTaskCompleted(task("u", "done"))).toBe(false);
   });
 
