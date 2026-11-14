@@ -29,7 +29,7 @@ END $$;
 -- Assign the first available stage only when a task has no stage (legacy fallback)
 -- or is explicitly moved to another project.
 CREATE OR REPLACE FUNCTION public.legacy_sync_task_stage()
-RETURNS trigger LANGUAGE plpgsql SET search_path=public,pg_temp AS $
+RETURNS trigger LANGUAGE plpgsql SET search_path=public,pg_temp AS $ordo$
 DECLARE needs_stage boolean;
 BEGIN
   IF TG_OP='INSERT' THEN
@@ -50,7 +50,7 @@ BEGIN
     RAISE EXCEPTION 'Stage does not belong to this project' USING ERRCODE='23503';
   END IF;
   RETURN NEW;
-END $$;
+END $ordo$;
 
 DROP TRIGGER IF EXISTS legacy_task_stage_compat ON public.tasks;
 CREATE TRIGGER legacy_task_stage_compat
