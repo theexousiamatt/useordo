@@ -1,0 +1,63 @@
+name: QA Ordo project task lifecycle (disposable)
+
+on:
+  push:
+    branches:
+      - codex/qa-project-lifecycle-20261114
+    paths:
+      - '.github/workflows/ordo-project-lifecycle-qa.yml'
+      - 'supabase/tests/project-lifecycle-qa.sql'
+      - 'supabase/tests/project-lifecycle-after-refresh.sql'
+      - 'src/**'
+      - 'scripts/qa/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install reproducible frontend dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: All application regression tests
+        run: npm run test
+      - name: Production build
+        run: npm run build
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start isolated Supabase database
+        run: supabase start
+      - name: Install PostgreSQL client if missing
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+      - name: Full SQL task, stage, checklist and label lifecycle
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -f supabase/tests/project-lifecycle-qa.sql
+      - name: Confirm all changes persist in a new DB connection, with outsider isolation
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -f supabase/tests/project-lifecycle-after-refresh.sql
+      - name: Destroy temporary database
+        if: always()
+        run: supabase stop --no-backup || true
