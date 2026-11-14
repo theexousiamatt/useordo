@@ -58,14 +58,16 @@ export function useCreateLabel(projectId: string, workspaceId: string) {
   return useMutation({
     mutationFn: async ({ name, color }: { name: string; color: LabelColor }) => {
       const existing = qc.getQueryData<ProjectLabel[]>(["project-labels", projectId]) ?? [];
-      const { error } = await supabase.from("project_labels").insert({
+      const { data, error } = await supabase.from("project_labels").insert({
         workspace_id: workspaceId,
         project_id: projectId,
         name: name.trim(),
         color,
         position: existing.length,
-      });
+      }).select("id").single();
       if (error) throw error;
+      if (!data?.id) throw new Error("Couldn't confirm label creation.");
+      return data.id;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["project-labels", projectId] }),
     onError: () => toast.error("Couldn't create label. Please try again."),
