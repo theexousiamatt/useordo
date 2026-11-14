@@ -225,6 +225,29 @@ Deno.serve(async (req) => {
       }
       records.tasks = taskIdMap.size;
 
+      // 4a. Subtask checklist items (remap parent task ID).
+      const { data: subtasks, error: subtaskReadError } = await admin
+        .from("task_subtasks")
+        .select("task_id,title,completed,position")
+        .eq("project_id", opts.projectId);
+      if (subtaskReadError) throw subtaskReadError;
+      const copiedSubtasks = (subtasks ?? []).flatMap((item) => {
+        const mappedTaskId = taskIdMap.get(item.task_id);
+        return mappedTaskId ? [{
+          project_id: newId,
+          task_id: mappedTaskId,
+          title: item.title,
+          completed: item.completed,
+          position: item.position,
+        }] : [];
+      });
+      if (copiedSubtasks.length > 0) {
+        const { error: subtaskInsertError } = await admin
+          .from("task_subtasks").insert(copiedSubtasks);
+        if (subtaskInsertError) throw subtaskInsertError;
+      }
+      records.subtasks = copiedSubtasks.length;
+
       // 4b. Task label assignments (remap task + label ids).
       const { data: taskLabels } = await admin
         .from("task_labels")
