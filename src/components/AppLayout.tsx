@@ -25,11 +25,15 @@ function AppShell() {
       </aside>
 
       <div className={cn("flex min-h-screen flex-col transition-[margin] duration-300 ease-in-out", collapsed ? "lg:ml-[76px]" : "lg:ml-[268px]")}>
-        <div className="mobile-nav-content flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8">
+        <div className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8">
           <OrdoTopBar />
           <main className="flex min-w-0 flex-1 flex-col gap-6 sm:gap-8">
             <Outlet />
           </main>
+          <div
+            aria-hidden="true"
+            className="mobile-nav-clearance h-[calc(80px+env(safe-area-inset-bottom,0px))] shrink-0 lg:hidden"
+          />
         </div>
         <MobileNav audience="studio" />
       </div>
