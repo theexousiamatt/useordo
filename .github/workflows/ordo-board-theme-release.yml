@@ -1,0 +1,83 @@
+name: Publish verified Ordo board-theme release
+
+on:
+  push:
+    branches:
+      - codex/board-themes-20261114
+    paths:
+      - '.github/workflows/ordo-board-theme-release.yml'
+      - 'src/components/projects/ProjectBoard.tsx'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ordo-legacy-production-static-release
+  cancel-in-progress: false
+
+jobs:
+  ship-theme-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout reviewed Ordo legacy source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Validate TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Run complete regression suite
+        run: npm run test
+      - name: Lint changed board theme modules
+        run: npx eslint src/components/ordo/OrdoTaskCard.tsx src/components/projects/ProjectBoard.tsx src/components/projects/ProjectSettingsDrawer.tsx src/hooks/useProjects.tsx src/pages/ProjectDetail.tsx src/lib/boardThemes.ts src/lib/boardThemes.test.ts
+      - name: Build production Ordo static assets
+        env:
+          VITE_APP_URL: https://ordo.inspirarestudio.com
+        run: |
+          set -euo pipefail
+          npm run build
+          test -s dist/index.html
+          test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
+          printf '{"source_sha":"%s","environment":"production","feature":"board-themes"}\n' "$GITHUB_SHA" > dist/release.json
+          test ! -e dist/.env
+          test ! -e dist/.env.production
+          if find dist -name '*.map' | grep -q .; then
+            echo 'Source maps must not ship to production'
+            exit 1
+          fi
+      - name: Checkout existing production static artifacts
+        uses: actions/checkout@v4
+        with:
+          ref: codex/hostinger-static
+          path: production-static
+          persist-credentials: true
+      - name: Publish only if untouched since verified rollback snapshot
+        run: |
+          set -euo pipefail
+          expected="71f379764a70847a7e3dd08d1c7d5fde00ae306b"
+          actual="$(git -C production-static rev-parse HEAD)"
+          if [ "$actual" != "$expected" ]; then
+            echo "Production changed since release prepared; refusing overwrite"
+            exit 1
+          fi
+          git fetch origin codex/hostinger-static-pre-board-themes-20261114
+          test "$(git rev-parse FETCH_HEAD)" = "$expected"
+          find production-static -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a dist/. production-static/
+          test -s production-static/index.html
+          test ! -e production-static/.env
+          test ! -e production-static/.env.production
+          git -C production-static config user.name "Ordo release automation"
+          git -C production-static config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C production-static add -A
+          git -C production-static commit -m "Deploy verified board-theme release from ${GITHUB_SHA}"
+          git -C production-static push origin HEAD:codex/hostinger-static

@@ -16,74 +16,17 @@ import { cn } from "@/lib/utils";
 import { dateShort, initials } from "@/lib/format";
 import { LabelBadge } from "@/components/ordo/LabelBadge";
 import type { TaskStatus } from "@/lib/projectConstants";
+import { BOARD_THEME_STYLES, resolveBoardTheme, type BoardTheme } from "@/lib/boardThemes";
 import type { ProjectMemberProfile } from "@/hooks/useProjects";
 
-/**
- * Status theming for OrdoTaskCard.
- * Each status drives the inner content surface, badge, progress bar and icon.
- * Palette stays inside the Ordo OS light language — calm, premium, executive.
- */
-interface StatusTheme {
-  label: string;
-  /** Tinted inner content surface. */
-  surface: string;
-  /** Status pill. */
-  pill: string;
-  /** Progress bar fill. */
-  bar: string;
-  /** Status icon color. */
-  icon: string;
-  Icon: typeof Circle;
-}
-
-const STATUS_THEME: Record<TaskStatus, StatusTheme> = {
-  backlog: {
-    label: "Backlog",
-    surface: "bg-slate-50",
-    pill: "bg-slate-100 text-slate-600",
-    bar: "bg-slate-400",
-    icon: "text-slate-400",
-    Icon: Circle,
-  },
-  todo: {
-    label: "To do",
-    surface: "bg-slate-50/70",
-    pill: "bg-slate-100 text-slate-600",
-    bar: "bg-slate-500",
-    icon: "text-slate-500",
-    Icon: CircleDot,
-  },
-  in_progress: {
-    label: "In progress",
-    surface: "bg-[hsl(178,40%,96%)]",
-    pill: "bg-[hsl(178,100%,8%)] text-white",
-    bar: "bg-[hsl(178,100%,8%)]",
-    icon: "text-[hsl(178,100%,8%)]",
-    Icon: Clock,
-  },
-  review: {
-    label: "Review",
-    surface: "bg-sky-50",
-    pill: "bg-sky-100 text-sky-700",
-    bar: "bg-sky-500",
-    icon: "text-sky-500",
-    Icon: Eye,
-  },
-  done: {
-    label: "Done",
-    surface: "bg-emerald-50",
-    pill: "bg-emerald-100 text-emerald-700",
-    bar: "bg-emerald-500",
-    icon: "text-emerald-500",
-    Icon: CheckCircle2,
-  },
-};
-
-/** Orange "blocked" treatment applied when a task is explicitly blocked. */
-const BLOCKED_THEME: Pick<StatusTheme, "surface" | "bar" | "icon"> = {
-  surface: "bg-orange-50",
-  bar: "bg-orange-500",
-  icon: "text-orange-500",
+/** Task status badges retain semantics regardless of the selected board theme. */
+interface StatusPresentation { label: string; pill: string; icon: string; Icon: typeof Circle; }
+const STATUS_THEME: Record<TaskStatus, StatusPresentation> = {
+  backlog: { label: "Backlog", pill: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-100", icon: "text-slate-400", Icon: Circle },
+  todo: { label: "To do", pill: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-100", icon: "text-slate-500", Icon: CircleDot },
+  in_progress: { label: "In progress", pill: "bg-[hsl(178,100%,8%)] text-white", icon: "text-white", Icon: Clock },
+  review: { label: "Review", pill: "bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-200", icon: "text-sky-500", Icon: Eye },
+  done: { label: "Done", pill: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200", icon: "text-emerald-500", Icon: CheckCircle2 },
 };
 
 export interface TaskLabelChip {
@@ -114,6 +57,8 @@ export interface OrdoTaskCardProps {
   attachmentCount?: number;
   /** Marks the card with the orange "blocked" treatment. */
   blocked?: boolean;
+  /** Inherited from board; never stored on a task. */
+  boardTheme?: BoardTheme;
   interactive?: boolean;
   onOpen?: () => void;
   /** When provided, replaces the title with an inline editor. */
@@ -137,6 +82,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
       commentCount = 0,
       attachmentCount = 0,
       blocked,
+      boardTheme = "neutral",
       interactive = true,
       onOpen,
       titleEditor,
@@ -147,10 +93,9 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
     ref,
   ) => {
     const theme = STATUS_THEME[status];
+    const tokens = BOARD_THEME_STYLES[resolveBoardTheme(boardTheme)];
     const isBlocked = blocked ?? false;
-    const surface = isBlocked ? BLOCKED_THEME.surface : theme.surface;
-    const bar = isBlocked ? BLOCKED_THEME.bar : theme.bar;
-    const iconColor = isBlocked ? BLOCKED_THEME.icon : theme.icon;
+    const iconColor = isBlocked ? "text-orange-600" : theme.icon;
     const StatusIcon = isBlocked ? AlertTriangle : theme.Icon;
     const pct = Math.max(0, Math.min(100, progress ?? DEFAULT_PROGRESS[status]));
 
@@ -178,7 +123,7 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
           className,
         )}
       >
-        <div className={cn("rounded-[16px] p-4", surface)}>
+        <div className={cn("rounded-[16px] border p-4 transition-colors", tokens.surface, tokens.border)}>
           {/* Header: status pill */}
           <div className="flex items-center justify-between gap-2">
             <span
@@ -232,16 +177,16 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
               <span>Progress</span>
               <span className="tabular-nums text-foreground">{pct}%</span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-pill bg-black/5">
+            <div className={cn("h-1.5 w-full overflow-hidden rounded-pill", tokens.track)}>
               <div
-                className={cn("h-full rounded-pill transition-all", bar)}
+                className={cn("h-full rounded-pill transition-all", tokens.bar)}
                 style={{ width: `${pct}%` }}
               />
             </div>
           </div>
 
           {/* Footer: assignees + meta */}
-          <div className="mt-4 flex items-center justify-between border-t border-black/5 pt-3">
+          <div className={cn("mt-4 flex items-center justify-between border-t pt-3", tokens.divider)}>
             <div className="flex -space-x-2">
               {assignees.slice(0, 3).map((m) => (
                 <Avatar key={m.user_id} className="h-6 w-6 ring-2 ring-card">

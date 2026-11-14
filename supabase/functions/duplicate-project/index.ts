@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
         status: "draft",
         health: opts.copySettings ? source.health : "on_track",
         visibility: opts.copySettings ? source.visibility : "workspace",
+        theme: opts.copySettings ? (source.theme ?? "neutral") : "neutral",
         start_date: opts.copySettings && opts.copyDueDates ? source.start_date : null,
         due_date: opts.copySettings && opts.copyDueDates ? source.due_date : null,
         owner_id: userId,

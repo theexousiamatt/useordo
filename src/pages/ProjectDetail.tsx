@@ -41,6 +41,7 @@ import {
 
 import { dateShort } from "@/lib/format";
 import { projectUrl } from "@/lib/appUrl";
+import { resolveBoardTheme } from "@/lib/boardThemes";
 
 
 export default function ProjectDetail() {
@@ -187,6 +188,7 @@ export default function ProjectDetail() {
             members={assignableMembers}
             initialTaskId={deepLinkedTaskId}
             canConfigureStages={perms.canManage}
+            boardTheme={resolveBoardTheme(project.theme)}
           />
         </TabsContent>
         <TabsContent value="milestones" className="mt-6">

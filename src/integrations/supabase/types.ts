@@ -998,6 +998,7 @@ export type Database = {
           progress: number
           start_date: string | null
           status: string
+          theme: string
           updated_at: string
           visibility: string
           workspace_id: string
@@ -1016,6 +1017,7 @@ export type Database = {
           progress?: number
           start_date?: string | null
           status?: string
+          theme?: string
           updated_at?: string
           visibility?: string
           workspace_id: string
@@ -1034,6 +1036,7 @@ export type Database = {
           progress?: number
           start_date?: string | null
           status?: string
+          theme?: string
           updated_at?: string
           visibility?: string
           workspace_id?: string
