@@ -1,37 +1,23 @@
-import type { ProjectStage } from "@/hooks/useProjectStages";
 import type { TaskRow } from "@/hooks/useProjectData";
-import { stageForTaskId } from "@/lib/legacyStageBoard";
 
-export type CompletionStage = Pick<ProjectStage, "id" | "category" | "position" | "name" | "is_completion">;
-
-export function isCompletionStage(stage: Pick<CompletionStage, "is_completion" | "category"> | null | undefined): boolean {
-  return stage?.is_completion ?? stage?.category === "done";
+/** Task completion is an explicit user action. It never depends on a column. */
+export function isTaskCompleted(task: Pick<TaskRow, "completed_at">): boolean {
+  return Boolean(task.completed_at);
 }
 
-export function findTaskStage(task: TaskRow, stages: readonly CompletionStage[]): CompletionStage | undefined {
-  const id = stageForTaskId(task, stages);
-  return stages.find(stage => stage.id === id);
-}
-
-export function isTaskCompleted(task: TaskRow, stages: readonly CompletionStage[]): boolean {
-  const stage = findTaskStage(task, stages);
-  return stage ? isCompletionStage(stage) : !task.stage_id && task.status === "done";
-}
-
-/** Project progress counts completed TASKS; checklist percentages are deliberately separate. */
-export function computeProjectCompletion(tasks: readonly TaskRow[], stages: readonly CompletionStage[]) {
+/** Checklist percentage and stage movement never change project progress. */
+export function computeProjectCompletion(tasks: readonly TaskRow[]) {
   const active = tasks.filter(task => !task.archived_at);
   const total = active.length;
-  const completed = active.filter(task => isTaskCompleted(task, stages)).length;
+  const completed = active.filter(isTaskCompleted).length;
   return { total, completed, percent: total === 0 ? 0 : Math.round(completed / total * 100) };
 }
 
+/** Only an explicit "Mark complete" action asks about unchecked checklist items. */
 export function requiresChecklistCompletionConfirmation(
-  task: TaskRow,
-  destination: CompletionStage,
-  stages: readonly CompletionStage[],
+  task: Pick<TaskRow, "completed_at">,
   subtasks: { total: number; completed: number } | undefined,
 ): boolean {
-  return isCompletionStage(destination) && !isTaskCompleted(task, stages) &&
+  return !isTaskCompleted(task) &&
     Boolean(subtasks && subtasks.total > subtasks.completed);
 }
