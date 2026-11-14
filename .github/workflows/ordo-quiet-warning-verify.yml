@@ -1,0 +1,40 @@
+name: Verify Ordo task card microinteractions
+
+on:
+  push:
+    branches:
+      - codex/quiet-checklist-warning-20261114
+    paths:
+      - '.github/workflows/ordo-quiet-warning-verify.yml'
+      - 'src/components/ordo/OrdoTaskCard.tsx'
+      - 'src/components/ordo/OrdoTaskCard.test.tsx'
+      - 'src/components/projects/TaskDrawerProperties.tsx'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Regression tests
+        run: npm run test
+      - name: Lint changed components
+        run: npx eslint src/components/ordo/OrdoTaskCard.tsx src/components/ordo/OrdoTaskCard.test.tsx src/components/projects/TaskDrawerProperties.tsx
+      - name: Build production app
+        run: npm run build
