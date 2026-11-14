@@ -126,9 +126,8 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
           {/* Stage is a name and theme only, never a completion category. */}
           <div className="flex items-center justify-between gap-2">
             <span className="inline-flex min-w-0 max-w-[70%] items-center gap-1.5 rounded-pill bg-background/65 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-              {isBlocked ? <AlertTriangle className="h-3 w-3 shrink-0 text-orange-600" /> :
-                <Circle className="h-3 w-3 shrink-0" />}
-              <span className="truncate">{isBlocked ? "Blocked" : (stageName ?? "Stage")}</span>
+              {isBlocked && <AlertTriangle className="h-3 w-3 shrink-0 text-orange-600" aria-label="Task blocked" />}
+              <span className="truncate">{stageName ?? "Stage"}</span>
             </span>
             <div className="flex shrink-0 items-center gap-1">
               {onToggleCompleted && (
@@ -193,7 +192,20 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
           {pct !== null && (
             <div className="mt-4" aria-label={`Subtasks: ${subtasks!.completed} of ${subtasks!.total} complete`}>
               <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
-                <span>Subtasks · {subtasks!.completed}/{subtasks!.total}</span>
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  Subtasks · {subtasks!.completed}/{subtasks!.total}
+                  {completed === true && pct < 100 && (
+                    <span
+                      role="note"
+                      tabIndex={0}
+                      title={`${subtasks!.total - subtasks!.completed} unfinished checklist item${subtasks!.total - subtasks!.completed === 1 ? "" : "s"}`}
+                      aria-label="This task is complete but some checklist items remain unfinished"
+                      className="inline-flex shrink-0 items-center text-amber-600/75 dark:text-amber-400/75 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+                    </span>
+                  )}
+                </span>
                 <span className="tabular-nums text-foreground">{pct}%</span>
               </div>
               <div className={cn("h-1.5 w-full overflow-hidden rounded-pill", tokens.track)}
@@ -202,13 +214,6 @@ export const OrdoTaskCard = forwardRef<HTMLDivElement, OrdoTaskCardProps>(
                   style={{ width: `${pct}%` }} />
               </div>
             </div>
-          )}
-
-          {completed === true && pct !== null && pct < 100 && (
-            <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              Completed with unfinished checklist items
-            </p>
           )}
 
           {/* Footer: assignees + meta */}
