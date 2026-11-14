@@ -52,6 +52,15 @@ INSERT INTO public.tasks(id,project_id,workspace_id,title,status,position,archiv
  ('96000000-0000-4000-8000-000000000005','99000000-0000-4000-8000-000000000003',
   '98000000-0000-4000-8000-000000000001','Preserved task in Done','done',0,NULL);
 
+-- The fixture explicitly places these tasks; no status-to-stage mapping exists.
+UPDATE public.tasks t SET stage_id=s.id FROM public.project_stages s
+WHERE s.project_id=t.project_id AND s.category='todo'
+  AND t.project_id='99000000-0000-4000-8000-000000000003'
+  AND t.id IN ('96000000-0000-4000-8000-000000000003','96000000-0000-4000-8000-000000000004');
+UPDATE public.tasks t SET stage_id=s.id FROM public.project_stages s
+WHERE s.project_id=t.project_id AND s.category='done'
+  AND t.id='96000000-0000-4000-8000-000000000005';
+
 INSERT INTO public.task_assignees(task_id,user_id,project_id,workspace_id,created_by) VALUES
  ('96000000-0000-4000-8000-000000000003','97000000-0000-4000-8000-000000000002',
   '99000000-0000-4000-8000-000000000003','98000000-0000-4000-8000-000000000001',
