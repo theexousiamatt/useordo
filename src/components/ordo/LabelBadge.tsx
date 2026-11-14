@@ -25,7 +25,7 @@ export function LabelBadge({ name, color, size = "md", onRemove, onClick, classN
   return (
     <Comp
       type={onClick ? "button" : undefined}
-      onClick={onClick}
+      onClick={onClick ? (event) => { event.stopPropagation(); onClick(); } : undefined}
       className={cn(
         "inline-flex max-w-full items-center gap-1 rounded-pill font-semibold leading-none transition-colors",
         size === "sm" ? "px-2 py-1 text-[10px]" : "px-2.5 py-1 text-[11px]",
