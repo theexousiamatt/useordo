@@ -168,8 +168,9 @@ export default function Onboarding() {
       <ArrowLeft className="mr-1.5 h-4 w-4"/> Back
     </Button>
   );
-  const skip = (next:number) => (
-    <Button type="button" variant="ghost" className="rounded-pill text-muted-foreground" disabled={busy} onClick={()=>patch({step:next})}>
+  const skip = (next:number, clear?: "team" | "clients") => (
+    <Button type="button" variant="ghost" className="rounded-pill text-muted-foreground" disabled={busy}
+      onClick={()=>patch(clear==="team"?{team:[],step:next}:clear==="clients"?{clients:[],step:next}:{step:next})}>
       Skip for now
     </Button>
   );
@@ -212,13 +213,13 @@ export default function Onboarding() {
   }else if(step===3){
     body=<InviteUsersStep title="Invite your team" description="Add the people you'll collaborate with. Invitations are prepared when setup is complete."
       placeholder="teammate@example.com" emails={team} onChange={value=>patch({team:value})} emptyLabel="No teammates added"/>;
-    footer=<>{back(2)}{skip(4)}
+    footer=<>{back(2)}{skip(4,"team")}
       <Button className="rounded-pill" onClick={()=>patch({step:4})}>Continue <ArrowRight className="ml-1.5 h-4 w-4"/></Button>
     </>;
   }else if(step===4){
     body=<InviteUsersStep title="Invite your clients" description="Give clients access only to the projects you share. This is optional."
       placeholder="client@example.com" emails={clients} onChange={value=>patch({clients:value})} emptyLabel="No clients added"/>;
-    footer=<>{back(3)}{skip(5)}
+    footer=<>{back(3)}{skip(5,"clients")}
       <Button className="rounded-pill" onClick={()=>patch({step:5})}>Review setup <ArrowRight className="ml-1.5 h-4 w-4"/></Button>
     </>;
   }else{
