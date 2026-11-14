@@ -194,8 +194,17 @@ async function scenario({audience,width,height,isMobile}){
     reports.push({label,result:"PASS"});
     console.log(`PASS ${label}`);
   }catch(e){
-    reports.push({label,result:"FAIL",reason:String(e?.message??e)});
-    console.error(`FAIL ${label}: ${String(e?.message??e)}`);
+    const reason=String(e?.message??e);
+    const pageState=await page.evaluate(()=>({
+      url:location.href,
+      title:document.title,
+      text:document.body?.innerText.slice(0,800),
+      rootChildCount:document.querySelector("#root")?.children.length,
+    })).catch(()=>({url:page.url(),text:"Unable to inspect page"}));
+    console.error(`FAIL ${label}: ${reason}`);
+    console.error(`PAGE STATE ${label}: ${JSON.stringify(pageState)}`);
+    console.error(`PAGE ERRORS ${label}: ${JSON.stringify(pageErrors)}`);
+    reports.push({label,result:"FAIL",reason,pageState,pageErrors});
     await page.screenshot({path:path.join("qa-artifacts",`core-${label}-fail.png`),fullPage:true}).catch(()=>{});
   }finally{
     await context.close();
