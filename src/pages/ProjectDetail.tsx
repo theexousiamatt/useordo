@@ -177,7 +177,7 @@ export default function ProjectDetail() {
       </div>
 
 
-      <Tabs defaultValue="board">
+      <Tabs defaultValue={["board", "milestones", "deliverables", "files", "activity"].includes(searchParams.get("tab") ?? "") ? searchParams.get("tab")! : "board"}>
         <TabsList>
           <TabsTrigger value="board">Board</TabsTrigger>
           <TabsTrigger value="milestones">Milestones</TabsTrigger>
