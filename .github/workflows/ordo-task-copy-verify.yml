@@ -1,0 +1,65 @@
+name: Verify Ordo atomic task duplication and deletion feedback
+
+on:
+  push:
+    branches:
+      - codex/atomic-task-duplicate-delete-feedback-20261114
+    paths:
+      - '.github/workflows/ordo-task-copy-verify.yml'
+      - 'supabase/migrations/20261114072000_atomic_task_duplication.sql'
+      - 'supabase/tests/atomic-task-duplication.sql'
+      - 'src/hooks/useProjectData.tsx'
+      - 'src/integrations/supabase/types.ts'
+      - 'src/components/projects/ProjectBoard.tsx'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify types and React hooks
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+          npx eslint src/hooks/useProjectData.tsx src/components/projects/ProjectBoard.tsx
+      - name: Run all regression tests
+        run: npm run test
+      - name: Production build
+        run: npm run build
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.1.0
+      - name: Start isolated Supabase with all migrations
+        run: supabase start
+      - name: Install postgres client when needed
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+      - name: Verify task-copy rollback, permissions and full field fidelity
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -f supabase/tests/atomic-task-duplication.sql
+      - name: Verify neutral stages and checklist / project progress
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+            -f supabase/tests/stage-completion-project-progress.sql
+      - name: Destroy disposable database
+        if: always()
+        run: supabase stop --no-backup || true
