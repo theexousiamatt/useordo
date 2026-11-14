@@ -113,6 +113,9 @@ try {
     } catch (error) {
       reports.push({ label: config.label, status: "FAIL", error: String(error?.message ?? error) });
       console.error("FAIL " + config.label + ": " + String(error?.message ?? error));
+      console.error("DEBUG " + config.label + " URL: " + page.url());
+      console.error("DEBUG " + config.label + " PAGE: " + (await page.locator("body").innerText().catch(() => "")).slice(0, 1500));
+      console.error("DEBUG " + config.label + " BROWSER ERRORS: " + errors.join(" / "));
       await page.screenshot({ path: path.join("qa-artifacts", `core-${config.label}-failed.png`), fullPage: true }).catch(() => {});
     } finally {
       await context.close();
