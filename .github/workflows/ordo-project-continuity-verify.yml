@@ -1,0 +1,39 @@
+name: Verify Ordo project and task continuity
+
+on:
+  push:
+    branches:
+      - codex/project-task-continuity-20261114
+    paths:
+      - '.github/workflows/ordo-project-continuity-verify.yml'
+      - 'src/**'
+      - 'supabase/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Strict TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Regression tests
+        run: npm run test
+      - name: Lint changed continuity modules
+        run: |
+          npx eslint src/pages/ProjectDetail.tsx src/components/projects/ProjectBoard.tsx src/components/projects/TaskDetailDrawer.tsx src/components/projects/TaskDrawerProperties.tsx src/components/ordo/OrdoTaskCard.tsx src/components/ordo/OrdoColumnContextMenu.tsx src/hooks/useProjectStages.ts src/lib/taskCompletion.ts src/lib/taskCompletion.test.ts
+      - name: Production build
+        run: npm run build
