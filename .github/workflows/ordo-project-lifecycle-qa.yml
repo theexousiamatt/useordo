@@ -41,7 +41,7 @@ jobs:
         run: npm run build
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.1.0
       - name: Start isolated Supabase database
         run: supabase start
       - name: Install PostgreSQL client if missing
