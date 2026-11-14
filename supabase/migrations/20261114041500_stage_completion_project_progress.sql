@@ -12,6 +12,19 @@ WHERE category = 'done' AND is_completion = false;
 COMMENT ON COLUMN public.project_stages.is_completion IS
   'Explicit meaning of this stage: tasks here count as complete for project progress. Unrelated to stage theme or checklist completion.';
 
+-- New projects must seed one completion stage; do not rely on the old name.
+CREATE OR REPLACE FUNCTION public.legacy_seed_project_stages()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $
+BEGIN
+  INSERT INTO public.project_stages(workspace_id,project_id,name,category,position,is_completion)
+  SELECT NEW.workspace_id,NEW.id,seed.name,seed.category,seed.position,(seed.category='done')
+  FROM (VALUES
+    ('Backlog','backlog',0),('To do','todo',1),('In progress','in_progress',2),
+    ('Review','review',3),('Done','done',4)
+  ) AS seed(name,category,position);
+  RETURN NEW;
+END $;
+
 -- Completion is stage-driven; keep projects.progress up to date for all clients,
 -- including dashboards that do not have the task board open.
 CREATE OR REPLACE FUNCTION public.recalculate_ordo_project_progress(_project_id uuid)
