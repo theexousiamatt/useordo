@@ -134,7 +134,13 @@ for(const config of [
 
   await check("drawer fits viewport with direct completion control and close action",async()=>{
     const dialog=await openTask("QA ordinary task");
-    await page.waitForTimeout(400); // Wait for the slide-in transform to settle before geometry checks.
+    // Sheet uses 500ms entrance animations; wait for their completion rather than
+    // measuring the in-flight translated rect, which temporarily extends past 100vw.
+    await dialog.evaluate(async element=>{
+      const animations=element.getAnimations({subtree:false});
+      await Promise.allSettled(animations.map(animation=>animation.finished));
+    });
+    await page.waitForTimeout(200);
     const geometry=await dialog.evaluate(element=>{
       const rect=element.getBoundingClientRect();
       return {width:rect.width,left:rect.left,right:rect.right,innerWidth:window.innerWidth,
