@@ -72,15 +72,28 @@ export function useNotifications() {
 
   const unreadCount = items.filter((n) => !n.read_at).length;
 
+  const markRead = useCallback(async (id: string) => {
+    if (!user) return;
+    const item = items.find((entry) => entry.id === id);
+    if (!item || item.read_at) return;
+    const now = new Date().toISOString();
+    setItems((prev) => prev.map((entry) => entry.id === id ? { ...entry, read_at: now } : entry));
+    const { error } = await supabase.from("notifications").update({ read_at: now })
+      .eq("id", id).eq("user_id", user.id).is("read_at", null);
+    if (error) await load();
+  }, [items, user, load]);
+
   const markAllRead = useCallback(async () => {
     const unread = items.filter((n) => !n.read_at).map((n) => n.id);
     if (unread.length === 0) return;
     setItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
-    await supabase
+    const { error } = await supabase
       .from("notifications")
       .update({ read_at: new Date().toISOString() })
-      .in("id", unread);
-  }, [items]);
+      .in("id", unread)
+      .eq("user_id", user!.id);
+    if (error) await load();
+  }, [items, user, load]);
 
-  return { items, loading, error, unreadCount, reload: load, markAllRead };
+  return { items, loading, error, unreadCount, reload: load, markAllRead, markRead };
 }
