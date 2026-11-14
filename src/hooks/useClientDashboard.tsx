@@ -29,6 +29,8 @@ export interface ActionItem {
   due_date: string | null;
   project_id: string;
   project_name: string;
+  description?: string | null;
+  created_at?: string;
 }
 
 export interface ActivityEntry {
@@ -115,7 +117,7 @@ export function useActionItems(projectId?: string) {
       let query = scopedSelect(
         "deliverables",
         workspaceId,
-        "id, title, status, project_id",
+        "id, title, description, created_at, status, project_id",
       )
         .eq("status", "submitted")
         .eq("requires_approval", true)
@@ -135,6 +137,8 @@ export function useActionItems(projectId?: string) {
         due_date: null,
         project_id: t.project_id,
         project_name: names.get(t.project_id) ?? "Project",
+        description: t.description,
+        created_at: t.created_at,
       }));
     },
   });
