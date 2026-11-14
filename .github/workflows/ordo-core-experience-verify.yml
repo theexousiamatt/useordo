@@ -1,0 +1,108 @@
+name: Verify Ordo core experience upgrade
+
+on:
+  push:
+    branches:
+      - codex/core-experience-upgrade-20261114
+    paths:
+      - '.github/workflows/ordo-core-experience-verify.yml'
+      - 'src/**'
+      - 'scripts/qa/core-experience-smoke.mjs'
+  pull_request:
+    paths:
+      - 'src/**'
+      - '.github/workflows/ordo-core-experience-verify.yml'
+      - 'scripts/qa/core-experience-smoke.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-experience-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Full regression suite
+        run: npm run test
+      - name: Lint modified modules
+        run: |
+          npx eslint src/pages/Tasks.tsx src/lib/myTasks.ts src/lib/myTasks.test.ts src/pages/Dashboard.tsx src/pages/InboxPage.tsx src/pages/Onboarding.tsx src/hooks/useNotifications.tsx src/hooks/useClientDashboard.tsx src/components/client/NotificationButton.tsx src/components/client/ApprovalCard.tsx src/components/client/ClientReviewHistory.tsx src/pages/ClientApprovals.tsx src/pages/ClientProjectDetail.tsx src/components/navigation.ts src/components/client/clientNav.ts src/App.tsx
+      - name: Production build
+        run: npm run build
+
+  browser:
+    needs: frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.1.0
+      - name: Start disposable Ordo backend
+        run: supabase start
+      - name: Set disposable backend environment
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/ordo-core-qa.env
+          source /tmp/ordo-core-qa.env
+          : "${ANON_KEY:?Missing anon key}"
+          : "${SERVICE_ROLE_KEY:?Missing service key}"
+          echo "::add-mask::${SERVICE_ROLE_KEY}"
+          echo "QA_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "QA_SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
+          echo "QA_SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
+      - name: Seed disposable project
+        run: node scripts/qa/seed-browser.mjs
+      - name: Serve application on disposable backend
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/ordo-core-vite.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ordo-core-vite.log
+          exit 1
+      - name: Install browser
+        run: |
+          npm install --no-save --package-lock=false playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Verify staff and client workflows across viewports
+        run: node scripts/qa/core-experience-smoke.mjs
+      - name: Upload browser findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordo-core-experience-browser
+          path: qa-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Remove disposable backend
+        if: always()
+        run: supabase stop --no-backup || true
