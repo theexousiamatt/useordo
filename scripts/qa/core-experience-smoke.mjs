@@ -18,6 +18,15 @@ async function must(p,label){
   if(r.error) throw new Error(label+": "+r.error.message);
   return r.data;
 }
+async function eventually(fn,label){
+  let latest;
+  for(let i=0;i<60;i++){
+    latest=await fn();
+    if(latest) return latest;
+    await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  throw new Error(label+" did not persist within 15 seconds");
+}
 
 const suffix=randomUUID().slice(0,8);
 const clientEmail=`ordo-core-client-${suffix}@example.invalid`;
@@ -108,8 +117,10 @@ async function scenario({audience,width,height,isMobile}){
       await page.getByRole("heading",{name:"My tasks"}).waitFor({state:"visible"});
       await page.getByText("QA ordinary task").first().waitFor({state:"visible"});
       await page.getByRole("button",{name:"Mark QA ordinary task complete"}).click();
-      const done=await must(db.from("tasks").select("completed_at").eq("id",fixture.normalTaskId).single(),"Read completion");
-      if(!done.completed_at) throw new Error("Task completion did not persist");
+      await eventually(async()=>{
+        const done=await must(db.from("tasks").select("completed_at").eq("id",fixture.normalTaskId).single(),"Read completion");
+        return done.completed_at;
+      },"Task completion");
 
       await page.goto(base+`/projects/${fixture.projectId}`,{waitUntil:"domcontentloaded"});
       await page.getByRole("button",{name:"Task: QA ordinary task"}).waitFor({state:"visible"});
@@ -122,9 +133,13 @@ async function scenario({audience,width,height,isMobile}){
         const comment=Array.from(document.querySelectorAll('[aria-label="Task comments"] li')).find(el=>el.textContent.includes("@QA Teammate"));
         return !!comment;
       },{timeout:20000});
-      const mention=await must(db.from("notifications").select("id,entity_id")
-        .eq("user_id",teammateId).eq("type","task_mention").order("created_at",{ascending:false}).limit(1).single(),"Read task mention notification");
-      if(!mention?.entity_id) throw new Error("Mention notification was not created");
+      const mention=await eventually(async()=>{
+        const {data,error}=await db.from("notifications").select("id,entity_id")
+          .eq("user_id",teammateId).eq("type","task_mention")
+          .order("created_at",{ascending:false}).limit(1).maybeSingle();
+        if(error) throw error;
+        return data?.entity_id ? data : null;
+      },"Task mention notification");
 
       // Replaying the same authenticated request must not duplicate a notification.
       const ownerApi=createClient(url,process.env.QA_SUPABASE_ANON_KEY,{auth:{persistSession:false}});
@@ -156,11 +171,12 @@ async function scenario({audience,width,height,isMobile}){
       await page.getByRole("textbox",{name:"Revision feedback (required)"}).fill("Please improve spacing and responsive hierarchy.");
       await page.getByRole("button",{name:"Send feedback"}).click();
       await page.getByText("Review history").waitFor({state:"visible"});
-      const review=await must(db.from("deliverable_reviews").select("decision,note")
-        .eq("deliverable_id",deliverable.id).order("created_at",{ascending:false}).limit(1).single(),"Read review");
-      if(review.decision!=="rejected" || !review.note.includes("responsive hierarchy")){
-        throw new Error("Client revision and feedback were not persisted");
-      }
+      await eventually(async()=>{
+        const {data:review,error}=await db.from("deliverable_reviews").select("decision,note")
+          .eq("deliverable_id",deliverable.id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+        if(error) throw error;
+        return review?.decision==="rejected" && review.note?.includes("responsive hierarchy");
+      },"Client revision and feedback");
       await page.goto(base+"/client/inbox",{waitUntil:"domcontentloaded"});
       await page.getByRole("heading",{name:"Inbox"}).waitFor({state:"visible"});
     }
