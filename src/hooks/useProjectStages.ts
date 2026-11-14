@@ -9,6 +9,8 @@ export interface ProjectStage {
   workspace_id: string;
   name: string;
   category: TaskStatus;
+  /** Workflow completion semantics, independent of appearance and reporting category. */
+  is_completion?: boolean;
   theme?: StageTheme | null;
   position: number;
   revision: number;
@@ -108,6 +110,32 @@ export function useSetProjectStageTheme(projectId: string) {
     },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["project-stages", projectId] });
+    },
+  });
+}
+
+/** Set a stage's completion semantics without changing its name, theme or task checklist data. */
+export function useSetProjectStageCompletion(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { stageId: string; completed: boolean; expectedRevision: number }) => {
+      const { data, error } = await supabase.rpc("set_project_stage_completion", {
+        _project_id: projectId,
+        _stage_id: input.stageId,
+        _is_completion: input.completed,
+        _expected_revision: input.expectedRevision,
+      });
+      if (error) throw error;
+      if (!data) throw new Error("Could not confirm stage completion setting.");
+      return data;
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["project-stages", projectId] }),
+        qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+        qc.invalidateQueries({ queryKey: ["project", projectId] }),
+        qc.invalidateQueries({ queryKey: ["projects"] }),
+      ]);
     },
   });
 }
