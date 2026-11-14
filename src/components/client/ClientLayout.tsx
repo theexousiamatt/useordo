@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { ClientSidebar } from "./ClientSidebar";
+import { MobileNav } from "@/components/MobileNav";
 import { SidebarCollapseProvider, useSidebarCollapse } from "@/components/sidebar-collapse";
 
 function ClientShell() {
@@ -26,6 +27,12 @@ function ClientShell() {
         <main className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8">
           <Outlet />
         </main>
+        <div
+          aria-hidden="true"
+          className="mobile-nav-clearance shrink-0 lg:hidden"
+            style={{ height: "calc(80px + env(safe-area-inset-bottom, 0px))" }}
+        />
+        <MobileNav audience="client" />
       </div>
     </div>
   );

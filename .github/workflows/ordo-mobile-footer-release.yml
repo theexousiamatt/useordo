@@ -1,0 +1,90 @@
+name: Release Ordo mobile footer navigation to production
+
+on:
+  push:
+    branches:
+      - codex/mobile-footer-navigation-20261114
+    paths:
+      - '.github/workflows/ordo-mobile-footer-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ordo-legacy-production-static-release
+  cancel-in-progress: false
+
+jobs:
+  publish-verified-footer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout reviewed Ordo source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Ensure source is identical to browser-tested version
+        run: |
+          set -euo pipefail
+          verified="4aea4578568fc00382ec676d3d8e358e5d54fc2b"
+          git merge-base --is-ancestor "$verified" "$GITHUB_SHA"
+          git diff --exit-code "$verified" "$GITHUB_SHA" -- src index.html scripts/qa/mobile-footer-nav.mjs
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Run regression suite
+        run: npm run test
+      - name: Lint mobile footer and layouts
+        run: npx eslint src/components/MobileNav.tsx src/components/MobileNav.test.tsx src/components/AppLayout.tsx src/components/client/ClientLayout.tsx
+      - name: Build production static artifacts
+        env:
+          VITE_APP_URL: https://ordo.inspirarestudio.com
+        run: |
+          set -euo pipefail
+          npm run build
+          test -s dist/index.html
+          test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
+          printf '{"source_sha":"%s","environment":"production","feature":"mobile-three-tab-footer"}\n' "$GITHUB_SHA" > dist/release.json
+          node -e 'JSON.parse(require("fs").readFileSync("dist/release.json","utf8"))'
+          test ! -e dist/.env
+          test ! -e dist/.env.production
+          if find dist -name '*.map' | grep -q .; then
+            echo "Refusing to publish source maps"
+            exit 1
+          fi
+      - name: Checkout deployed static branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/hostinger-static
+          path: production-static
+          persist-credentials: true
+      - name: Publish only from backed-up expected revision
+        run: |
+          set -euo pipefail
+          expected="565925009d91a5738196d7bc16aae570aa16cf33"
+          actual="$(git -C production-static rev-parse HEAD)"
+          if [ "$actual" != "$expected" ]; then
+            echo "Production artifacts have changed; refusing overwrite"
+            exit 1
+          fi
+          git fetch origin codex/hostinger-static-pre-mobile-footer-20261114
+          test "$(git rev-parse FETCH_HEAD)" = "$expected"
+          find production-static -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a dist/. production-static/
+          test -s production-static/index.html
+          test ! -e production-static/.env
+          test ! -e production-static/.env.production
+          git -C production-static config user.name "Ordo release automation"
+          git -C production-static config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C production-static add -A
+          git -C production-static commit -m "Deploy mobile 3-tab footer from ${GITHUB_SHA}"
+          git -C production-static push origin HEAD:codex/hostinger-static

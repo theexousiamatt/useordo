@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrdoSidebar } from "@/components/OrdoSidebar";
 import { OrdoTopBar } from "@/components/OrdoTopBar";
+import { MobileNav } from "@/components/MobileNav";
 import { SidebarCollapseProvider, useSidebarCollapse } from "@/components/sidebar-collapse";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -29,7 +30,13 @@ function AppShell() {
           <main className="flex min-w-0 flex-1 flex-col gap-6 sm:gap-8">
             <Outlet />
           </main>
+          <div
+            aria-hidden="true"
+            className="mobile-nav-clearance shrink-0 lg:hidden"
+            style={{ height: "calc(80px + env(safe-area-inset-bottom, 0px))" }}
+          />
         </div>
+        <MobileNav audience="studio" />
       </div>
     </div>
   );
