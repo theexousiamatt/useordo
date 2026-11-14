@@ -145,7 +145,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const reorder = useReorderTasks(projectId);
   const update = useUpdateTask(projectId);
   const del = useDeleteTask(projectId);
-  const dup = useDuplicateTask(projectId, workspaceId);
+  const dup = useDuplicateTask(projectId);
   const archive = useArchiveTask(projectId);
   const bulkUpdate = useBulkUpdateTasks(projectId);
   const bulkDelete = useBulkDeleteTasks(projectId);
