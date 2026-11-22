@@ -33,20 +33,14 @@ export function JenriAuthLayout({ children, page }: { children: ReactNode; page:
 }
 
 export function JenriAuthIntro({
-  title, mobileTitle, subtitle, accountSwitch,
+  title, subtitle, accountSwitch,
 }: {
   title: string;
-  mobileTitle?: string;
   subtitle?: string;
   accountSwitch: ReactNode;
 }) {
   return <header className="jenri-auth-intro">
-    <h1>
-      {mobileTitle ? <>
-        <span className="jenri-mobile-heading">{mobileTitle}</span>
-        <span className="jenri-desktop-heading">{title}</span>
-      </> : title}
-    </h1>
+    <h1>{title}</h1>
     <p className="jenri-auth-switch">{accountSwitch}</p>
     {subtitle && <p className="jenri-auth-subtitle">{subtitle}</p>}
   </header>;
