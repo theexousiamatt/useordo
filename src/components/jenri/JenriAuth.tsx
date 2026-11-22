@@ -33,20 +33,14 @@ export function JenriAuthLayout({ children, page }: { children: ReactNode; page:
 }
 
 export function JenriAuthIntro({
-  title, mobileTitle, subtitle, accountSwitch,
+  title, subtitle, accountSwitch,
 }: {
   title: string;
-  mobileTitle?: string;
   subtitle?: string;
   accountSwitch: ReactNode;
 }) {
   return <header className="jenri-auth-intro">
-    <h1>
-      {mobileTitle ? <>
-        <span className="jenri-mobile-heading">{mobileTitle}</span>
-        <span className="jenri-desktop-heading">{title}</span>
-      </> : title}
-    </h1>
+    <h1>{title}</h1>
     <p className="jenri-auth-switch">{accountSwitch}</p>
     {subtitle && <p className="jenri-auth-subtitle">{subtitle}</p>}
   </header>;
@@ -68,9 +62,9 @@ export function JenriPasswordField(props: Omit<InputHTMLAttributes<HTMLInputElem
 export function JenriSocialButton({ provider, busy, action = "Sign in", ...buttonProps }: ButtonHTMLAttributes<HTMLButtonElement> & {
   provider: "google" | "apple"; busy?: boolean; action?: "Sign in" | "Sign up";
 }) {
-  return <button type="button" className="jenri-social-button" disabled={busy || buttonProps.disabled} {...buttonProps}>
+  return <button type="button" className="jenri-social-button" data-provider={provider} disabled={busy || buttonProps.disabled} {...buttonProps}>
     {busy ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> :
-      <img src={ASSETS + provider + ".svg"} alt="" aria-hidden="true" />}
+      <img src={ASSETS + provider + ".svg"} alt="" aria-hidden="true" width={provider === "apple" ? 17 : 18} height={provider === "apple" ? 21 : 18} />}
     <span>{`${action} with ${provider === "apple" ? "Apple" : "Google"}`}</span>
   </button>;
 }

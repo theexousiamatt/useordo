@@ -76,7 +76,6 @@ export default function SignIn() {
     <JenriAuthLayout page="sign-in">
       <JenriAuthIntro
         title="Welcome back"
-        mobileTitle="Welcome back to Jerin"
         subtitle={returnTo.startsWith("/auth/invite?") ? "Sign in to open your invitation." : "Pick up where you left off."}
         accountSwitch={<>New to Jenri?{" "}
           <Link to={authPath("/auth/sign-up", returnTo, email.trim())}>Create an account</Link>

@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const base = process.env.JENRI_QA_URL || 'http://127.0.0.1:4173';
-const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+const vectorAssets = ['jenri-logo.svg', 'google.svg', 'apple.svg', 'back.svg', 'icon-projects.svg', 'icon-team.svg', 'icon-tasks.svg', 'info.svg', 'workspace-illustration.svg', 'project-illustration.svg', 'completion-illustration.svg'];
+for (const name of vectorAssets) {
+  const data = await readFile(`public/jenri/${name}`, 'utf-8');
+  assert.ok(data.trimStart().startsWith('<svg'), `${name} must be a real SVG`);
+  const normalized = data.toLowerCase(); assert.ok(!normalized.includes('<image') && !normalized.includes('data:image/') && !normalized.includes('base64,'), `${name} contains raster imagery`);
+}
+const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(process.env.JENRI_QA_CHROME === 'chrome' ? { channel: 'chrome' } : {}) });
 const output = 'qa-artifacts/jenri-social-first';
 await mkdir(output, { recursive: true });
 
@@ -41,6 +47,31 @@ try {
       assert.equal(await page.getByRole('button', { name: 'Show password' }).count(), 1);
       assert.equal(await page.locator('.jenri-auth-separator').innerText(), 'Or');
 
+      const header = page.locator('.jenri-auth-intro h1');
+      const headingText = await header.innerText();
+      if (screen.label === 'signin') assert.equal(headingText.trim(), 'Welcome back', 'Exact approved sign-in copy');
+      const fontStyles = await page.evaluate(() => {
+        const get = selector => getComputedStyle(document.querySelector(selector));
+        return {
+          headingWeight: get('.jenri-auth-intro h1').fontWeight,
+          accountWeight: get('.jenri-auth-intro .jenri-auth-switch').fontWeight,
+          linkWeight: get('.jenri-auth-intro .jenri-auth-switch a').fontWeight,
+          fontStack: get('.jenri-auth-intro h1').fontFamily,
+        };
+      });
+      assert.equal(fontStyles.headingWeight, '700', 'Figma heading Bold weight');
+      assert.equal(fontStyles.accountWeight, '500', 'Figma account copy Medium weight');
+      assert.equal(fontStyles.linkWeight, '700', 'Figma account link Bold weight');
+      assert.ok(fontStyles.fontStack.includes('Circular Std') && fontStyles.fontStack.includes('DM Sans'), 'Licensed font first, stable fallback');
+      const googleIcon = await bbox(page, '.jenri-social-button[data-provider="google"] img');
+      const appleIcon = await bbox(page, '.jenri-social-button[data-provider="apple"] img');
+      within(googleIcon.width, 18, 0.5, 'Google native vector width');
+      within(googleIcon.height, 18, 0.5, 'Google native vector height');
+      within(appleIcon.width, 17, 0.5, 'Apple native vector width');
+      within(appleIcon.height, 21, 0.5, 'Apple native vector height');
+      assert.equal(await page.locator('.jenri-social-button img').evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0)), true, 'Social vector assets must load');
+
+
       if (viewport.label === 'mobile') {
         const logo = await bbox(page, '.jenri-auth-mobile-header .jenri-logo');
         const panel = await bbox(page, '.jenri-auth-panel');
@@ -50,6 +81,10 @@ try {
         within(panel.y, 92, 1, 'mobile white panel top');
         within(panel.width, 430, 1, 'mobile panel width');
         if (screen.label === 'signin') {
+          const h1 = await bbox(page, '.jenri-auth-intro h1');
+          within(h1.y, 163, 2, 'mobile sign-in heading top');
+          within(h1.x + h1.width / 2, viewport.width / 2, 1, 'mobile heading centered');
+          assert.ok(h1.height <= 32, 'Welcome back should occupy one line, not wrap');
           assert.equal(await page.locator('.jenri-forgot').isVisible(), false);
           const style = await page.locator('.jenri-primary-button').evaluate(el => getComputedStyle(el).backgroundImage);
           assert.equal(style, 'none', 'Sign-in mobile CTA must be flat brown');

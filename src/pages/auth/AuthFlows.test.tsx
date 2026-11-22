@@ -89,6 +89,8 @@ describe('authentication workflows', () => {
 
   it('renders Google and Apple before the email form on sign-in, with registration near the heading', () => {
     show(<SignIn/>);
+    expect(screen.getByRole('heading', { level: 1, name: 'Welcome back' })).toBeInTheDocument();
+    expect(screen.queryByText('Welcome back to Jerin')).toBeNull();
     const google = screen.getByRole('button', { name: 'Sign in with Google' });
     const apple = screen.getByRole('button', { name: 'Sign in with Apple' });
     const email = screen.getByRole('textbox', { name: 'Email address' });
