@@ -1,3 +1,13 @@
+import { useEffect, useRef, useState } from "react";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { uniqueSlug } from "@/lib/slug";
+import { inviteWorkspacePeople, type InvitationSummary } from "@/lib/invitations";
+import { WorkspaceRecovery } from "@/components/states/WorkspaceRecovery";
 import type { WorkspaceType, ProjectDraft } from "@/components/onboarding";
 import { JenriOnboardingShell } from "@/components/jenri/JenriOnboardingShell";
 import { InvitationInbox } from "@/components/auth/InvitationInbox";
