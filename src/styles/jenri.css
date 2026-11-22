@@ -151,3 +151,210 @@
 @media (prefers-reduced-motion: reduce) {
  .jenri *, .jenri *::before, .jenri *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+
+/*
+ * Jenri social-first update — scoped to auth and onboarding only.
+ * Source: Figma mobile 430x932 and desktop 1440x960 (Nov 2026).
+ * Never override shared Ordo theme variables or component styles.
+ */
+.jenri {
+  --jenri-cacao: #351001;
+  --jenri-walnut: #4f361c;
+  --jenri-sand: #d0ac71;
+  --jenri-field: #f5f5f5;
+  --jenri-field-placeholder: #92868c;
+  --jenri-muted: #92868c;
+  font-family: "Circular Std", "Circular", "Avenir Next", "Inter", system-ui, sans-serif;
+}
+.jenri .jenri-social-button { color: var(--jenri-walnut); }
+.jenri .jenri-social-section { margin-top: 0; }
+.jenri .jenri-auth-intro .jenri-auth-switch {
+  margin: 8px 0 0;
+  color: #92868c;
+  font-size: 14px;
+  line-height: 17px;
+  text-align: center;
+}
+.jenri .jenri-auth-intro .jenri-auth-switch a {
+  color: var(--jenri-cacao);
+  font-weight: 700;
+}
+.jenri .jenri-auth-separator {
+  text-align: center;
+  margin: 24px 0;
+  line-height: 12px;
+  font-size: 14px;
+  color: var(--jenri-muted);
+}
+.jenri .jenri-auth-intro .jenri-auth-subtitle {
+  margin: 16px auto 0;
+  color: var(--jenri-muted);
+}
+.jenri .jenri-mobile-heading { display: inline; }
+.jenri .jenri-desktop-heading { display: none; }
+.jenri .jenri-auth-form .jenri-primary-button { margin-top: 12px; }
+.jenri .jenri-auth-signin .jenri-auth-form .jenri-primary-button { margin-top: 12px; }
+
+@media (max-width: 899px) {
+  .jenri .jenri-auth { min-height: 100dvh; }
+  .jenri .jenri-auth-mobile-header {
+    height: 92px;
+    flex: 0 0 92px;
+    padding-top: 30px;
+    align-items: flex-start;
+  }
+  .jenri .jenri-auth-mobile-header .jenri-logo {
+    width: 109px;
+    height: 38px;
+    object-fit: contain;
+  }
+  .jenri .jenri-auth-mobile-header .jenri-back { display: none; }
+  .jenri .jenri-auth-panel {
+    border-radius: 60px 60px 0 0;
+    padding: 71px 19px max(36px,env(safe-area-inset-bottom));
+    min-height: calc(100dvh - 92px);
+    justify-content: flex-start;
+  }
+  .jenri .jenri-auth-panel-inner { width: 100%; max-width: 392px; padding: 0; }
+  .jenri .jenri-auth-intro {
+    margin: 0 auto 24px;
+    max-width: 392px;
+    text-align: center;
+  }
+  .jenri .jenri-auth-intro h1 {
+    max-width: 272px;
+    margin: 0 auto;
+    font-size: 28px;
+    line-height: .9;
+    letter-spacing: -.84px;
+    font-weight: 700;
+  }
+  .jenri .jenri-auth-signup .jenri-auth-intro h1 { max-width: 252px; }
+  .jenri .jenri-auth-signin .jenri-auth-intro { margin-bottom: 31px; }
+  .jenri .jenri-auth-intro .jenri-auth-subtitle { display: none; }
+  .jenri .jenri-social-actions { gap: 12px; }
+  .jenri .jenri-social-button { height: 60px; font-size: 14px; }
+  .jenri .jenri-social-label.jenri-auth-separator { margin: 24px 0; }
+  .jenri .jenri-auth-form { gap: 12px; }
+  .jenri .jenri-auth-form .jenri-field { height: 60px; }
+  .jenri .jenri-password-toggle { height: 60px; }
+  .jenri .jenri-forgot { display: none; }
+  .jenri .jenri-auth-signin .jenri-auth-form .jenri-primary-button {
+    background: var(--jenri-cacao);
+    box-shadow: none;
+    margin-top: 12px;
+  }
+  .jenri .jenri-onboard-head {
+    height: 92px;
+    padding-top: 30px;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .jenri .jenri-onboard-head .jenri-logo { width: 109px; height: 38px; }
+  .jenri .jenri-onboard-sheet {
+    border-radius: 60px 60px 0 0;
+    min-height: calc(100dvh - 92px);
+    padding: 28px 24px max(24px,env(safe-area-inset-bottom));
+  }
+  .jenri .jenri-onboard-inner { max-width: 520px; }
+  .jenri .jenri-onboard-progress { margin-top: 20px; }
+  .jenri .jenri-workspace-layout { margin-top: 24px; }
+  .jenri .jenri-workspace-layout .jenri-onboard-illustration.is-workspace {
+    height: 220px;
+    margin: 0 0 24px;
+  }
+  .jenri .jenri-workspace-content { display: block; }
+  .jenri .jenri-workspace-content .jenri-onboard-fieldgroup { margin-top: 24px; }
+  .jenri .jenri-workspace-content .jenri-onboard-actions { margin-top: 24px; }
+  .jenri .jenri-onboard-step-3 .jenri-onboard-illustration {
+    margin-top: 24px;
+    margin-bottom: 24px;
+  }
+  .jenri .jenri-onboard-step-3 .jenri-feature-list { margin-top: 24px; }
+  .jenri .jenri-onboard-step-3 .jenri-onboard-actions.is-ready { margin-top: 24px; }
+}
+@media (max-width: 390px) {
+  .jenri .jenri-auth-panel { padding-left: 18px; padding-right: 18px; border-radius: 44px 44px 0 0; }
+  .jenri .jenri-onboard-sheet { padding-left: 18px; padding-right: 18px; border-radius: 44px 44px 0 0; }
+}
+@media (min-width: 900px) {
+  .jenri .jenri-auth-photo { width: min(640px, 46%); }
+  .jenri .jenri-auth-photo .jenri-logo { width: 109px; height: 38px; }
+  .jenri .jenri-mobile-heading { display: none; }
+  .jenri .jenri-desktop-heading { display: inline; }
+  .jenri .jenri-auth-intro { margin-bottom: 24px; }
+  .jenri .jenri-auth-intro h1 { font-size: 28px; line-height: 1.08; }
+  .jenri .jenri-social-section { margin-top: 0; }
+  .jenri .jenri-social-label.jenri-auth-separator { margin: 24px 0; }
+  .jenri .jenri-auth-form .jenri-primary-button { margin-top: 12px; }
+  .jenri .jenri-forgot { display: block; margin-top: 12px; }
+  .jenri .jenri-auth-signin .jenri-primary-button {
+    background: linear-gradient(78deg, rgba(58,1,27,.42), rgba(126,94,53,.42)),var(--jenri-cacao);
+    box-shadow: inset 0 -2px 40px rgba(208,172,113,.39);
+  }
+}
+@media (min-width: 1100px) {
+  /* Desktop workspace step 1 is a distinct approved Figma composition. */
+  .jenri .jenri-onboard-step-1 {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    background: var(--jenri-cacao);
+    min-height: 100dvh;
+    padding: 0;
+  }
+  .jenri .jenri-onboard-step-1 .jenri-onboard-head {
+    display: flex;
+    height: 112px;
+    flex: 0 0 112px;
+    padding: 34px clamp(40px,8.333vw,120px);
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+  .jenri .jenri-onboard-step-1 .jenri-onboard-head .jenri-logo { width: 124px; height: 43px; }
+  .jenri .jenri-onboard-step-1 .jenri-onboard-frame {
+    display: block;
+    flex: 1;
+    width: 100%;
+    max-width: none;
+  }
+  .jenri .jenri-onboard-step-1 .jenri-sidebar { display: none; }
+  .jenri .jenri-onboard-step-1 .jenri-onboard-sheet {
+    display: block;
+    min-height: calc(100dvh - 112px);
+    padding: 40px clamp(40px,8.333vw,120px) 64px;
+    border-radius: 64px 64px 0 0;
+    box-shadow: none;
+  }
+  .jenri .jenri-onboard-step-1 .jenri-onboard-inner { max-width: 1200px; width: 100%; }
+  .jenri .jenri-onboard-step-1 .jenri-onboard-top {
+    display: flex;
+    width: 100%;
+    height: 40px;
+  }
+  .jenri .jenri-onboard-step-1 .jenri-onboard-progress {
+    display: flex;
+    margin-top: 20px;
+  }
+  .jenri .jenri-onboard-step-1 .jenri-workspace-layout {
+    display: grid;
+    grid-template-columns: minmax(0,584px) minmax(0,520px);
+    column-gap: clamp(40px,6.67vw,96px);
+    align-items: center;
+    min-height: 520px;
+    margin-top: 64px;
+  }
+  .jenri .jenri-onboard-step-1 .jenri-workspace-layout .jenri-onboard-illustration.is-workspace {
+    margin: 0;
+    height: 500px;
+    width: 100%;
+  }
+  .jenri .jenri-onboard-step-1 .jenri-workspace-layout .jenri-onboard-illustration img {
+    max-width: 520px;
+    max-height: 374px;
+    width: 100%;
+  }
+  .jenri .jenri-onboard-step-1 .jenri-workspace-content { width: 100%; }
+  .jenri .jenri-onboard-step-1 .jenri-workspace-content .jenri-onboard-fieldgroup { margin-top: 24px; }
+}
