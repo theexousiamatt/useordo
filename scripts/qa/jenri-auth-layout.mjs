@@ -9,7 +9,7 @@ for (const name of vectorAssets) {
   assert.ok(data.trimStart().startsWith('<svg'), `${name} must be a real SVG`);
   const normalized = data.toLowerCase(); assert.ok(!normalized.includes('<image') && !normalized.includes('data:image/') && !normalized.includes('base64,'), `${name} contains raster imagery`);
 }
-const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'], ...(process.env.JENRI_QA_CHROME === 'chrome' ? { channel: 'chrome' } : {}) });
 const output = 'qa-artifacts/jenri-social-first';
 await mkdir(output, { recursive: true });
 
