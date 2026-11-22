@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
 
 /* Jenri onboarding/authentication only. NEVER change the global Ordo design tokens. */
 .jenri {
@@ -364,4 +365,138 @@
 @media (min-width: 1100px) {
   .jenri .jenri-onboard-step-1 .jenri-workspace-layout .jenri-onboard-illustration picture { width: 520px; }
   .jenri .jenri-onboard-step-1 .jenri-workspace-layout .jenri-onboard-illustration picture img { width: 520px; height: 374px; max-width: 100%; }
+}
+
+
+/* Corrective typography/asset fidelity patch.
+ * Circular Std requires licensed webfont files, which are not bundled in this
+ * repository. DM Sans is a predictable, legally hosted fallback until those
+ * assets are provided. Do not affect any unscoped Ordo UI. */
+.jenri {
+  font-family: "Circular Std", "DM Sans", "Avenir Next", "Inter", system-ui, sans-serif;
+  font-optical-sizing: auto;
+}
+.jenri .jenri-auth-intro h1 {
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -.84px;
+  text-align: center;
+}
+.jenri .jenri-auth-intro .jenri-auth-switch {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: .14px;
+  text-align: center;
+}
+.jenri .jenri-auth-intro .jenri-auth-switch a {
+  font-weight: 700;
+  letter-spacing: -.16px;
+}
+.jenri .jenri-auth-intro .jenri-auth-subtitle {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.jenri .jenri-field,
+.jenri .jenri-area {
+  font-weight: 500;
+}
+.jenri .jenri-primary-button {
+  font-weight: 500;
+}
+.jenri .jenri-social-button img {
+  flex-shrink: 0;
+  display: block;
+  max-width: none;
+  image-rendering: auto;
+  object-fit: contain;
+}
+.jenri .jenri-social-button[data-provider="google"] img {
+  width: 18px;
+  height: 18px;
+}
+.jenri .jenri-social-button[data-provider="apple"] img {
+  width: 17px;
+  height: 21px;
+}
+.jenri .jenri-onboard-intro p,
+.jenri .jenri-field-hint,
+.jenri .jenri-feature-desc,
+.jenri .jenri-step-count,
+.jenri .jenri-onboard-skip {
+  font-weight: 500;
+}
+.jenri .jenri-onboard-intro h1,
+.jenri .jenri-feature-title,
+.jenri .jenri-onboard-label {
+  font-weight: 700;
+}
+.jenri .jenri-onboard-fieldgroup .jenri-field,
+.jenri .jenri-onboard-fieldgroup .jenri-area {
+  font-size: 14px;
+  font-weight: 500;
+}
+.jenri .jenri-social-label.jenri-auth-separator {
+  font-weight: 500;
+}
+.jenri.jenri-auth-signin .jenri-social-label.jenri-auth-separator {
+  font-size: 14px;
+  font-weight: 700;
+}
+.jenri.jenri-auth-signup .jenri-social-label.jenri-auth-separator {
+  font-size: 13px;
+  font-weight: 500;
+}
+.jenri.jenri-auth-signin .jenri-social-button {
+  font-size: 13px;
+  font-weight: 700;
+}
+.jenri.jenri-auth-signup .jenri-social-button {
+  font-size: 14px;
+  font-weight: 500;
+}
+.jenri .jenri-auth .jenri-primary-button {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.jenri.jenri-auth-signin .jenri-auth-form .jenri-field {
+  font-size: 13px;
+}
+.jenri.jenri-auth-signup .jenri-auth-form .jenri-field {
+  font-size: 14px;
+}
+@media (max-width: 899px) {
+  .jenri.jenri-auth-signin .jenri-auth-intro {
+    width: 100%;
+    max-width: 392px;
+    margin-bottom: 25px;
+  }
+  .jenri.jenri-auth-signin .jenri-auth-intro h1 {
+    width: 100%;
+    max-width: none;
+    white-space: nowrap;
+    text-wrap: nowrap;
+    line-height: 1;
+  }
+  .jenri.jenri-auth-signup .jenri-auth-intro {
+    margin-bottom: 13px;
+  }
+  .jenri.jenri-auth-signup .jenri-auth-intro h1 {
+    max-width: 252px;
+    line-height: 1;
+    text-wrap: balance;
+  }
+  .jenri .jenri-auth-intro .jenri-auth-switch {
+    white-space: normal;
+  }
+  .jenri .jenri-auth-panel-inner {
+    min-width: 0;
+  }
+  .jenri .jenri-onboard-sheet {
+    overflow-x: clip;
+  }
 }
