@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterMatches, projectState } from "./JenriProjectsMobile";
+import { filterMatches, projectState } from "./jenriProjectViewModel";
 import type { ProjectWithMembers } from "@/hooks/useProjects";
 import type { ProjectStatus, ProjectHealth } from "@/lib/projectConstants";
 
