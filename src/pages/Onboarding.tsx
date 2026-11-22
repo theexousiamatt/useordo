@@ -57,6 +57,15 @@ export default function Onboarding() {
     try { return restoreState(user ? localStorage.getItem(`ordo:onboarding:${user.id}`) : null); }
     catch { return defaultState; }
   });
+  // Hydrate the signed-in user's draft before persisting or redirecting.
+  // Auth resolves asynchronously, so the initial state cannot safely assume user is available.
+  const [hydratedUser, setHydratedUser] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.id) { setHydratedUser(null); return; }
+    try { setState(restoreState(localStorage.getItem(`ordo:onboarding:${user.id}`))); }
+    catch { setState(defaultState); }
+    setHydratedUser(user.id);
+  }, [user?.id]);
   const [busy, setBusy] = useState(false);
   const [inviteError, setInviteError] = useState<string|null>(null);
   const [inviteSummary, setInviteSummary] = useState<InvitationSummary|null>(null);
@@ -66,21 +75,22 @@ export default function Onboarding() {
   const patch = (next: Partial<PersistedState>) => setState(prev => ({ ...prev,...next }));
 
   useEffect(() => {
-    if (!storageKey) return;
+    if (!storageKey || !user || hydratedUser !== user.id) return;
     try { localStorage.setItem(storageKey, JSON.stringify(state)); }
     catch { /* Setup works without local storage. */ }
-  }, [storageKey,state]);
+  }, [storageKey,state,hydratedUser,user]);
 
   useEffect(() => {
-    if (!loading && user && !wsLoading && resolved && !error && workspaces.length>0 &&
+    if (!loading && user && hydratedUser === user.id && !wsLoading && resolved && !error && workspaces.length>0 &&
       params.get("create")!=="1" && step===1 && !workspaceId && !redirected.current) {
       redirected.current=true;
       navigate("/",{replace:true});
     }
-  }, [loading,user,wsLoading,resolved,error,workspaces.length,params,step,workspaceId,navigate]);
+  }, [loading,user,hydratedUser,wsLoading,resolved,error,workspaces.length,params,step,workspaceId,navigate]);
 
   if(loading) return null;
   if(!user) return <Navigate to="/auth" replace/>;
+  if(hydratedUser !== user.id) return <div className="jenri flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if(wsLoading || (!resolved && !error)) return <div className="client-os flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground"/></div>;
   if(error || !resolved) return <WorkspaceRecovery/>;
   if(!workspaces.length && !workspaceId && params.get("create")!=="1") return <InvitationInbox/>;
