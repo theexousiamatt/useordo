@@ -192,8 +192,6 @@
   margin: 16px auto 0;
   color: var(--jenri-muted);
 }
-.jenri .jenri-mobile-heading { display: inline; }
-.jenri .jenri-desktop-heading { display: none; }
 .jenri .jenri-auth-form .jenri-primary-button { margin-top: 12px; }
 .jenri.jenri-auth-signin .jenri-auth-form .jenri-primary-button { margin-top: 12px; }
 
@@ -282,8 +280,6 @@
 @media (min-width: 900px) {
   .jenri .jenri-auth-photo { width: min(640px, 46%); }
   .jenri .jenri-auth-photo .jenri-logo { width: 109px; height: 38px; }
-  .jenri .jenri-mobile-heading { display: none; }
-  .jenri .jenri-desktop-heading { display: inline; }
   .jenri .jenri-auth-intro { margin-bottom: 24px; }
   .jenri .jenri-auth-intro h1 { font-size: 28px; line-height: 1.08; }
   .jenri .jenri-social-section { margin-top: 0; }
