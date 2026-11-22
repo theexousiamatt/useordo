@@ -20,10 +20,10 @@ describe('authentication workflows', () => {
   it('keeps signup usable after an email delivery failure', async () => {
     mocks.signUp.mockResolvedValue({ data: { session: null }, error: { message: 'Error sending confirmation email' } });
     show(<SignUp/>);
-    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Test Designer' } });
+    fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Test' } });
+    fireEvent.change(screen.getByLabelText('Last name'), { target: { value: 'Designer' } });
     fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'writer@example.com' } });
     fireEvent.change(screen.getByLabelText('Password', { exact: true }), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'StrongPass123!' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
     expect(await screen.findByText(/We couldn't send the email/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create account' })).toBeEnabled();
@@ -35,23 +35,22 @@ describe('authentication workflows', () => {
   ])('keeps an existing account on signup with sign-in and reset actions', async (response) => {
     mocks.signUp.mockResolvedValue(response);
     show(<SignUp/>);
-    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Test Designer' } });
+    fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Test' } });
+    fireEvent.change(screen.getByLabelText('Last name'), { target: { value: 'Designer' } });
     fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'writer@example.com' } });
     fireEvent.change(screen.getByLabelText('Password', { exact: true }), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'StrongPass123!' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
-    expect(await screen.findByText('You already have an account')).toBeInTheDocument();
-    expect(screen.getByText(/No new confirmation email was sent/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Reset password' })).toHaveAttribute('href', '/auth/forgot-password?email=writer%40example.com');
+    expect(await screen.findByText(/This email is already registered/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'reset password' })).toHaveAttribute('href', '/auth/forgot-password?email=writer%40example.com');
     expect(screen.queryByText('Confirmation options')).toBeNull();
   });
   it('sends a genuinely new signup to confirmation', async () => {
     mocks.signUp.mockResolvedValue({ data: { session: null, user: { identities: [{ provider: 'email' }] } }, error: null });
     show(<SignUp/>);
-    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Test Designer' } });
+    fireEvent.change(screen.getByLabelText('First name'), { target: { value: 'Test' } });
+    fireEvent.change(screen.getByLabelText('Last name'), { target: { value: 'Designer' } });
     fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'writer@example.com' } });
     fireEvent.change(screen.getByLabelText('Password', { exact: true }), { target: { value: 'StrongPass123!' } });
-    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'StrongPass123!' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
     expect(await screen.findByText('Confirmation options')).toBeInTheDocument();
   });
