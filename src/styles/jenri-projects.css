@@ -1,0 +1,392 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
+
+/* Figma 114:2: mobile Projects page only. Do not change global Ordo tokens. */
+.jenri-projects-mobile {
+  --jp-dark: #351001;
+  --jp-text: #4f361c;
+  --jp-card: #fbfaf8;
+  --jp-gray: #f5f5f5;
+  --jp-green: #e8f5e0;
+  --jp-amber: #fff0d1;
+  height: 100dvh;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  background: #fff;
+  color: var(--jp-dark);
+  font-family: "Circular Std", "DM Sans", "Avenir Next", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.jenri-projects-mobile *,
+.jenri-projects-mobile *::before,
+.jenri-projects-mobile *::after { box-sizing: border-box; }
+.jenri-projects-mobile button { font: inherit; cursor: pointer; }
+.jenri-projects-mobile button:focus-visible,
+.jenri-projects-mobile a:focus-visible {
+  outline: 2px solid #b98246;
+  outline-offset: 3px;
+}
+.jenri-projects-header {
+  height: 92px;
+  min-height: 92px;
+  flex: 0 0 92px;
+  width: 100%;
+  padding: 30px 24px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+}
+.jenri-projects-brand {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  width: 109px;
+  height: 38px;
+  transform: translateX(-50%);
+  object-fit: contain;
+}
+.jenri-projects-icon-button,
+.jenri-projects-notification button {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: var(--jp-gray);
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  color: var(--jp-dark);
+  box-shadow: none;
+  transition: background .18s ease, transform .18s ease;
+}
+.jenri-projects-icon-button:hover,
+.jenri-projects-notification button:hover { background: #efe9e3; }
+.jenri-projects-icon-button:active,
+.jenri-projects-notification button:active { transform: scale(.96); }
+.jenri-projects-icon-button img { display: block; width: 22px; height: 22px; }
+.jenri-projects-notification { width: 40px; height: 40px; }
+.jenri-projects-notification button { position: relative; }
+.jenri-projects-notification button > svg {
+  width: 22px;
+  height: 22px;
+  color: var(--jp-dark);
+  stroke-width: 1.7;
+}
+.jenri-projects-notification button > span {
+  right: 3px;
+  top: 1px;
+  width: 8px;
+  height: 8px;
+  background: #9d5735;
+}
+.jenri-projects-heading {
+  width: calc(100% - 48px);
+  height: 64px;
+  flex: 0 0 64px;
+  position: relative;
+  margin: 20px 24px 0;
+}
+.jenri-projects-heading h1 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -.84px;
+  color: var(--jp-dark);
+}
+.jenri-projects-heading p {
+  position: absolute;
+  top: 42px;
+  left: 0;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--jp-text);
+}
+.jenri-projects-add-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 42px;
+  height: 42px;
+  background: var(--jp-dark);
+  color: white;
+  border: 0;
+  border-radius: 21px;
+  display: grid;
+  place-items: center;
+  transition: background .18s ease, transform .18s ease;
+}
+.jenri-projects-add-button:hover { background: #552817; }
+.jenri-projects-add-button:active { transform: scale(.96); }
+.jenri-projects-add-button img { width: 24px; height: 24px; display: block; }
+.jenri-projects-filters {
+  width: min(319px, calc(100% - 48px));
+  height: 36px;
+  min-height: 36px;
+  flex: 0 0 36px;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin: 24px 24px 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.jenri-projects-filters::-webkit-scrollbar { display: none; }
+.jenri-projects-filter {
+  flex: 0 0 auto;
+  background: var(--jp-gray);
+  color: var(--jp-dark);
+  height: 36px;
+  border: 0;
+  border-radius: 30px;
+  padding: 0 22px;
+  font-size: 13px !important;
+  line-height: 1.2;
+  font-weight: 500 !important;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  transition: background .18s ease, color .18s ease;
+}
+.jenri-projects-filter:first-child { width: 96px; }
+.jenri-projects-filter:nth-child(2) { width: 95px; }
+.jenri-projects-filter:nth-child(3) { width: 112px; }
+.jenri-projects-filter:nth-child(4) { width: 95px; }
+.jenri-projects-filter.is-selected {
+  color: white;
+  background: var(--jp-dark);
+  font-weight: 700 !important;
+}
+.jenri-projects-list {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  width: calc(100% - 48px);
+  margin: 20px 24px 0;
+  padding-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: none;
+}
+.jenri-projects-list::-webkit-scrollbar { display: none; }
+.jenri-project-card {
+  flex: 0 0 132px;
+  min-height: 132px;
+  height: 132px;
+  width: 100%;
+  position: relative;
+  overflow: visible;
+  background: var(--jp-card);
+  border-radius: 24px;
+  transition: background .18s ease;
+}
+.jenri-project-card:hover { background: #f7f4f0; }
+.jenri-project-card-open {
+  display: flex;
+  align-items: flex-start;
+  text-align: left;
+  gap: 16px;
+  padding: 12px;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  border-radius: 24px;
+  color: var(--jp-dark);
+}
+.jenri-project-cover {
+  display: block;
+  flex: 0 0 100px;
+  width: 100px;
+  height: 108px;
+  border-radius: 18px;
+  object-fit: cover;
+}
+.jenri-project-cover-fallback {
+  background: linear-gradient(135deg, #ecdac4, #a57951);
+  color: var(--jp-dark);
+  display: grid;
+  place-items: center;
+}
+.jenri-project-details {
+  position: relative;
+  height: 108px;
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+.jenri-project-name {
+  display: block;
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: calc(100% - 23px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 22px;
+  letter-spacing: -.36px;
+  color: var(--jp-dark);
+}
+.jenri-project-status {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  height: 20px;
+  padding: 0 9px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1;
+}
+.jenri-project-status-dot {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 100%;
+  background: currentColor;
+}
+.jenri-project-status-success { background: var(--jp-green); color: #1f5c1a; }
+.jenri-project-status-warning { background: var(--jp-amber); color: #854a0a; }
+.jenri-project-status-danger { background: #fee5dc; color: #9e3623; }
+.jenri-project-status-neutral { background: #f0e8de; color: var(--jp-text); }
+.jenri-project-meta {
+  position: absolute;
+  top: 58px;
+  left: 0;
+  right: 0;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--jp-text);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 14px;
+}
+.jenri-project-members {
+  position: absolute;
+  top: 82px;
+  left: 0;
+  height: 26px;
+  display: flex;
+  align-items: center;
+}
+.jenri-project-members .ring-background { --tw-ring-color: #fbfaf8; }
+.jenri-project-members .bg-muted { background-color: #f0e8de; color: #351001; }
+.jenri-project-no-members {
+  font-size: 11px;
+  color: #947d6b;
+}
+.jenri-project-menu {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 1;
+}
+.jenri-project-options {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+}
+.jenri-project-options:hover { background: #f0e8de; }
+.jenri-project-options img { display: block; width: 28px; height: 28px; }
+.jenri-projects-state {
+  margin: 28px auto;
+  padding: 28px 18px;
+  max-width: 330px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--jp-text);
+}
+.jenri-projects-state h2 { margin: 0; font-size: 17px; color: var(--jp-dark); font-weight: 700; }
+.jenri-projects-state p { margin: 0; line-height: 1.5; }
+.jenri-projects-state button {
+  border: 0;
+  border-radius: 22px;
+  background: var(--jp-dark);
+  color: white;
+  margin-top: 6px;
+  padding: 10px 20px;
+  font-size: 14px;
+}
+.jenri-projects-bottom-nav {
+  flex: 0 0 calc(88px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  height: calc(88px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0;
+  padding: 10px 24px max(14px, env(safe-area-inset-bottom, 0px));
+  border: 1px solid #eee3da;
+  border-bottom: 0;
+  border-radius: 30px 30px 0 0;
+  background: #fff;
+}
+.jenri-projects-nav-tab {
+  height: 64px;
+  flex: 1 1 84px;
+  max-width: 84px;
+  min-width: 0;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--jp-dark);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 14px;
+  transition: background .18s ease;
+}
+.jenri-projects-nav-tab img { width: 22px; height: 22px; display: block; }
+.jenri-projects-nav-tab.is-active { background: var(--jp-dark); color: #fff; font-weight: 700; }
+.jenri-projects-nav-tab:not(.is-active):hover { background: #f5f5f5; }
+@media(max-width:390px) {
+  .jenri-projects-header { padding-left: 18px; padding-right: 18px; }
+  .jenri-projects-heading { margin-left:18px; margin-right:18px; width:calc(100% - 36px); }
+  .jenri-projects-filters { margin-left:18px; margin-right:18px; }
+  .jenri-projects-list { margin-left:18px; margin-right:18px; width:calc(100% - 36px); }
+  .jenri-project-card-open { gap: 12px; }
+  .jenri-project-cover { width: 90px; flex-basis: 90px; }
+  .jenri-project-name { font-size: 16px; }
+  .jenri-projects-bottom-nav { padding-left: 16px; padding-right: 16px; }
+}
+@media(min-width:1024px) {
+  .jenri-projects-mobile { display: none !important; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .jenri-projects-mobile *, .jenri-projects-mobile *::before, .jenri-projects-mobile *::after {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}
