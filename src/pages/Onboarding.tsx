@@ -186,7 +186,10 @@ export default function Onboarding() {
   return <JenriOnboardingShell step={step as 1 | 2 | 3} onBack={back}>
     {step === 1 ? <section className="jenri-workspace-layout">
       <div className="jenri-onboard-illustration is-workspace">
-        <img src="/jenri/workspace-illustration.svg" alt="" aria-hidden="true" />
+        <picture>
+          <source media="(min-width: 1100px)" srcSet="/jenri/workspace-desktop-illustration.svg" />
+          <img src="/jenri/workspace-illustration.svg" alt="" aria-hidden="true" />
+        </picture>
       </div>
       <div className="jenri-workspace-content">
       <header className="jenri-onboard-intro">
