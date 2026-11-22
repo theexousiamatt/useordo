@@ -40,7 +40,7 @@ const tabs = [
   { label: "Inbox", href: "/inbox", icon: "inbox" },
 ];
 
-function filterMatches(project: ProjectWithMembers, filter: JenriProjectFilter) {
+export function filterMatches(project: ProjectWithMembers, filter: JenriProjectFilter) {
   if (filter === "archived") return !!project.archived_at;
   if (project.archived_at) return false;
   if (filter === "completed") return project.status === "completed";
@@ -48,7 +48,7 @@ function filterMatches(project: ProjectWithMembers, filter: JenriProjectFilter) 
   return project.status === "active" || project.status === "draft";
 }
 
-function projectState(project: ProjectWithMembers): { label: string; tone: "success" | "warning" | "danger" | "neutral" } {
+export function projectState(project: ProjectWithMembers): { label: string; tone: "success" | "warning" | "danger" | "neutral" } {
   if (project.archived_at || project.status === "archived") return { label: "Archived", tone: "neutral" };
   if (project.status === "completed") return { label: "Completed", tone: "success" };
   if (project.status === "on_hold") return { label: "On Hold", tone: "warning" };
@@ -79,6 +79,7 @@ function useProjectTaskCounts(projects: ProjectWithMembers[]) {
           .from("tasks")
           .select("project_id")
           .in("project_id", ids)
+          .order("id", { ascending: true })
           .range(start, start + 999);
         if (error) throw error;
         for (const row of data ?? []) {
