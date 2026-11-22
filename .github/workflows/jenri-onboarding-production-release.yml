@@ -1,0 +1,85 @@
+name: Publish Jenri auth and onboarding to Ordo production
+
+on:
+  push:
+    branches:
+      - codex/jenri-production-20261122
+    paths:
+      - '.github/workflows/jenri-onboarding-production-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ordo-legacy-production-static-release
+  cancel-in-progress: false
+
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out production-based Jenri source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Run complete regression suite
+        run: npm run test
+      - name: Lint all modified Jenri code and tests
+        run: |
+          npx eslint src/pages/Onboarding.tsx src/pages/Onboarding.test.tsx src/pages/auth/SignIn.tsx src/pages/auth/SignUp.tsx src/pages/auth/AuthFlows.test.tsx src/components/jenri/JenriAuth.tsx src/components/jenri/JenriOnboardingShell.tsx
+      - name: Compile production assets
+        env:
+          VITE_APP_URL: https://ordo.inspirarestudio.com
+        run: |
+          set -euo pipefail
+          npm run build
+          test -s dist/index.html
+          test -s dist/jenri/jenri-logo.svg
+          test -s dist/jenri/workspace-illustration.svg
+          test -s dist/jenri/project-illustration.svg
+          test -s dist/jenri/completion-illustration.svg
+          test -s dist/jenri/desktop-portrait.svg
+          test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
+          printf '{"source_sha":"%s","environment":"production","feature":"jenri-auth-onboarding"}\n' "$GITHUB_SHA" > dist/release.json
+          test ! -e dist/.env
+          test ! -e dist/.env.production
+          if find dist -name '*.map' | grep -q .; then echo 'Source maps in release'; exit 1; fi
+      - name: Check out existing Hostinger artifact branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/hostinger-static
+          path: production-static
+          persist-credentials: true
+      - name: Verify rollback anchor and publish only verified static assets
+        run: |
+          set -euo pipefail
+          git fetch origin codex/hostinger-static-pre-jenri-20261122
+          before="$(git rev-parse FETCH_HEAD)"
+          now="$(git -C production-static rev-parse HEAD)"
+          if [ "$before" != "$now" ]; then
+            echo "Production artifact changed after rollback snapshot; refusing overwrite"
+            exit 1
+          fi
+          find production-static -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a dist/. production-static/
+          test -s production-static/index.html
+          test -s production-static/jenri/jenri-logo.svg
+          test ! -e production-static/.env
+          git -C production-static config user.name "Ordo release automation"
+          git -C production-static config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C production-static add -A
+          git -C production-static commit -m "Deploy scoped Jenri auth onboarding from ${GITHUB_SHA}"
+          git -C production-static push origin HEAD:codex/hostinger-static
