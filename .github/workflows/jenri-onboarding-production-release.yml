@@ -6,6 +6,12 @@ on:
       - codex/jenri-auth-social-first-20261122
     paths:
       - '.github/workflows/jenri-onboarding-production-release.yml'
+      - 'src/pages/auth/SignIn.tsx'
+      - 'src/pages/auth/SignUp.tsx'
+      - 'src/pages/Onboarding.tsx'
+      - 'src/components/jenri/**'
+      - 'src/styles/jenri.css'
+      - 'scripts/qa/jenri-auth-layout.mjs'
   workflow_dispatch:
 
 permissions:
