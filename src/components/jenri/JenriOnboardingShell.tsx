@@ -12,7 +12,7 @@ export function JenriOnboardingShell({
   children: ReactNode;
 }) {
   return <div className="jenri">
-    <div className="jenri-onboard">
+    <div className={`jenri-onboard jenri-onboard-step-${step}`}>
       <header className="jenri-onboard-head">
         <img className="jenri-logo" src="/jenri/jenri-logo.svg" alt="Jerin" />
       </header>
