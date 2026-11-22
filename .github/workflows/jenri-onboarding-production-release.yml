@@ -1,9 +1,9 @@
-name: Publish social-first Jenri authentication update to Ordo production
+name: Verify and publish corrected Jenri typography and vector icons
 
 on:
   push:
     branches:
-      - codex/jenri-auth-social-first-20261122
+      - codex/jenri-typography-icon-fix-20261122
     paths:
       - '.github/workflows/jenri-onboarding-production-release.yml'
       - 'src/pages/auth/SignIn.tsx'
@@ -11,6 +11,8 @@ on:
       - 'src/pages/Onboarding.tsx'
       - 'src/components/jenri/**'
       - 'src/styles/jenri.css'
+      - 'public/jenri/**'
+      - 'src/pages/auth/AuthFlows.test.tsx'
       - 'scripts/qa/jenri-auth-layout.mjs'
   workflow_dispatch:
 
@@ -60,7 +62,7 @@ jobs:
           test -s dist/jenri/completion-illustration.svg
           test -s dist/jenri/desktop-portrait.svg
           test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
-          printf '{"source_sha":"%s","environment":"production","feature":"jenri-auth-socialfirst-desktop"}\n' "$GITHUB_SHA" > dist/release.json
+          printf '{"source_sha":"%s","environment":"production","feature":"jenri-typography-icon-fix"}\n' "$GITHUB_SHA" > dist/release.json
           test ! -e dist/.env
           test ! -e dist/.env.production
           if find dist -name '*.map' | grep -q .; then echo 'Source maps in release'; exit 1; fi
@@ -81,7 +83,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jenri-social-first-auth-screenshots
+          name: jenri-typography-vector-qa-screenshots
           path: qa-artifacts/jenri-social-first/
           if-no-files-found: ignore
           retention-days: 7
@@ -94,7 +96,7 @@ jobs:
       - name: Verify rollback anchor and publish only verified static assets
         run: |
           set -euo pipefail
-          git fetch origin codex/hostinger-static-pre-jenri-desktop-20261122
+          git fetch origin codex/hostinger-static-before-jenri-type-fix-20261122
           before="$(git rev-parse FETCH_HEAD)"
           now="$(git -C production-static rev-parse HEAD)"
           if [ "$before" != "$now" ]; then
