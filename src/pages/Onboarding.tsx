@@ -1,35 +1,19 @@
-import { InvitationInbox } from "@/components/auth/InvitationInbox";
-import { useSearchParams } from "react-router-dom";
-import { inviteWorkspacePeople, type InvitationSummary } from "@/lib/invitations";
-import { WorkspaceRecovery } from "@/components/states/WorkspaceRecovery";
-import { OrdoAlert } from "@/components/auth";
 import { useEffect, useRef, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { Loader2, ArrowRight, ArrowLeft, Sparkles, LayoutGrid } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { uniqueSlug } from "@/lib/slug";
-import { toast } from "sonner";
-import { SectionHeader, OrdoField } from "@/components/ordo";
-import {
-  OnboardingShell,
-  FeaturePreviewCard,
-  MockupPreview,
-  WorkspaceTypeCard,
-  InviteUsersStep,
-  ProjectCreationStep,
-  CompletionScreen,
-  WORKSPACE_TYPES,
-  TOUR_FEATURES,
-  TOTAL_STEPS,
-  type WorkspaceType,
-  type ProjectDraft,
-} from "@/components/onboarding";
+import { inviteWorkspacePeople, type InvitationSummary } from "@/lib/invitations";
+import { WorkspaceRecovery } from "@/components/states/WorkspaceRecovery";
+import type { WorkspaceType, ProjectDraft } from "@/components/onboarding";
+import { JenriOnboardingShell } from "@/components/jenri/JenriOnboardingShell";
+import { InvitationInbox } from "@/components/auth/InvitationInbox";
 
 interface PersistedState {
+  flowVersion: number;
   step: number;
   name: string;
   type: WorkspaceType;
@@ -40,149 +24,112 @@ interface PersistedState {
   projectId: string | null;
   clientInviteScope: "project" | "workspace";
 }
-
-const emptyProject: ProjectDraft = { name: "", client: "", description: "" };
-
 const defaultState: PersistedState = {
-  step: 1,
-  name: "",
-  type: "freelancer",
-  workspaceId: null,
-  team: [],
-  clients: [],
-  project: emptyProject,
-  projectId: null,
-  clientInviteScope: "project",
+  flowVersion: 3, step: 1, name: "", type: "freelancer",
+  workspaceId: null, team: [], clients: [],
+  project: { name: "", client: "", description: "" },
+  projectId: null, clientInviteScope: "project",
 };
+
+function restoreState(raw: string | null): PersistedState {
+  if (!raw) return defaultState;
+  try {
+    const saved = JSON.parse(raw) as Partial<PersistedState>;
+    if (saved.flowVersion === 3) {
+      return { ...defaultState, ...saved, step: Math.max(1, Math.min(3, saved.step ?? 1)) };
+    }
+    // Preserve prior setup progress and IDs. The original five/eight steps
+    // included team/client invitations, which now remain available in the product.
+    const step = !saved.workspaceId ? 1 : (saved.projectId || (saved.step ?? 1) >= 3 ? 3 : 2);
+    return { ...defaultState, ...saved, flowVersion: 3, step };
+  } catch {
+    return defaultState;
+  }
+}
 
 export default function Onboarding() {
   const { user, loading } = useAuth();
   const { refresh, selectWorkspace, workspaces, loading: wsLoading, resolved, error } = useWorkspace();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-
   const storageKey = user ? `ordo:onboarding:${user.id}` : null;
-
   const [state, setState] = useState<PersistedState>(() => {
-    if (typeof window === "undefined") return defaultState;
-    const key = user ? `ordo:onboarding:${user.id}` : null;
-    if (!key) return defaultState;
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? { ...defaultState, ...JSON.parse(raw) } : defaultState;
-    } catch {
-      return defaultState;
-    }
+    try { return restoreState(user ? localStorage.getItem(`ordo:onboarding:${user.id}`) : null); }
+    catch { return defaultState; }
   });
+  // Hydrate the signed-in user's draft before persisting or redirecting.
+  // Auth resolves asynchronously, so the initial state cannot safely assume user is available.
+  const [hydratedUser, setHydratedUser] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.id) { setHydratedUser(null); return; }
+    try { setState(restoreState(localStorage.getItem(`ordo:onboarding:${user.id}`))); }
+    catch { setState(defaultState); }
+    setHydratedUser(user.id);
+  }, [user?.id]);
   const [busy, setBusy] = useState(false);
+  const [inviteError, setInviteError] = useState<string|null>(null);
+  const [inviteSummary, setInviteSummary] = useState<InvitationSummary|null>(null);
   const redirected = useRef(false);
   const finishing = useRef(false);
-  const [inviteError, setInviteError] = useState<string | null>(null);
-  const [inviteSummary, setInviteSummary] = useState<InvitationSummary | null>(null);
-
   const { step, name, type, workspaceId, team, clients, project } = state;
-  const patch = (p: Partial<PersistedState>) => setState((s) => ({ ...s, ...p }));
+  const patch = (next: Partial<PersistedState>) => setState(prev => ({ ...prev,...next }));
 
-
-  // Persist progress so users can resume if interrupted.
   useEffect(() => {
-    if (!storageKey) return;
-    try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch { /* Setup remains usable without storage. */ }
-  }, [state, storageKey]);
+    if (!storageKey || !user || hydratedUser !== user.id) return;
+    try { localStorage.setItem(storageKey, JSON.stringify(state)); }
+    catch { /* Setup works without local storage. */ }
+  }, [storageKey,state,hydratedUser,user]);
 
-  // Existing-workspace users who haven't started onboarding go straight in.
   useEffect(() => {
-    if (
-      !loading &&
-      user &&
-      !wsLoading &&
-      resolved &&
-      !error &&
-      workspaces.length > 0 &&
-      params.get("create") !== "1" &&
-      step === 1 &&
-      !workspaceId &&
-      !redirected.current
-    ) {
-      redirected.current = true;
-      navigate("/", { replace: true });
+    if (!loading && user && hydratedUser === user.id && !wsLoading && resolved && !error && workspaces.length>0 &&
+      params.get("create")!=="1" && step===1 && !workspaceId && !redirected.current) {
+      redirected.current=true;
+      navigate("/",{replace:true});
     }
-  }, [loading, user, wsLoading, resolved, error, workspaces.length, step, workspaceId, navigate, params]);
+  }, [loading,user,hydratedUser,wsLoading,resolved,error,workspaces.length,params,step,workspaceId,navigate]);
 
-  if (loading) return null;
-  if (!user) return <Navigate to="/auth" replace />;
-  if (wsLoading || (!resolved && !error)) {
-    return (
-      <div className="client-os flex min-h-screen items-center justify-center bg-background p-4">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  if(loading) return null;
+  if(!user) return <Navigate to="/auth" replace/>;
+  if(hydratedUser !== user.id) return <div className="jenri flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if(wsLoading || (!resolved && !error)) return <div className="client-os flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground"/></div>;
+  if(error || !resolved) return <WorkspaceRecovery/>;
+  if(!workspaces.length && !workspaceId && params.get("create")!=="1") return <InvitationInbox/>;
 
-  if (error || !resolved) return <WorkspaceRecovery />;
-  if (!workspaces.length && !workspaceId && params.get("create") !== "1") return <InvitationInbox />;
-
-  const sidebarTitle = workspaceId && name ? name : "Welcome to Ordo";
-  const sidebarSubtitle = workspaceId
-    ? "Finishing up your workspace setup."
-    : "Let's set up your execution workspace.";
-
-  const goNext = () => patch({ step: Math.min(step + 1, TOTAL_STEPS) });
-  // Once a workspace exists, never return to the creation step and accidentally create it again.
-  const goBack = () => patch({ step: Math.max(step - 1, workspaceId ? 4 : 1) });
-
-  const createWorkspace = async () => {
-    if (!name.trim()) {
-      toast.error("Give your workspace a name");
-      return;
-    }
+  const createWorkspace = async (allowDefaultName = false) => {
+    if(workspaceId){ patch({step:2}); return; }
+    const requestedName = name.trim() || (allowDefaultName ? "My workspace" : "");
+    if(!requestedName){ toast.error("Enter your workspace name"); return; }
     setBusy(true);
-    try {
+    try{
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session) {
-        toast.error("Your session expired. Please sign in again.");
-        return;
-      }
-      const finalSlug = uniqueSlug(name);
-      const { data: ws, error: fnError } = await supabase.functions.invoke<{ id?: string; error?: string }>(
-        "create-workspace",
-        { body: { name: name.trim(), slug: finalSlug, type } },
-      );
-      if (fnError || !ws?.id) {
-        toast.error(ws?.error ?? fnError?.message ?? "Could not create workspace");
-        return;
-      }
-      patch({ workspaceId: ws.id, step: 4 });
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    } finally {
-      setBusy(false);
-    }
+      if(sessionError || !sessionData.session) throw new Error("Your session has expired. Sign in again.");
+      const {data:result,error:fnError}=await supabase.functions.invoke<{id?:string;error?:string}>("create-workspace",{
+        body:{name:requestedName,slug:uniqueSlug(requestedName),type},
+      });
+      if(fnError || !result?.id) throw new Error(result?.error ?? fnError?.message ?? "Could not create workspace");
+      patch({workspaceId:result.id,name:requestedName,step:2});
+      toast.success("Workspace created");
+    }catch(e){ toast.error(e instanceof Error?e.message:"Couldn't create workspace"); }
+    finally{setBusy(false);}
   };
 
   const createFirstProject = async () => {
-    if (!workspaceId || !project.name.trim()) return;
+    if(!workspaceId || !project.name.trim()) return;
     setBusy(true);
-    try {
-      const values = {
-        workspace_id: workspaceId,
-        name: project.name.trim(),
-        description: project.description.trim() || null,
-        owner_id: user.id,
-        created_by: user.id,
+    try{
+      const values={
+        workspace_id:workspaceId,name:project.name.trim(),
+        description:project.description.trim()||null,
+        owner_id:user.id,created_by:user.id,
       };
-      const { data: savedProject, error: projError } = state.projectId
-        ? await supabase.from("projects").update(values).eq("id", state.projectId).eq("workspace_id", workspaceId).select("id").single()
+      const result=state.projectId
+        ? await supabase.from("projects").update(values).eq("id",state.projectId).eq("workspace_id",workspaceId).select("id").single()
         : await supabase.from("projects").insert(values).select("id").single();
-      if (projError || !savedProject) {
-        toast.error("Could not save your project. Retry, or skip and add it later.");
-        return;
-      }
-      patch({ projectId: savedProject.id, step: step + 1 });
+      if(result.error || !result.data?.id) throw result.error??new Error("Project not saved");
+      patch({projectId:result.data.id,step:3});
       toast.success("First project saved");
-    } finally {
-      setBusy(false);
-    }
+    }catch(e){toast.error(e instanceof Error?e.message:"Couldn't save your project. Try again or skip.");}
+    finally{setBusy(false);}
   };
 
   const finish = async (skipUnconfirmedEmail = false) => {
@@ -230,236 +177,106 @@ export default function Onboarding() {
     }
   };
 
-  const backButton = (
-    <Button variant="ghost" className="rounded-pill" onClick={goBack} disabled={busy}>
-      <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
-    </Button>
-  );
+  const back = () => {
+    if (busy) return;
+    if (step > 1) patch({ step: step - 1 });
+    else navigate(-1);
+  };
 
-  const skipButton = (onSkip: () => void, label = "Skip") => (
-    <Button variant="ghost" className="rounded-pill text-muted-foreground" onClick={onSkip} disabled={busy}>
-      {label}
-    </Button>
-  );
-
-  let body: JSX.Element;
-  let footer: JSX.Element;
-
-  switch (step) {
-    case 1:
-      body = (
-        <FeaturePreviewCard
-          badge={{ icon: Sparkles, label: "Welcome" }}
-          title="Your operating system for execution"
-          description="Ordo brings execution intelligence, project visibility, and true accountability into one calm workspace — so you always know what's moving, what's stuck, and what needs you."
-          preview={<MockupPreview rows={3} />}
-        />
-      );
-      footer = (
-        <>
-          <span />
-          <Button className="rounded-pill" onClick={goNext}>
-            Continue <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button>
-        </>
-      );
-      break;
-
-    case 2:
-      body = (
-        <div className="flex flex-1 flex-col gap-6">
-          <SectionHeader
-            title="Create your workspace"
-            description="This is where your projects, team, and clients live."
-          />
-          <OrdoField label="Workspace name" htmlFor="ws-name" hint="You can change this name later in workspace settings.">
-            <Input
-              id="ws-name"
-              autoFocus
-              value={name}
-              onChange={(e) => patch({ name: e.target.value })}
-              placeholder="Acme Studio"
-              className="h-11 rounded-small bg-background"
-            />
-          </OrdoField>
+  return <JenriOnboardingShell step={step as 1 | 2 | 3} onBack={back}>
+    {step === 1 ? <>
+      <div className="jenri-onboard-illustration is-workspace">
+        <img src="/jenri/workspace-illustration.svg" alt="" aria-hidden="true" />
+      </div>
+      <header className="jenri-onboard-intro">
+        <h1>What should we call your workspace?</h1>
+        <p>A home for your projects and the people you work with.</p>
+      </header>
+      <form onSubmit={event => { event.preventDefault(); void createWorkspace(); }}>
+        <div className="jenri-onboard-fieldgroup">
+          <label className="jenri-onboard-label" htmlFor="jenri-workspace-name">Workspace name</label>
+          <input className="jenri-field" id="jenri-workspace-name" required
+            placeholder="e.g. Inspirare Studio" autoComplete="organization"
+            value={name} onChange={event => patch({ name: event.target.value })} />
+          <p className="jenri-field-hint">
+            <img src="/jenri/info.svg" alt="" aria-hidden="true" />
+            You can always change this later.
+          </p>
         </div>
-      );
-      footer = (
-        <>
-          {backButton}
-          <Button className="rounded-pill" disabled={!name.trim()} onClick={goNext}>
-            Continue <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button>
-        </>
-      );
-      break;
-
-    case 3:
-      body = (
-        <div className="flex flex-1 flex-col gap-6">
-          <SectionHeader title="What best describes you?" description="We'll tailor Ordo around how you work." />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {WORKSPACE_TYPES.map((opt) => (
-              <WorkspaceTypeCard
-                key={opt.value}
-                option={opt}
-                selected={type === opt.value}
-                onSelect={() => patch({ type: opt.value })}
-              />
-            ))}
-          </div>
+        <div className="jenri-onboard-actions">
+          <button className="jenri-primary-button" type="submit" disabled={busy || !name.trim()}>
+            {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+            Create workspace <ArrowRight aria-hidden="true" />
+          </button>
+          <button className="jenri-onboard-skip" type="button" disabled={busy}
+            onClick={() => void createWorkspace(true)}>Skip for now</button>
         </div>
-      );
-      footer = (
-        <>
-          {backButton}
-          <Button className="rounded-pill" disabled={busy} onClick={createWorkspace}>
-            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Continue <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button>
-        </>
-      );
-      break;
-
-    case 4:
-      body = (
-        <InviteUsersStep
-          title="Invite your team"
-          description="Add collaborators to invite when you enter Ordo. This step is optional."
-          placeholder="teammate@email.com"
-          emails={team}
-          onChange={(t) => patch({ team: t })}
-          emptyLabel="No team members yet"
-        />
-      );
-      footer = (
-        <>
-          {backButton}
-          {skipButton(() => patch({ team: [], step: 5 }), "Skip for now")}
-          <Button className="rounded-pill" onClick={goNext}>
-            Continue <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button>
-        </>
-      );
-      break;
-
-    case 5:
-      body = (
-        <InviteUsersStep
-          title="Invite your clients"
-          description="Invite clients now or later. Their project access will be restricted to the work you share."
-          placeholder="client@email.com"
-          emails={clients}
-          onChange={(c) => patch({ clients: c })}
-          emptyLabel="No clients yet"
-        />
-      );
-      footer = (
-        <>
-          {backButton}
-          {skipButton(() => patch({ clients: [], step: 6 }), "Skip for now")}
-          <Button className="rounded-pill" onClick={goNext}>
-            Continue <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button>
-        </>
-      );
-      break;
-
-    case 6:
-      body = (
-        <ProjectCreationStep
-          draft={project}
-          onChange={(p) => patch({ project: p })}
-          clientOptions={clients}
-        />
-      );
-      footer = (
-        <>
-          {backButton}
-          {skipButton(goNext, "Skip for now")}
-          <Button
-            className="rounded-pill"
-            disabled={busy || !project.name.trim()}
-            onClick={createFirstProject}
-          >
-            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create & continue <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button>
-        </>
-      );
-      break;
-
-    case 7:
-      body = (
-        <div className="flex flex-1 flex-col gap-6">
-          <SectionHeader
-            title="A quick tour of Ordo"
-            description="Here's where everything lives once you're inside."
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {TOUR_FEATURES.map((f) => (
-              <div key={f.title} className="flex gap-3 rounded-card bg-background p-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-small bg-card text-foreground shadow-subtle">
-                  <f.icon className="h-5 w-5" />
-                </span>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold">{f.title}</div>
-                  <p className="text-xs leading-relaxed text-muted-foreground">{f.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      </form>
+    </> : step === 2 ? <>
+      <div className="jenri-onboard-illustration">
+        <img src="/jenri/project-illustration.svg" alt="" aria-hidden="true" />
+      </div>
+      <header className="jenri-onboard-intro">
+        <h1>Create your first project</h1>
+        <p>Set up a project to start organizing your work, tasks, and deadlines.</p>
+      </header>
+      <form onSubmit={event => { event.preventDefault(); void createFirstProject(); }}>
+        <div className="jenri-onboard-fieldgroup">
+          <label className="jenri-onboard-label" htmlFor="jenri-project-name">Project name</label>
+          <input className="jenri-field" id="jenri-project-name" required
+            placeholder="e.g. Website redesign" value={project.name}
+            onChange={event => patch({ project: { ...project, name: event.target.value } })} />
+          <label className="jenri-onboard-label" htmlFor="jenri-project-description">Description (optional)</label>
+          <textarea className="jenri-area" id="jenri-project-description" rows={3}
+            placeholder="What's this project about?" value={project.description}
+            onChange={event => patch({ project: { ...project, description: event.target.value } })} />
         </div>
-      );
-      footer = (
-        <>
-          {skipButton(goNext, "Skip tour")}
-          <Button className="rounded-pill" onClick={goNext}>
-            Finish setup <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Button>
-        </>
-      );
-      break;
-
-    default:
-      body = <div className="space-y-5">
-        <CompletionScreen workspaceName={name || "Your workspace"} />
-        <div className="grid grid-cols-3 gap-2 rounded-card bg-background p-4 text-center text-sm">
-          <div><p className="text-xl font-semibold">{state.projectId ? 1 : 0}</p><p className="text-xs text-muted-foreground">Projects created</p></div>
-          <div><p className="text-xl font-semibold">{team.length}</p><p className="text-xs text-muted-foreground">Teammates to invite</p></div>
-          <div><p className="text-xl font-semibold">{clients.length}</p><p className="text-xs text-muted-foreground">Clients to invite</p></div>
+        <div className="jenri-onboard-actions">
+          <button className="jenri-primary-button" type="submit" disabled={busy || !project.name.trim()}>
+            {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+            Create project <ArrowRight aria-hidden="true" />
+          </button>
+          <button type="button" className="jenri-onboard-skip" disabled={busy}
+            onClick={() => patch({ step: 3 })}>Skip for now</button>
         </div>
-        {clients.length > 0 && <fieldset disabled={busy || !!inviteSummary} className="space-y-3 rounded-card bg-background p-5">
-          <legend className="px-1 text-sm font-semibold">Client invitation access</legend>
-          {state.projectId && <label className="flex items-start gap-3 text-sm"><input type="radio" name="onboarding-client-scope" checked={state.clientInviteScope === "project"} onChange={() => patch({ clientInviteScope: "project" })} className="mt-1 accent-[hsl(var(--foreground))]" /><span>Only {project.name}<span className="block text-xs text-muted-foreground">Clients land directly in this project.</span></span></label>}
-          <label className="flex items-start gap-3 text-sm"><input type="radio" name="onboarding-client-scope" checked={!state.projectId || state.clientInviteScope === "workspace"} onChange={() => patch({ clientInviteScope: "workspace" })} className="mt-1 accent-[hsl(var(--foreground))]" /><span>Client workspace<span className="block text-xs text-muted-foreground">Share projects individually after they join. Other projects stay private.</span></span></label>
-        </fieldset>}
-        {inviteError && <OrdoAlert variant="error">{inviteError} Your workspace is saved; you can retry.</OrdoAlert>}
-        {inviteSummary && inviteSummary.emailUnconfirmed > 0 && <div role="status" className="space-y-4">
-          <OrdoAlert variant="warning">{inviteSummary.invitations} invitation(s) are ready, but email delivery could not be confirmed for {inviteSummary.emailUnconfirmed}. Retry, or enter Ordo and manage invitation links from Team.</OrdoAlert>
-          <Button variant="outline" disabled={busy} onClick={() => void finish(true)}>Enter Ordo and manage invitations later</Button>
-        </div>}
-      </div>;
-      footer = (
-        <>
-          {backButton}
-          <Button className="rounded-pill" disabled={busy} onClick={() => void finish()}>
-            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LayoutGrid className="mr-2 h-4 w-4" />}
-            Enter Ordo
-          </Button>
-        </>
-      );
-      break;
-  }
-
-  return (
-    <OnboardingShell
-      current={step}
-      sidebarTitle={sidebarTitle}
-      sidebarSubtitle={sidebarSubtitle}
-      footer={footer}
-    >
-      {body}
-    </OnboardingShell>
-  );
+      </form>
+    </> : <>
+      <div className="jenri-onboard-illustration">
+        <img src="/jenri/completion-illustration.svg" alt="" aria-hidden="true" />
+      </div>
+      <header className="jenri-onboard-intro is-ready">
+        <h1>You're all set!</h1>
+        <p>Your workspace is ready. Go ahead and start organizing your work.</p>
+      </header>
+      <div className="jenri-feature-list">
+        <div className="jenri-feature">
+          <img src="/jenri/icon-projects.svg" alt="" aria-hidden="true" />
+          <div><p className="jenri-feature-title">Create projects</p>
+            <p className="jenri-feature-desc">Plan and track your work from start to finish.</p></div>
+        </div>
+        <div className="jenri-feature">
+          <img src="/jenri/icon-team.svg" alt="" aria-hidden="true" />
+          <div><p className="jenri-feature-title">Invite your team</p>
+            <p className="jenri-feature-desc">Collaborate and get things done together.</p></div>
+        </div>
+        <div className="jenri-feature">
+          <img src="/jenri/icon-tasks.svg" alt="" aria-hidden="true" />
+          <div><p className="jenri-feature-title">Manage tasks</p>
+            <p className="jenri-feature-desc">Turn ideas into actionable tasks.</p></div>
+        </div>
+      </div>
+      {inviteError && <div className="jenri-auth-error" role="alert" style={{marginTop:16}}>{inviteError}</div>}
+      {inviteSummary && inviteSummary.emailUnconfirmed > 0 && <div className="jenri-auth-error" role="status" style={{marginTop:16}}>
+        Some previous invitations could not be confirmed. You can manage them from your workspace.
+        <button type="button" onClick={() => void finish(true)} disabled={busy}>Enter workspace anyway</button>
+      </div>}
+      <div className="jenri-onboard-actions is-ready">
+        <button type="button" className="jenri-primary-button" disabled={busy}
+          onClick={() => void finish()}>
+          {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+          Go to my workspace <ArrowRight aria-hidden="true" />
+        </button>
+      </div>
+    </>}
+  </JenriOnboardingShell>;
 }
