@@ -184,10 +184,11 @@ export default function Onboarding() {
   };
 
   return <JenriOnboardingShell step={step as 1 | 2 | 3} onBack={back}>
-    {step === 1 ? <>
+    {step === 1 ? <section className="jenri-workspace-layout">
       <div className="jenri-onboard-illustration is-workspace">
         <img src="/jenri/workspace-illustration.svg" alt="" aria-hidden="true" />
       </div>
+      <div className="jenri-workspace-content">
       <header className="jenri-onboard-intro">
         <h1>What should we call your workspace?</h1>
         <p>A home for your projects and the people you work with.</p>
@@ -212,7 +213,8 @@ export default function Onboarding() {
             onClick={() => void createWorkspace(true)}>Skip for now</button>
         </div>
       </form>
-    </> : step === 2 ? <>
+      </div>
+    </section> : step === 2 ? <>
       <div className="jenri-onboard-illustration">
         <img src="/jenri/project-illustration.svg" alt="" aria-hidden="true" />
       </div>
