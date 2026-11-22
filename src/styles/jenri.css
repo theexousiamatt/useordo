@@ -358,3 +358,10 @@
   .jenri .jenri-onboard-step-1 .jenri-workspace-content { width: 100%; }
   .jenri .jenri-onboard-step-1 .jenri-workspace-content .jenri-onboard-fieldgroup { margin-top: 24px; }
 }
+
+.jenri .jenri-workspace-layout .jenri-onboard-illustration picture { display: block; max-width: 100%; }
+.jenri .jenri-workspace-layout .jenri-onboard-illustration picture img { display: block; max-width: 100%; }
+@media (min-width: 1100px) {
+  .jenri .jenri-onboard-step-1 .jenri-workspace-layout .jenri-onboard-illustration picture { width: 520px; }
+  .jenri .jenri-onboard-step-1 .jenri-workspace-layout .jenri-onboard-illustration picture img { width: 520px; height: 374px; max-width: 100%; }
+}
