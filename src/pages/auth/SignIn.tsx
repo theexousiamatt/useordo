@@ -4,17 +4,9 @@ import { Link, Navigate, useNavigate, useSearchParams, useLocation } from "react
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  AuthLayout,
-  OrdoInput,
-  OrdoPasswordInput,
-  OrdoCheckbox,
-  OrdoButton,
-  OrdoAlert,
-  OrdoSocialButton,
-  friendlyAuthError,
-  useSocialAuth,
-} from "@/components/auth";
+import { friendlyAuthError, useSocialAuth } from "@/components/auth";
+import { JenriAuthLayout, JenriAuthIntro, JenriPasswordField, JenriSocialButton } from "@/components/jenri/JenriAuth";
+import { Loader2 } from "lucide-react";
 
 export default function SignIn() {
   const { user, loading } = useAuth();
@@ -27,7 +19,6 @@ export default function SignIn() {
   const [email, setEmail] = useState(params.get("email") || "");
   const [needsVerification, setNeedsVerification] = useState(false);
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +33,18 @@ export default function SignIn() {
     (fromState?.pathname ? `${fromState.pathname}${fromState.search ?? ""}` : null) ??
     safeReturnPath(redirectParam, returnPath);
   const { signIn: socialSignIn, pending: socialPending } = useSocialAuth(returnTo);
+  const [appleBusy, setAppleBusy] = useState(false);
+  const signInWithApple = async () => {
+    setAppleBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "apple",
+        options: { redirectTo: new URL(safeReturnPath(returnTo), window.location.origin).toString() },
+      });
+      if (error) toast.error(friendlyAuthError(error));
+    } catch (err) { toast.error(friendlyAuthError(err)); }
+    finally { setAppleBusy(false); }
+  };
 
   if (loading) return null;
   if (user) return <Navigate to={returnTo} replace />;
@@ -68,84 +71,42 @@ export default function SignIn() {
   };
 
 
+
   return (
-    <AuthLayout
-      panelTitle={inviteWorkspace ? `Join ${inviteWorkspace}` : "Welcome back"}
-      panelSubtitle={returnTo.startsWith("/auth/invite?") ? "Sign in to open your invitation. You won’t need to create a workspace." : "Log in to access your workspace, manage projects, and collaborate with your team."}
-    >
-      <div className="mx-auto w-full max-w-sm">
-        <div className="mb-7">
-          <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
-          <p className="mt-1 text-muted-foreground">Please enter your details to continue.</p>
+    <JenriAuthLayout>
+      <JenriAuthIntro title="Welcome back." subtitle={
+        returnTo.startsWith("/auth/invite?") ? "Sign in to open your invitation." : "Pick up where you left off."
+      } />
+      {inviteWorkspace && <p className="jenri-auth-error jenri-auth-invite" role="status">
+        You've been invited to join <strong>{inviteWorkspace}</strong>.
+      </p>}
+      {error && <p className="jenri-auth-error" role="alert">{error}</p>}
+      {needsVerification && <Link className="jenri-utility-link" style={{display:"block",marginTop:12}}
+        to={authPath("/auth/verify-email", returnTo, email.trim())}>Request a new verification email</Link>}
+      <form onSubmit={onSubmit} className="jenri-auth-form" style={{marginTop:error?16:0}}>
+        <input className="jenri-field" type="email" aria-label="Email address" placeholder="Email"
+          autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
+        <JenriPasswordField label="Password" required autoComplete="current-password"
+          value={password} onChange={e => setPassword(e.target.value)} />
+        <div className="jenri-forgot">
+          <Link className="jenri-utility-link" to={authPath("/auth/forgot-password", returnTo, email.trim())}>Forgot password?</Link>
         </div>
-
-        {inviteWorkspace && (
-          <OrdoAlert variant="info" className="mb-5" title="You've been invited">
-            Sign in to join the <strong>{inviteWorkspace}</strong> workspace.
-          </OrdoAlert>
-        )}
-
-        {error && (
-          <OrdoAlert variant="error" className="mb-5">
-            {error}
-          </OrdoAlert>
-        )}
-
-        {needsVerification && (
-          <Link className="mb-5 block text-sm font-semibold text-accent hover:underline" to={authPath("/auth/verify-email", returnTo, email.trim())}>
-            Request a new verification email
-          </Link>
-        )}
-        <form onSubmit={onSubmit} className="space-y-5">
-          <OrdoInput
-            label="Email address"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@company.com"
-            autoComplete="email"
-          />
-          <OrdoPasswordInput
-            label="Password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-
-          <div className="flex items-center justify-between">
-            <OrdoCheckbox checked={remember} onChange={setRemember} label="Remember me" />
-            <Link to={authPath("/auth/forgot-password", returnTo, email.trim())} className="text-sm font-medium text-accent hover:underline">
-              Forgot password?
-            </Link>
-          </div>
-
-          <OrdoButton type="submit" loading={busy}>
-            Sign in
-          </OrdoButton>
-        </form>
-
-        <div className="my-7 flex items-center gap-3 text-[13px] uppercase tracking-wide text-[hsl(var(--text-tertiary))]">
-          <span className="h-px flex-1 bg-border" />
-          Or continue with
-          <span className="h-px flex-1 bg-border" />
+        <button type="submit" className="jenri-primary-button" disabled={busy || !!socialPending || appleBusy}>
+          {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+          Sign in
+        </button>
+      </form>
+      <section className="jenri-social-section" aria-label="Other ways to sign in">
+        <p className="jenri-social-label">Or sign in with</p>
+        <div className="jenri-social-actions">
+          <JenriSocialButton provider="apple" busy={appleBusy} onClick={() => void signInWithApple()} />
+          <JenriSocialButton provider="google" busy={socialPending === "google"}
+            onClick={() => void socialSignIn("google")} />
         </div>
-
-        <OrdoSocialButton
-          provider="google"
-          className="w-full"
-          loading={socialPending === "google"}
-          onClick={() => socialSignIn("google")}
-        />
-
-        <p className="mt-7 text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
-          <Link to={authPath("/auth/sign-up", returnTo, email.trim())} className="font-semibold text-foreground hover:underline">
-            Sign up
-          </Link>
-        </p>
-      </div>
-    </AuthLayout>
+      </section>
+      <p className="jenri-auth-switch">New to Jerin?{" "}
+        <Link to={authPath("/auth/sign-up", returnTo, email.trim())}>Create an account</Link>
+      </p>
+    </JenriAuthLayout>
   );
 }
