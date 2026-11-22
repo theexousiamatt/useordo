@@ -43,6 +43,8 @@ jobs:
         run: |
           npx tsc --noEmit
           npx tsc -p tsconfig.app.json --noEmit
+      - name: Check browser QA script syntax before dependencies
+        run: node --check scripts/qa/jenri-auth-layout.mjs
       - name: Run complete regression suite
         run: npm run test
       - name: Lint all modified Jenri code and tests
@@ -66,10 +68,14 @@ jobs:
           test ! -e dist/.env
           test ! -e dist/.env.production
           if find dist -name '*.map' | grep -q .; then echo 'Source maps in release'; exit 1; fi
-      - name: Install Playwright browser for authentication geometry QA
+      - name: Use preinstalled Chrome or install Playwright browser
         run: |
           npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.58.2
-          npx playwright install --with-deps chromium
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo 'JENRI_QA_CHROME=chrome' >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
       - name: Verify social-first auth at Figma viewports
         run: |
           set -euo pipefail
