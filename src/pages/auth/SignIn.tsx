@@ -73,15 +73,29 @@ export default function SignIn() {
 
 
   return (
-    <JenriAuthLayout>
-      <JenriAuthIntro title="Welcome back." subtitle={
-        returnTo.startsWith("/auth/invite?") ? "Sign in to open your invitation." : "Pick up where you left off."
-      } />
+    <JenriAuthLayout page="sign-in">
+      <JenriAuthIntro
+        title="Welcome back"
+        mobileTitle="Welcome back to Jerin"
+        subtitle={returnTo.startsWith("/auth/invite?") ? "Sign in to open your invitation." : "Pick up where you left off."}
+        accountSwitch={<>New to Jenri?{" "}
+          <Link to={authPath("/auth/sign-up", returnTo, email.trim())}>Create an account</Link>
+        </>}
+      />
       {inviteWorkspace && <p className="jenri-auth-error jenri-auth-invite" role="status">
         You've been invited to join <strong>{inviteWorkspace}</strong>.
       </p>}
+      <section className="jenri-social-section" aria-label="Other ways to sign in">
+        <div className="jenri-social-actions">
+          <JenriSocialButton provider="google" busy={socialPending === "google"}
+            disabled={busy || appleBusy} onClick={() => void socialSignIn("google")} />
+          <JenriSocialButton provider="apple" busy={appleBusy}
+            disabled={busy || !!socialPending} onClick={() => void signInWithApple()} />
+        </div>
+      </section>
+      <p className="jenri-social-label jenri-auth-separator">Or</p>
       {error && <p className="jenri-auth-error" role="alert">{error}</p>}
-      {needsVerification && <Link className="jenri-utility-link" style={{display:"block",marginTop:12}}
+      {needsVerification && <Link className="jenri-utility-link" style={{display:"block", margin:"12px 0"}}
         to={authPath("/auth/verify-email", returnTo, email.trim())}>Request a new verification email</Link>}
       <form onSubmit={onSubmit} className="jenri-auth-form" style={{marginTop:error?16:0}}>
         <input className="jenri-field" type="email" aria-label="Email address" placeholder="Email"
@@ -96,17 +110,6 @@ export default function SignIn() {
           Sign in
         </button>
       </form>
-      <section className="jenri-social-section" aria-label="Other ways to sign in">
-        <p className="jenri-social-label">Or sign in with</p>
-        <div className="jenri-social-actions">
-          <JenriSocialButton provider="apple" busy={appleBusy} onClick={() => void signInWithApple()} />
-          <JenriSocialButton provider="google" busy={socialPending === "google"}
-            onClick={() => void socialSignIn("google")} />
-        </div>
-      </section>
-      <p className="jenri-auth-switch">New to Jerin?{" "}
-        <Link to={authPath("/auth/sign-up", returnTo, email.trim())}>Create an account</Link>
-      </p>
     </JenriAuthLayout>
   );
 }
