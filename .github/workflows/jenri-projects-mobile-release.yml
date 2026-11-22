@@ -1,0 +1,89 @@
+name: Publish Figma Jenri mobile Projects page
+
+on:
+  push:
+    branches:
+      - codex/jenri-projects-mobile-20261122
+    paths:
+      - '.github/workflows/jenri-projects-mobile-release.yml'
+      - 'src/components/projects/JenriProjectsMobile*'
+      - 'src/components/projects/jenriProjectViewModel.ts'
+      - 'src/pages/Projects.tsx'
+      - 'src/components/AppLayout.tsx'
+      - 'src/styles/jenri-projects.css'
+      - 'public/jenri/projects/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ordo-legacy-production-static-release
+  cancel-in-progress: false
+
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out production-derived source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Unit and regression tests
+        run: npm run test
+      - name: Lint modified project page
+        run: |
+          npx eslint src/components/AppLayout.tsx src/pages/Projects.tsx src/components/projects/JenriProjectsMobile.tsx src/components/projects/JenriProjectsMobile.test.ts src/components/projects/jenriProjectViewModel.ts
+      - name: Build
+        env:
+          VITE_APP_URL: https://ordo.inspirarestudio.com
+        run: |
+          set -euo pipefail
+          npm run build
+          test -s dist/index.html
+          test -s dist/jenri/jenri-logo.svg
+          for asset in ivy-cover.svg velmont-cover.svg tiana-cover.svg devine-cover.svg menu.svg notifications.svg add.svg more.svg home.svg projects.svg tasks.svg inbox.svg; do
+            test -s "dist/jenri/projects/$asset"
+          done
+          test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
+          printf '{"source_sha":"%s","environment":"production","feature":"jenri-projects-mobile-114-2"}\n' "$GITHUB_SHA" > dist/release.json
+          test ! -e dist/.env
+          test ! -e dist/.env.production
+          if find dist -name '*.map' | grep -q .; then echo 'Source maps in release'; exit 1; fi
+      - name: Check out deployed static artifacts
+        uses: actions/checkout@v4
+        with:
+          ref: codex/hostinger-static
+          path: production-static
+          persist-credentials: true
+      - name: Protect rollback snapshot and publish verified build
+        run: |
+          set -euo pipefail
+          git fetch origin codex/hostinger-static-pre-projects-20261122
+          previous="$(git rev-parse FETCH_HEAD)"
+          deployed="$(git -C production-static rev-parse HEAD)"
+          if [ "$previous" != "$deployed" ]; then
+            echo "Production changed since rollback snapshot. Refusing overwrite."
+            exit 1
+          fi
+          find production-static -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a dist/. production-static/
+          test -s production-static/index.html
+          test -s production-static/jenri/projects/ivy-cover.svg
+          git -C production-static config user.name "Ordo release automation"
+          git -C production-static config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C production-static add -A
+          git -C production-static commit -m "Publish Figma Jerin mobile Projects page from ${GITHUB_SHA}"
+          git -C production-static push origin HEAD:codex/hostinger-static
