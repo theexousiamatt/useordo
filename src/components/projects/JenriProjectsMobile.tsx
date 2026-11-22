@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { FolderKanban } from "lucide-react";
 import { format } from "date-fns";
@@ -11,7 +11,6 @@ import { ProjectOverflowMenu, type ProjectMenuHandlers } from "@/components/proj
 import { useProjectPermissions } from "@/hooks/useProjectPermissions";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProjectWithMembers } from "@/hooks/useProjects";
-import type { ProjectStatus } from "@/lib/projectConstants";
 import "@/styles/jenri-projects.css";
 
 export type JenriProjectFilter = "ongoing" | "on_hold" | "completed" | "archived";
@@ -118,16 +117,16 @@ function MobileProjectCard({
           <FolderKanban size={28} strokeWidth={1.65} />
         </span>
       )}
-      <span className="jenri-project-details">
+      <div className="jenri-project-details">
         <span className="jenri-project-name" title={project.name}>{project.name}</span>
         <span className={`jenri-project-status jenri-project-status-${status.tone}`}>
           <span className="jenri-project-status-dot" />{status.label}
         </span>
         <span className="jenri-project-meta">{tasksText}{dateText}</span>
-        <span className="jenri-project-members">
+        <div className="jenri-project-members">
           {project.members.length ? <MemberAvatars members={project.members} size="sm" max={3} /> : <span className="jenri-project-no-members">No teammates yet</span>}
-        </span>
-      </span>
+        </div>
+      </div>
     </button>
     <div className="jenri-project-menu">
       <ProjectOverflowMenu
@@ -147,7 +146,6 @@ function MobileProjectCard({
 export function JenriProjectsMobile({
   projects, filter, onFilterChange, onCreate, onOpen, onRetry, handlers, isLoading, isError,
 }: Props) {
-  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { data: taskCounts } = useProjectTaskCounts(projects);
   const visible = projects.filter((project) => filterMatches(project, filter));
