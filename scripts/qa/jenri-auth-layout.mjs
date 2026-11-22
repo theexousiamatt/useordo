@@ -6,8 +6,8 @@ const base = process.env.JENRI_QA_URL || 'http://127.0.0.1:4173';
 const vectorAssets = ['jenri-logo.svg', 'google.svg', 'apple.svg', 'back.svg', 'icon-projects.svg', 'icon-team.svg', 'icon-tasks.svg', 'info.svg', 'workspace-illustration.svg', 'project-illustration.svg', 'completion-illustration.svg'];
 for (const name of vectorAssets) {
   const data = await readFile(`public/jenri/${name}`, 'utf-8');
-  assert.match(data, /^<svg\\b/, `${name} must be a real SVG`);
-  assert.doesNotMatch(data, /<image\\b|data:image\\/|base64,/i, `${name} contains raster imagery`);
+  assert.ok(data.trimStart().startsWith('<svg'), `${name} must be a real SVG`);
+  const normalized = data.toLowerCase(); assert.ok(!normalized.includes('<image') && !normalized.includes('data:image/') && !normalized.includes('base64,'), `${name} contains raster imagery`);
 }
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
 const output = 'qa-artifacts/jenri-social-first';
