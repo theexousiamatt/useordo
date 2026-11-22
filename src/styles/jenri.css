@@ -194,7 +194,7 @@
 .jenri .jenri-mobile-heading { display: inline; }
 .jenri .jenri-desktop-heading { display: none; }
 .jenri .jenri-auth-form .jenri-primary-button { margin-top: 12px; }
-.jenri .jenri-auth-signin .jenri-auth-form .jenri-primary-button { margin-top: 12px; }
+.jenri.jenri-auth-signin .jenri-auth-form .jenri-primary-button { margin-top: 12px; }
 
 @media (max-width: 899px) {
   .jenri .jenri-auth { min-height: 100dvh; }
@@ -230,8 +230,8 @@
     letter-spacing: -.84px;
     font-weight: 700;
   }
-  .jenri .jenri-auth-signup .jenri-auth-intro h1 { max-width: 252px; }
-  .jenri .jenri-auth-signin .jenri-auth-intro { margin-bottom: 31px; }
+  .jenri.jenri-auth-signup .jenri-auth-intro h1 { max-width: 252px; }
+  .jenri.jenri-auth-signin .jenri-auth-intro { margin-bottom: 31px; }
   .jenri .jenri-auth-intro .jenri-auth-subtitle { display: none; }
   .jenri .jenri-social-actions { gap: 12px; }
   .jenri .jenri-social-button { height: 60px; font-size: 14px; }
@@ -240,7 +240,7 @@
   .jenri .jenri-auth-form .jenri-field { height: 60px; }
   .jenri .jenri-password-toggle { height: 60px; }
   .jenri .jenri-forgot { display: none; }
-  .jenri .jenri-auth-signin .jenri-auth-form .jenri-primary-button {
+  .jenri.jenri-auth-signin .jenri-auth-form .jenri-primary-button {
     background: var(--jenri-cacao);
     box-shadow: none;
     margin-top: 12px;
@@ -289,7 +289,7 @@
   .jenri .jenri-social-label.jenri-auth-separator { margin: 24px 0; }
   .jenri .jenri-auth-form .jenri-primary-button { margin-top: 12px; }
   .jenri .jenri-forgot { display: block; margin-top: 12px; }
-  .jenri .jenri-auth-signin .jenri-primary-button {
+  .jenri.jenri-auth-signin .jenri-primary-button {
     background: linear-gradient(78deg, rgba(58,1,27,.42), rgba(126,94,53,.42)),var(--jenri-cacao);
     box-shadow: inset 0 -2px 40px rgba(208,172,113,.39);
   }
