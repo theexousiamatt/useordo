@@ -11,6 +11,7 @@ import { ErrorState } from "@/components/states/ErrorState";
 import { LoadingCards } from "@/components/states/LoadingState";
 import { CreateProjectDrawer } from "@/components/projects/CreateProjectDrawer";
 import { ProjectSettingsDrawer } from "@/components/projects/ProjectSettingsDrawer";
+import { JenriProjectsMobile, type JenriProjectFilter } from "@/components/projects/JenriProjectsMobile";
 import { DuplicateProjectDialog } from "@/components/projects/DuplicateProjectDialog";
 import { DeleteProjectDialog } from "@/components/projects/DeleteProjectDialog";
 import {
@@ -35,7 +36,8 @@ import { projectUrl } from "@/lib/appUrl";
 export default function Projects() {
   const navigate = useNavigate();
   const [showArchived, setShowArchived] = useState(false);
-  const { data: projects, isLoading, isError, refetch } = useProjects({ includeArchived: showArchived });
+  const [mobileFilter, setMobileFilter] = useState<JenriProjectFilter>("ongoing");
+  const { data: projects, isLoading, isError, refetch } = useProjects({ includeArchived: showArchived || mobileFilter === "archived" });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsProject, setSettingsProject] = useState<ProjectRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectRow | null>(null);
@@ -81,7 +83,22 @@ export default function Projects() {
 
   return (
     <div>
-      <PageHeader
+      <JenriProjectsMobile
+        projects={projects ?? []}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
+        filter={mobileFilter}
+        onFilterChange={(next) => {
+          setMobileFilter(next);
+          setShowArchived(next === "archived");
+        }}
+        onCreate={() => setDialogOpen(true)}
+        onOpen={(project) => navigate(`/projects/${project.id}`)}
+        handlers={handlers}
+      />
+      <div className="hidden lg:block">
+        <PageHeader
         title="Projects"
         description="Plan, track, and deliver the work that matters."
         actions={
@@ -133,6 +150,7 @@ export default function Projects() {
           ))}
         </div>
       )}
+      </div>
 
       <CreateProjectDrawer
         open={dialogOpen}
