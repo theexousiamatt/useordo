@@ -1,11 +1,17 @@
-name: Publish Jenri auth and onboarding to Ordo production
+name: Publish social-first Jenri authentication update to Ordo production
 
 on:
   push:
     branches:
-      - codex/jenri-production-20261122
+      - codex/jenri-auth-social-first-20261122
     paths:
       - '.github/workflows/jenri-onboarding-production-release.yml'
+      - 'src/pages/auth/SignIn.tsx'
+      - 'src/pages/auth/SignUp.tsx'
+      - 'src/pages/Onboarding.tsx'
+      - 'src/components/jenri/**'
+      - 'src/styles/jenri.css'
+      - 'scripts/qa/jenri-auth-layout.mjs'
   workflow_dispatch:
 
 permissions:
@@ -49,14 +55,36 @@ jobs:
           test -s dist/index.html
           test -s dist/jenri/jenri-logo.svg
           test -s dist/jenri/workspace-illustration.svg
+          test -s dist/jenri/workspace-desktop-illustration.svg
           test -s dist/jenri/project-illustration.svg
           test -s dist/jenri/completion-illustration.svg
           test -s dist/jenri/desktop-portrait.svg
           test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
-          printf '{"source_sha":"%s","environment":"production","feature":"jenri-auth-onboarding"}\n' "$GITHUB_SHA" > dist/release.json
+          printf '{"source_sha":"%s","environment":"production","feature":"jenri-auth-socialfirst-desktop"}\n' "$GITHUB_SHA" > dist/release.json
           test ! -e dist/.env
           test ! -e dist/.env.production
           if find dist -name '*.map' | grep -q .; then echo 'Source maps in release'; exit 1; fi
+      - name: Install Playwright browser for authentication geometry QA
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Verify social-first auth at Figma viewports
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/jenri-auth-qa.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/auth >/dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/qa/jenri-auth-layout.mjs
+      - name: Upload mobile and desktop auth screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jenri-social-first-auth-screenshots
+          path: qa-artifacts/jenri-social-first/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Check out existing Hostinger artifact branch
         uses: actions/checkout@v4
         with:
@@ -66,7 +94,7 @@ jobs:
       - name: Verify rollback anchor and publish only verified static assets
         run: |
           set -euo pipefail
-          git fetch origin codex/hostinger-static-pre-jenri-20261122
+          git fetch origin codex/hostinger-static-pre-jenri-desktop-20261122
           before="$(git rev-parse FETCH_HEAD)"
           now="$(git -C production-static rev-parse HEAD)"
           if [ "$before" != "$now" ]; then

@@ -95,9 +95,22 @@ export default function SignUp() {
 
 
   return (
-    <JenriAuthLayout>
+    <JenriAuthLayout page="sign-up">
       <JenriAuthIntro title={invited ? "Join your team." : "Make room for better work."}
-        subtitle={invited ? "Create an account to accept your invitation." : "Bring your projects, tasks, and people together in one place."} />
+        subtitle={invited ? "Create an account to accept your invitation." : "Bring your projects, tasks, and people together in one place."}
+        accountSwitch={<>Have an account?{" "}
+          <Link to={authPath("/auth", returnTo, email.trim())}>Log in here</Link>
+        </>}
+      />
+      <section className="jenri-social-section" aria-label="Other ways to create an account">
+        <div className="jenri-social-actions">
+          <JenriSocialButton provider="google" action="Sign up" busy={socialPending === "google"}
+            disabled={busy || appleBusy} onClick={() => void socialSignIn("google")} />
+          <JenriSocialButton provider="apple" action="Sign up" busy={appleBusy}
+            disabled={busy || !!socialPending} onClick={() => void signInWithApple()} />
+        </div>
+      </section>
+      <p className="jenri-social-label jenri-auth-separator">Or</p>
       {existingAccount && <div className="jenri-auth-error" role="status">
         This email is already registered.{" "}
         <Link to={authPath("/auth", returnTo, email.trim())}>Sign in</Link> or{" "}
@@ -126,17 +139,6 @@ export default function SignUp() {
           Create account
         </button>
       </form>
-      <section className="jenri-social-section" aria-label="Other ways to create an account">
-        <p className="jenri-social-label">Or Sign up With</p>
-        <div className="jenri-social-actions">
-          <JenriSocialButton provider="apple" busy={appleBusy} onClick={() => void signInWithApple()} />
-          <JenriSocialButton provider="google" busy={socialPending === "google"}
-            onClick={() => void socialSignIn("google")} />
-        </div>
-      </section>
-      <p className="jenri-auth-switch">Have an account?{" "}
-        <Link to={authPath("/auth", returnTo, email.trim())}>Log in here</Link>
-      </p>
     </JenriAuthLayout>
   );
 }
