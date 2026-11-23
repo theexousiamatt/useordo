@@ -15,6 +15,7 @@ import { activityDescription, buildStudioOverview } from "@/lib/studioDashboard"
 import type { StudioDeadline } from "@/lib/studioDashboard";
 import { dateShort, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { JerinHomeMobile } from "@/components/jenri/JerinHomeMobile";
 
 function SectionTitle({
   id, title, subtitle, href, linkLabel,
@@ -112,7 +113,16 @@ export default function Dashboard() {
   const overview = useMemo(() => data ? buildStudioOverview(data) : null, [data]);
 
   return (
-    <div className="flex flex-col gap-7 pb-8 sm:gap-8">
+    <>
+      <JerinHomeMobile
+        workspaceName={currentWorkspace?.name ?? "Your workspace"}
+        overview={overview}
+        tasks={data?.tasks ?? []}
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => void refetch()}
+      />
+      <div className="hidden flex-col gap-7 pb-8 sm:gap-8 lg:flex">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="mb-1 text-xs font-medium text-muted-foreground">{currentWorkspace?.name ?? "Workspace"}</p>
@@ -301,6 +311,7 @@ export default function Dashboard() {
           </section>
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 }
