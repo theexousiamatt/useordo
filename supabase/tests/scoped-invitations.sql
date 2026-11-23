@@ -99,6 +99,26 @@ DO $$ DECLARE denied boolean:=false; BEGIN
  IF NOT denied THEN RAISE EXCEPTION 'Client created agency project'; END IF;
 END $$;
 
+SELECT set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000001',true);
+DO $$ DECLARE shared_id uuid; BEGIN
+  IF (SELECT count(*) FROM public.list_project_reviewers('93000000-0000-4000-8000-000000000001')) <> 1
+    OR EXISTS (SELECT 1 FROM public.list_project_reviewers('93000000-0000-4000-8000-000000000002')) THEN
+    RAISE EXCEPTION 'Reviewer roster crossed project boundaries';
+  END IF;
+  UPDATE public.deliverables SET status='draft' WHERE title='Shared review' RETURNING id INTO shared_id;
+  PERFORM public.request_deliverable_review(shared_id);
+END $$;
+SELECT set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000002',true);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM public.list_project_reviewers('93000000-0000-4000-8000-000000000001')) THEN
+    RAISE EXCEPTION 'Reviewer roster was exposed to the client';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.notifications
+    WHERE title='Ready for your approval' AND url LIKE '/client/deliverables/%'
+  ) THEN RAISE EXCEPTION 'Client did not receive the review request'; END IF;
+END $$;
+
 DO $$ DECLARE review_id uuid; BEGIN
  SELECT public.review_deliverable(id,'approved',NULL) INTO review_id
  FROM public.deliverables WHERE title='Shared review';

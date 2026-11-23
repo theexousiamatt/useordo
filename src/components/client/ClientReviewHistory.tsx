@@ -18,6 +18,7 @@ export function ClientReviewHistory({ projectId }: { projectId?: string }) {
       let query = supabase.from("deliverables")
         .select("id,project_id,title,description,status,created_at,project_file_id,attachment_url,attachment_path,attachment_name,version_label")
         .eq("workspace_id", currentWorkspace!.id)
+        .eq("requires_approval", true)
         .in("status", ["approved", "rejected"])
         .order("created_at", { ascending: false })
         .limit(30);
@@ -48,8 +49,8 @@ export function ClientReviewHistory({ projectId }: { projectId?: string }) {
                 {item.description && <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">{item.description}</p>}
                 <DeliverableAttachment source={item} projectId={item.project_id} />
                 <DeliverableReviewHistory deliverableId={item.id} projectId={item.project_id} />
-                <Link to={`/client/projects/${item.project_id}?tab=files`} className="mt-3 inline-flex text-xs font-medium text-primary hover:underline">
-                  Open project files and milestones
+                <Link to={`/client/deliverables/${item.id}`} className="mt-3 inline-flex text-xs font-medium text-primary hover:underline">
+                  View deliverable
                 </Link>
               </div>
             </div>

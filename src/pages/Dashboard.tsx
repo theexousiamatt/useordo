@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -43,18 +44,19 @@ function StatCard({
   label: string; value: number; icon: typeof FolderKanban; hint: string;
   href: string; urgent?: boolean;
 }) {
-  return (
-    <Link to={href} className="block rounded-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-      <Card className="group h-full rounded-panel p-4 transition-colors hover:border-primary/35">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm text-muted-foreground">{label}</span>
-          <Icon className={cn("h-4 w-4", urgent && value > 0 ? "text-destructive" : "text-muted-foreground")} aria-hidden="true" />
-        </div>
-        <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-      </Card>
-    </Link>
+  const className = "block rounded-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+  const card = (
+    <Card className="group h-full rounded-panel p-4 transition-colors hover:border-primary/35">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <Icon className={cn("h-4 w-4", urgent && value > 0 ? "text-destructive" : "text-muted-foreground")} aria-hidden="true" />
+      </div>
+      <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+    </Card>
   );
+  return href.startsWith("#") ? <a href={href} className={className}>{card}</a> :
+    <Link to={href} className={className}>{card}</Link>;
 }
 
 function DashboardRow({
@@ -75,7 +77,7 @@ function DashboardRow({
         <p className="truncate text-sm font-medium group-hover:text-primary">{title}</p>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p>
       </div>
-      {right && <span className="shrink-0 text-xs text-muted-foreground">{right}</span>}
+      {right && <span className="shrink-0 text-sm font-semibold">{right}</span>}
       <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" aria-hidden="true" />
     </Link>
   );
@@ -110,14 +112,15 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const { data, isLoading, isError, refetch, isFetching } = useStudioDashboard();
-  const overview = useMemo(() => data ? buildStudioOverview(data) : null, [data]);
+  const today = format(new Date(), "yyyy-MM-dd");
+  const overview = useMemo(() => data ? buildStudioOverview(data, new Date(today + "T00:00:00")) : null, [data, today]);
+  const overduePath = `/tasks?view=overdue&assignee=all&from=${today}`;
 
   return (
     <>
       <JerinHomeMobile
         workspaceName={currentWorkspace?.name ?? "Your workspace"}
         overview={overview}
-        tasks={data?.tasks ?? []}
         isLoading={isLoading}
         isError={isError}
         onRetry={() => void refetch()}
@@ -161,15 +164,15 @@ export default function Dashboard() {
           <div className="grid gap-3 sm:grid-cols-3" aria-label="Workspace totals">
             <StatCard
               label="Active projects" value={overview.activeProjects.length}
-              icon={FolderKanban} hint="Currently in progress" href="/projects"
+              icon={FolderKanban} hint="Currently in progress" href="/projects?view=active"
             />
             <StatCard
               label="Overdue tasks" value={overview.overdueTasks.length}
-              icon={AlertCircle} hint="Past their due dates" href="/tasks?view=overdue" urgent
+              icon={AlertCircle} hint="Past their due dates" href={overduePath} urgent
             />
             <StatCard
               label="Pending approvals" value={overview.pendingApprovals.length}
-              icon={Clock3} hint="Submitted for client review" href="/projects"
+              icon={Clock3} hint="Submitted for client review" href="#pending-approvals"
             />
           </div>
 
@@ -197,10 +200,10 @@ export default function Dashboard() {
                     ))}
                     {overview.overdueTasks.length > 5 && (
                       <button
-                        type="button" onClick={() => navigate("/tasks?view=overdue")}
+                        type="button" onClick={() => navigate(overduePath)}
                         className="w-full px-4 py-3 text-left text-xs font-medium text-primary hover:bg-muted/30"
                       >
-                        View all open tasks
+                        View all overdue tasks
                       </button>
                     )}
                   </div>
@@ -208,13 +211,13 @@ export default function Dashboard() {
                   <p className="px-4 py-6 text-sm text-muted-foreground">No overdue tasks. You're all caught up.</p>
                 )}
 
-                <div className="flex items-center justify-between border-y border-border bg-muted/20 px-4 py-3">
+                <div id="pending-approvals" className="flex scroll-mt-24 items-center justify-between border-y border-border bg-muted/20 px-4 py-3">
                   <h3 className="text-sm font-semibold">Awaiting client approval</h3>
                   <span className="text-xs text-muted-foreground">{overview.pendingApprovals.length}</span>
                 </div>
                 {overview.pendingApprovals.length ? (
                   <div className="divide-y divide-border">
-                    {overview.pendingApprovals.slice(0, 4).map((item) => (
+                    {overview.pendingApprovals.map((item) => (
                       <DashboardRow
                         key={item.id} title={item.title}
                         detail={overview.projectName(item.project_id)}

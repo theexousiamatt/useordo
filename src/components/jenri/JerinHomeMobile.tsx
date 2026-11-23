@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { format } from "date-fns";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useWorkTasks } from "@/hooks/useWorkTasks";
+import { filterWorkTasks } from "@/lib/myTasks";
 import { FolderKanban } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -9,18 +11,15 @@ import { OrdoSidebar } from "@/components/OrdoSidebar";
 import { NotificationButton } from "@/components/client/NotificationButton";
 import { MemberAvatars } from "@/components/projects/MemberAvatars";
 import { useAuth } from "@/hooks/useAuth";
-import { useWorkspace } from "@/hooks/useWorkspace";
 import { useProjects } from "@/hooks/useProjects";
-import { supabase } from "@/integrations/supabase/client";
 import { dateShort } from "@/lib/format";
-import { buildStudioOverview, type StudioTask } from "@/lib/studioDashboard";
+import { buildStudioOverview } from "@/lib/studioDashboard";
 import "@/styles/jenri-home.css";
 
 type Overview = ReturnType<typeof buildStudioOverview>;
 interface Props {
   workspaceName: string;
   overview: Overview | null;
-  tasks: StudioTask[];
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
@@ -33,38 +32,6 @@ const covers: Record<string, string> = {
   "devine apartment": "/jenri/projects/devine-cover.svg",
 };
 
-
-/** Personal assignments include both multi-member and legacy single-assignee tasks. */
-function useAssignedTaskCount(tasks: StudioTask[]) {
-  const { user } = useAuth();
-  const { currentWorkspace } = useWorkspace();
-  const workspaceId = currentWorkspace?.id;
-  const { data } = useQuery({
-    queryKey: ["jenri-home-assigned", workspaceId, user?.id],
-    enabled: !!workspaceId && !!user?.id,
-    staleTime: 30_000,
-    queryFn: async () => {
-      const [multiple, legacy] = await Promise.all([
-        supabase.from("task_assignees").select("task_id")
-          .eq("workspace_id", workspaceId!).eq("user_id", user!.id),
-        supabase.from("tasks").select("id")
-          .eq("workspace_id", workspaceId!).eq("assignee_id", user!.id)
-          .is("completed_at", null).is("archived_at", null),
-      ]);
-      if (multiple.error) throw multiple.error;
-      if (legacy.error) throw legacy.error;
-      return Array.from(new Set([
-        ...(multiple.data ?? []).map((entry) => entry.task_id),
-        ...(legacy.data ?? []).map((entry) => entry.id),
-      ]));
-    },
-  });
-  return useMemo(() => {
-    if (!data) return null;
-    const assigned = new Set(data);
-    return tasks.filter((task) => assigned.has(task.id) && !task.completed_at && !task.archived_at).length;
-  }, [data, tasks]);
-}
 
 function ProjectCarousel({ overview }: { overview: Overview }) {
   const navigate = useNavigate();
@@ -136,16 +103,20 @@ function ProjectCarousel({ overview }: { overview: Overview }) {
   </div>;
 }
 
-export function JerinHomeMobile({ workspaceName, overview, tasks, isLoading, isError, onRetry }: Props) {
+export function JerinHomeMobile({ workspaceName, overview, isLoading, isError, onRetry }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const assignedCount = useAssignedTaskCount(tasks);
-  const dueProjects = overview?.upcoming.filter((item) => item.kind === "project" && item.days_until <= 7).length ?? 0;
-  const dueTasks = overview?.upcoming.filter((item) => item.kind === "task" && item.days_until <= 7).length ?? 0;
+  const { user } = useAuth();
+  const { data: taskData } = useWorkTasks();
+  const now = new Date();
+  const assignedCount = taskData ? filterWorkTasks(taskData.tasks, taskData.assignees, user?.id, "open", true, now).length : null;
+  const dueTasks = taskData ? filterWorkTasks(taskData.tasks, taskData.assignees, user?.id, "week", false, now, taskData.completedProjects).length : null;
+  const dueProjects = overview?.projectsDueThisWeek.length ?? null;
+  const from = format(now, "yyyy-MM-dd");
   const stats = [
-    { label: "Active Projects", value: overview?.activeProjects.length ?? 0, path: "/projects" },
-    { label: "Due This Week", value: dueProjects, path: "/projects" },
-    { label: "Assigned Tasks", value: assignedCount, path: "/tasks" },
-    { label: "Due Tasks", value: dueTasks, path: "/tasks" },
+    { label: "Active Projects", value: overview?.activeProjects.length ?? null, path: "/projects?view=active" },
+    { label: "Projects Due in 7 Days", value: dueProjects, path: `/projects?view=week&from=${from}` },
+    { label: "Assigned Tasks", value: assignedCount, path: "/tasks?view=open&assignee=me" },
+    { label: "Tasks Due in 7 Days", value: dueTasks, path: `/tasks?view=week&assignee=all&from=${from}` },
   ];
 
   return <div className="jhm-shell" aria-label="Workspace dashboard">
@@ -157,7 +128,7 @@ export function JerinHomeMobile({ workspaceName, overview, tasks, isLoading, isE
           <SheetTrigger asChild><button type="button" className="jhm-menu" aria-label="Open workspace menu">
             <img src="/jenri/projects/menu.svg" alt="" />
           </button></SheetTrigger>
-          <SheetContent side="right" className="client-os jerin-navigation-sheet w-[280px] border-none p-0" overlayClassName="bg-[#351001]/80">
+          <SheetContent side="left" className="client-os jerin-navigation-sheet w-[280px] border-none p-0" overlayClassName="bg-[#351001]/80">
             <SheetTitle className="sr-only">Workspace navigation</SheetTitle>
             <OrdoSidebar onNavigate={() => setMenuOpen(false)} />
           </SheetContent>

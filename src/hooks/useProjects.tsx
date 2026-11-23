@@ -72,7 +72,7 @@ export function useWorkspaceMembers() {
         .from("profiles")
         .select("id, full_name, avatar_url, email")
         .in("id", ids);
-      const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+      const profileMap = new Map(profiles.map((p) => [p.id, p]));
       return ids.map((id) => {
         const m = (members ?? []).find((x) => x.user_id === id);
         const p = profileMap.get(id);
@@ -97,31 +97,36 @@ export function useProjects(options?: { includeArchived?: boolean }) {
     queryKey: ["projects", workspaceId, includeArchived],
     enabled: !!workspaceId,
     queryFn: async (): Promise<ProjectWithMembers[]> => {
-      let query = supabase
-        .from("projects")
-        .select("*")
-        .eq("workspace_id", workspaceId!);
-      if (!includeArchived) query = query.is("archived_at", null);
-      const { data: projects, error } = await query.order("updated_at", { ascending: false });
-      if (error) throw error;
-      const list = (projects ?? []) as ProjectRow[];
+      const list: ProjectRow[] = [];
+      const pageSize = 500;
+      for (let from = 0; ; from += pageSize) {
+        let query = supabase.from("projects").select("*").eq("workspace_id", workspaceId!);
+        if (!includeArchived) query = query.is("archived_at", null);
+        const { data, error } = await query.order("updated_at", { ascending: false }).order("id").range(from, from + pageSize - 1);
+        if (error) throw error;
+        list.push(...(data ?? []) as ProjectRow[]);
+        if ((data?.length ?? 0) < pageSize) break;
+      }
       if (list.length === 0) return [];
 
 
       const ids = list.map((p) => p.id);
-      const { data: members } = await supabase
-        .from("project_members")
-        .select("project_id, user_id, role")
-        .in("project_id", ids);
-      const memberIds = Array.from(new Set((members ?? []).map((m) => m.user_id)));
-      const { data: profiles } = memberIds.length
-        ? await supabase.from("profiles").select("id, full_name, avatar_url").in("id", memberIds)
-        : { data: [] as { id: string; full_name: string | null; avatar_url: string | null }[] };
-      const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+      const batches = <T,>(values: T[]) => Array.from({ length: Math.ceil(values.length / 100) },
+        (_, index) => values.slice(index * 100, (index + 1) * 100));
+      const members = (await Promise.all(batches(ids).map(async ids => {
+        const { data } = await supabase.from("project_members").select("project_id, user_id, role").in("project_id", ids);
+        return data ?? [];
+      }))).flat();
+      const memberIds = Array.from(new Set(members.map((member) => member.user_id)));
+      const profiles = (await Promise.all(batches(memberIds).map(async ids => {
+        const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids);
+        return data ?? [];
+      }))).flat();
+      const profileMap = new Map(profiles.map((p) => [p.id, p]));
 
       return list.map((p) => ({
         ...p,
-        members: (members ?? [])
+        members: members
           .filter((m) => m.project_id === p.id)
           .map((m) => ({
             user_id: m.user_id,

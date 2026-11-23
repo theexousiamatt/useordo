@@ -1,9 +1,8 @@
 import { InvitationInbox } from "@/components/auth/InvitationInbox";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
-import { Package, MessageSquare, Settings as SettingsIcon } from "lucide-react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,7 +36,8 @@ const ClientDashboard = lazy(() => import("@/pages/ClientDashboard"));
 const ClientProjects = lazy(() => import("@/pages/ClientProjects"));
 const ClientApprovals = lazy(() => import("@/pages/ClientApprovals"));
 const ClientActivity = lazy(() => import("@/pages/ClientActivity"));
-const ClientComingSoon = lazy(() => import("@/pages/ClientComingSoon"));
+const ClientDeliverables = lazy(() => import("@/pages/ClientDeliverables"));
+const ClientDeliverableDetail = lazy(() => import("@/pages/ClientDeliverableDetail"));
 
 const queryClient = new QueryClient();
 
@@ -78,39 +78,10 @@ const App = () => (
                   <Route path="projects/:id" element={<ClientProjectDetail />} />
                   <Route path="approvals" element={<ClientApprovals />} />
                   <Route path="activity" element={<ClientActivity />} />
-                  <Route
-                    path="deliverables"
-                    element={
-                      <ClientComingSoon
-                        title="Deliverables"
-                        subtitle="Files and assets shared with you."
-                        icon={Package}
-                        description="Approved files and deliverables from your projects will live here."
-                      />
-                    }
-                  />
-                  <Route
-                    path="messages"
-                    element={
-                      <ClientComingSoon
-                        title="Messages"
-                        subtitle="Talk to your team in one place."
-                        icon={MessageSquare}
-                        description="Direct conversations with your team are coming soon."
-                      />
-                    }
-                  />
-                  <Route
-                    path="settings"
-                    element={
-                      <ClientComingSoon
-                        title="Settings"
-                        subtitle="Manage your account."
-                        icon={SettingsIcon}
-                        description="Profile and notification settings are coming soon."
-                      />
-                    }
-                  />
+                  <Route path="deliverables" element={<ClientDeliverables />} />
+                  <Route path="deliverables/:id" element={<ClientDeliverableDetail />} />
+                  <Route path="messages" element={<Navigate replace to="/client" />} />
+                  <Route path="settings" element={<Navigate replace to="/client" />} />
                 </Route>
 
                 <Route element={<AppLayout />}>

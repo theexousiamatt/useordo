@@ -2,7 +2,7 @@ import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher";
 import { NavLink, useLocation } from "react-router-dom";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { clientNavItems, clientSettingsItem } from "./clientNav";
+import { clientNavItems } from "./clientNav";
 import { useActionItems } from "@/hooks/useClientDashboard";
 import { useSidebarCollapse } from "@/components/sidebar-collapse";
 import { SidebarTooltip } from "@/components/SidebarTooltip";
@@ -78,22 +78,6 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
           );
         })}
       </ul>
-
-      {/* Settings */}
-      <div className="mt-4 border-t border-white/10 pt-4">
-        <SidebarTooltip label={clientSettingsItem.title} enabled={collapsed}>
-          <NavLink
-            to={clientSettingsItem.url}
-            onClick={onNavigate}
-            aria-label={collapsed ? clientSettingsItem.title : undefined}
-            className={linkClass(isActive(clientSettingsItem.url))}
-          >
-            <clientSettingsItem.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} aria-hidden="true" />
-            {!collapsed && <span className="animate-fade-in whitespace-nowrap">{clientSettingsItem.title}</span>}
-          </NavLink>
-        </SidebarTooltip>
-      </div>
-
 
       {/* Collapse / expand control (desktop only) */}
       <button

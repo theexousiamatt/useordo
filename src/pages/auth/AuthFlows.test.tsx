@@ -87,16 +87,15 @@ describe('authentication workflows', () => {
     expect(mocks.updateUser).not.toHaveBeenCalled();
   });
 
-  it('renders Google and Apple before the email form on sign-in, with registration near the heading', () => {
+  it('renders Google before the email form on sign-in, with registration near the heading', () => {
     show(<SignIn/>);
     expect(screen.getByRole('heading', { level: 1, name: 'Welcome back' })).toBeInTheDocument();
     expect(screen.queryByText('Welcome back to Jerin')).toBeNull();
     const google = screen.getByRole('button', { name: 'Sign in with Google' });
-    const apple = screen.getByRole('button', { name: 'Sign in with Apple' });
+    expect(screen.queryByRole('button', { name: /Apple/ })).not.toBeInTheDocument();
     const email = screen.getByRole('textbox', { name: 'Email address' });
     const signup = screen.getByRole('link', { name: 'Create an account' });
-    expect(google.compareDocumentPosition(apple) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(apple.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(google.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(signup.compareDocumentPosition(google) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByText('Or')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show password' })).toBeInTheDocument();
@@ -105,10 +104,9 @@ describe('authentication workflows', () => {
   it('renders the new social-first sign-up while preserving separate names and password controls', () => {
     show(<SignUp/>);
     const google = screen.getByRole('button', { name: 'Sign up with Google' });
-    const apple = screen.getByRole('button', { name: 'Sign up with Apple' });
+    expect(screen.queryByRole('button', { name: /Apple/ })).not.toBeInTheDocument();
     const firstName = screen.getByRole('textbox', { name: 'First name' });
-    expect(google.compareDocumentPosition(apple) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(apple.compareDocumentPosition(firstName) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(google.compareDocumentPosition(firstName) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByRole('textbox', { name: 'Last name' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show password' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Log in here' })).toBeInTheDocument();

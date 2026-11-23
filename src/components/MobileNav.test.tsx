@@ -36,7 +36,7 @@ describe("mobile footer navigation", () => {
     expect(indicator).toHaveStyle("--nav-index: 3");
   });
 
-  it("shows Home / Projects / Approvals for clients, including pending approvals", () => {
+  it("shows Home / Projects / Deliverables / Approvals for clients, including pending approvals", () => {
     render(
       <MemoryRouter initialEntries={["/client/approvals"]}>
         <MobileNav audience="client" />
@@ -45,10 +45,11 @@ describe("mobile footer navigation", () => {
 
     const nav = screen.getByRole("navigation", { name: "Client mobile navigation" });
     const links = within(nav).getAllByRole("link");
-    expect(links).toHaveLength(3);
+    expect(links).toHaveLength(4);
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       "/client",
       "/client/projects",
+      "/client/deliverables",
       "/client/approvals",
     ]);
     expect(within(nav).getByRole("link", { name: /Approvals/ })).toHaveAttribute("aria-current", "page");

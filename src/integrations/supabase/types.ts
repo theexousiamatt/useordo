@@ -1593,6 +1593,14 @@ export type Database = {
           read_ct: number
         }[]
       }
+      list_project_reviewers: {
+        Args: { _project_id: string }
+        Returns: { user_id: string; full_name: string | null }[]
+      }
+      request_deliverable_review: {
+        Args: { _id: string }
+        Returns: string
+      }
       review_deliverable: {
         Args: { _decision: string; _id: string; _note?: string }
         Returns: string

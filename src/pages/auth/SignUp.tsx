@@ -4,10 +4,9 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { buildAppUrl } from "@/lib/appUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { friendlyAuthError, friendlyAuthErrorDetailed, evaluatePassword, useSocialAuth, logAuthError } from "@/components/auth";
+import { friendlyAuthErrorDetailed, evaluatePassword, useSocialAuth, logAuthError } from "@/components/auth";
 import { JenriAuthLayout, JenriAuthIntro, JenriPasswordField, JenriSocialButton } from "@/components/jenri/JenriAuth";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import type { AuthErrorField } from "@/components/auth";
 
 export default function SignUp() {
@@ -17,18 +16,6 @@ export default function SignUp() {
   const returnTo = authReturnPath(params);
   const invited = returnTo.startsWith("/auth/invite?");
   const { signIn: socialSignIn, pending: socialPending } = useSocialAuth(returnTo);
-  const [appleBusy, setAppleBusy] = useState(false);
-  const signInWithApple = async () => {
-    setAppleBusy(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "apple",
-        options: { redirectTo: new URL(returnTo, window.location.origin).toString() },
-      });
-      if (error) toast.error(friendlyAuthError(error));
-    } catch (err) { toast.error(friendlyAuthError(err)); }
-    finally { setAppleBusy(false); }
-  };
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -105,9 +92,7 @@ export default function SignUp() {
       <section className="jenri-social-section" aria-label="Other ways to create an account">
         <div className="jenri-social-actions">
           <JenriSocialButton provider="google" action="Sign up" busy={socialPending === "google"}
-            disabled={busy || appleBusy} onClick={() => void socialSignIn("google")} />
-          <JenriSocialButton provider="apple" action="Sign up" busy={appleBusy}
-            disabled={busy || !!socialPending} onClick={() => void signInWithApple()} />
+            disabled={busy} onClick={() => void socialSignIn("google")} />
         </div>
       </section>
       <p className="jenri-social-label jenri-auth-separator">Or</p>
@@ -119,22 +104,22 @@ export default function SignUp() {
       {error && <div className="jenri-auth-error" role="alert" style={{marginTop:12}}>{error}</div>}
       <form onSubmit={onSubmit} className="jenri-auth-form" style={{marginTop:error || existingAccount?16:0}}>
         <div className="jenri-field-split">
-          <input className="jenri-field" aria-label="First name" placeholder="First Name" autoComplete="given-name"
-            required value={firstName} onChange={e => setFirstName(e.target.value)} />
-          <input className="jenri-field" aria-label="Last name" placeholder="Last Name" autoComplete="family-name"
-            required value={lastName} onChange={e => setLastName(e.target.value)} />
+          <label className="jerin-auth-label">First name<input className="jenri-field" aria-label="First name" placeholder="First Name" autoComplete="given-name"
+            required value={firstName} onChange={e => setFirstName(e.target.value)} /></label>
+          <label className="jerin-auth-label">Last name<input className="jenri-field" aria-label="Last name" placeholder="Last Name" autoComplete="family-name"
+            required value={lastName} onChange={e => setLastName(e.target.value)} /></label>
         </div>
-        <input className="jenri-field" type="email" aria-label="Email address" placeholder="Email" autoComplete="email"
+        <label className="jerin-auth-label">Email address<input className="jenri-field" type="email" aria-label="Email address" placeholder="Email" autoComplete="email"
           required value={email} aria-invalid={fieldError === "email"} onChange={e => {
             setEmail(e.target.value);
             if(fieldError === "email") setFieldError(null);
-          }} />
-        <JenriPasswordField label="Password" required autoComplete="new-password" minLength={8}
+          }} /></label>
+        <div className="jerin-auth-label"><label htmlFor="jerin-auth-password">Password</label><JenriPasswordField id="jerin-auth-password" label="Password" required autoComplete="new-password" minLength={8}
           aria-invalid={fieldError === "password"} value={password} onChange={e => {
             setPassword(e.target.value);
             if(fieldError === "password") setFieldError(null);
-          }} />
-        <button type="submit" className="jenri-primary-button" disabled={busy || !!socialPending || appleBusy}>
+          }} /></div>
+        <button type="submit" className="jenri-primary-button" disabled={busy || !!socialPending}>
           {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
           Create account
         </button>

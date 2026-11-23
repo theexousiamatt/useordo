@@ -1,7 +1,6 @@
 import { authReturnPath, authPath, safeReturnPath } from "@/lib/authReturn";
 import { useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { friendlyAuthError, useSocialAuth } from "@/components/auth";
@@ -33,18 +32,6 @@ export default function SignIn() {
     (fromState?.pathname ? `${fromState.pathname}${fromState.search ?? ""}` : null) ??
     safeReturnPath(redirectParam, returnPath);
   const { signIn: socialSignIn, pending: socialPending } = useSocialAuth(returnTo);
-  const [appleBusy, setAppleBusy] = useState(false);
-  const signInWithApple = async () => {
-    setAppleBusy(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "apple",
-        options: { redirectTo: new URL(safeReturnPath(returnTo), window.location.origin).toString() },
-      });
-      if (error) toast.error(friendlyAuthError(error));
-    } catch (err) { toast.error(friendlyAuthError(err)); }
-    finally { setAppleBusy(false); }
-  };
 
   if (loading) return null;
   if (user) return <Navigate to={returnTo} replace />;
@@ -87,9 +74,7 @@ export default function SignIn() {
       <section className="jenri-social-section" aria-label="Other ways to sign in">
         <div className="jenri-social-actions">
           <JenriSocialButton provider="google" busy={socialPending === "google"}
-            disabled={busy || appleBusy} onClick={() => void socialSignIn("google")} />
-          <JenriSocialButton provider="apple" busy={appleBusy}
-            disabled={busy || !!socialPending} onClick={() => void signInWithApple()} />
+            disabled={busy} onClick={() => void socialSignIn("google")} />
         </div>
       </section>
       <p className="jenri-social-label jenri-auth-separator">Or</p>
@@ -97,14 +82,14 @@ export default function SignIn() {
       {needsVerification && <Link className="jenri-utility-link" style={{display:"block", margin:"12px 0"}}
         to={authPath("/auth/verify-email", returnTo, email.trim())}>Request a new verification email</Link>}
       <form onSubmit={onSubmit} className="jenri-auth-form" style={{marginTop:error?16:0}}>
-        <input className="jenri-field" type="email" aria-label="Email address" placeholder="Email"
-          autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
-        <JenriPasswordField label="Password" required autoComplete="current-password"
-          value={password} onChange={e => setPassword(e.target.value)} />
+        <label className="jerin-auth-label">Email address<input className="jenri-field" type="email" aria-label="Email address" placeholder="Email"
+          autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} /></label>
+        <div className="jerin-auth-label"><label htmlFor="jerin-auth-password">Password</label><JenriPasswordField id="jerin-auth-password" label="Password" required autoComplete="current-password"
+          value={password} onChange={e => setPassword(e.target.value)} /></div>
         <div className="jenri-forgot">
           <Link className="jenri-utility-link" to={authPath("/auth/forgot-password", returnTo, email.trim())}>Forgot password?</Link>
         </div>
-        <button type="submit" className="jenri-primary-button" disabled={busy || !!socialPending || appleBusy}>
+        <button type="submit" className="jenri-primary-button" disabled={busy || !!socialPending}>
           {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
           Sign in
         </button>

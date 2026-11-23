@@ -15,6 +15,8 @@ import "@/styles/jenri-projects.css";
 
 interface Props {
   projects: ProjectWithMembers[];
+  focusLabel?: string;
+  onClearFocus?: () => void;
   filter: JenriProjectFilter;
   onFilterChange: (filter: JenriProjectFilter) => void;
   onCreate: () => void;
@@ -119,11 +121,11 @@ function MobileProjectCard({
 }
 
 export function JenriProjectsMobile({
-  projects, filter, onFilterChange, onCreate, onOpen, onRetry, handlers, isLoading, isError,
+  projects, focusLabel, onClearFocus, filter, onFilterChange, onCreate, onOpen, onRetry, handlers, isLoading, isError,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { data: taskCounts } = useProjectTaskCounts(projects);
-  const visible = projects.filter((project) => filterMatches(project, filter));
+  const visible = focusLabel ? projects : projects.filter((project) => filterMatches(project, filter));
   const availableFilters: { value: JenriProjectFilter; label: string }[] = [
     { value: "ongoing", label: "Ongoing" },
     { value: "on_hold", label: "On Hold" },
@@ -156,7 +158,10 @@ export function JenriProjectsMobile({
       </button>
     </div>
 
-    <div className="jenri-projects-filters" role="group" aria-label="Filter projects">
+    {focusLabel ? <div className="mx-5 flex items-center justify-between gap-2 rounded-xl bg-secondary px-3 py-2 text-sm">
+      <strong>{focusLabel}</strong>
+      <button type="button" onClick={onClearFocus} className="shrink-0 font-medium underline">Show all</button>
+    </div> : <div className="jenri-projects-filters" role="group" aria-label="Filter projects">
       {availableFilters.map((option) => (
         <button key={option.value} type="button"
           className={`jenri-projects-filter${option.value === filter ? " is-selected" : ""}`}
@@ -164,7 +169,7 @@ export function JenriProjectsMobile({
           aria-pressed={option.value === filter}
         >{option.label}</button>
       ))}
-    </div>
+    </div>}
 
     <div className="jenri-projects-list" aria-live="polite">
       {isLoading ? (
@@ -176,9 +181,9 @@ export function JenriProjectsMobile({
       ) : visible.length === 0 ? (
         <div className="jenri-projects-state">
           <FolderKanban size={26} strokeWidth={1.5} aria-hidden="true" />
-          <h2>No {filter === "ongoing" ? "ongoing" : filter === "on_hold" ? "on-hold" : filter} projects</h2>
+          <h2>{focusLabel ? "No projects in this view" : `No ${filter === "on_hold" ? "on-hold" : filter} projects`}</h2>
           <p>{filter === "ongoing" ? "Create your first project to get started." : "Your projects will appear here when their status changes."}</p>
-          {filter === "ongoing" && <button type="button" onClick={onCreate}>Create project</button>}
+          {!focusLabel && filter === "ongoing" && <button type="button" onClick={onCreate}>Create project</button>}
         </div>
       ) : visible.map((project) => (
         <MobileProjectCard key={project.id} project={project} count={taskCounts?.[project.id]}

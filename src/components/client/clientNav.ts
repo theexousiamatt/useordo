@@ -4,8 +4,6 @@ import {
   Package,
   CheckCircle2,
   Activity,
-  MessageSquare,
-  Settings,
   LucideIcon,
 } from "lucide-react";
 
@@ -23,11 +21,4 @@ export const clientNavItems: ClientNavItem[] = [
   { title: "Deliverables", url: "/client/deliverables", icon: Package },
   { title: "Approvals", url: "/client/approvals", icon: CheckCircle2, badgeKey: "approvals" },
   { title: "Activity", url: "/client/activity", icon: Activity },
-  { title: "Messages", url: "/client/messages", icon: MessageSquare },
 ];
-
-export const clientSettingsItem: ClientNavItem = {
-  title: "Settings",
-  url: "/client/settings",
-  icon: Settings,
-};

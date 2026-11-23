@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { matchPath, NavLink, useLocation } from "react-router-dom";
-import { CheckCheck, FolderKanban, House } from "lucide-react";
+import { CheckCheck, FolderKanban, House, Package } from "lucide-react";
 import { useActionItems } from "@/hooks/useClientDashboard";
 import { cn } from "@/lib/utils";
 import "@/styles/jerin-mobile-nav.css";
@@ -15,6 +15,7 @@ const studioItems = [
 const clientItems = [
   { title: "Home", url: "/client", icon: House, end: true },
   { title: "Projects", url: "/client/projects", icon: FolderKanban, end: false },
+  { title: "Deliverables", url: "/client/deliverables", icon: Package, end: false },
   { title: "Approvals", url: "/client/approvals", icon: CheckCheck, end: false },
 ] as const;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterWorkTasks, workViewFor, type WorkTask } from "./myTasks";
+import { filterWorkTasks, workRangeStart, workViewFor, type WorkTask } from "./myTasks";
 
 const today = new Date(2026, 10, 14, 13);
 const task = (id: string, due_date: string | null, completed_at: string | null = null): WorkTask => ({
@@ -26,5 +26,15 @@ describe("personal task view rules", () => {
     archived.archived_at = "2026-11-14T10:00:00Z";
     expect(filterWorkTasks([done, archived], new Map(), null, "today", false, today)).toEqual([]);
     expect(filterWorkTasks([done, archived], new Map(), null, "completed", false, today)).toEqual([done]);
+  });
+  it("uses the linked seven-day range and assignee for dashboard and destination filters", () => {
+    const assigned = task("assigned", "2026-11-20");
+    const completed = { ...task("closed project", "2026-11-14"), project_id: "closed" };
+    const list = [assigned, task("team", "2026-11-14"), task("outside", "2026-11-21"), completed];
+    const assignees = new Map([[assigned.id, ["me"]]]);
+    const range = workRangeStart("2026-11-14", new Date(2026, 10, 15));
+    expect(filterWorkTasks(list, assignees, "me", "week", false, range, new Set(["closed"])).map(item => item.id))
+      .toEqual(["team", "assigned"]);
+    expect(filterWorkTasks(list, assignees, "me", "week", true, range)).toEqual([assigned]);
   });
 });

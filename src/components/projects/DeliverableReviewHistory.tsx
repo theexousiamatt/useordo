@@ -37,12 +37,12 @@ export function DeliverableReviewHistory({ deliverableId, projectId }: {
   return (
     <ol className="mt-3 space-y-3 border-l border-border pl-4">
       {data.map((review) => (
-        <li key={review.id} className="text-xs">
-          <div className="flex flex-wrap items-center gap-2 font-medium">
+        <li key={review.id} className="text-sm">
+          <div className="flex flex-wrap items-center gap-2 font-semibold">
             {review.decision === "approved" ? <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> :
               <MessageSquareText className="h-3.5 w-3.5 text-muted-foreground" />}
             <span>{review.decision === "approved" ? "Approved" : "Changes requested"}</span>
-            <span className="font-normal text-muted-foreground">{timeAgo(review.created_at)}</span>
+            <span className="text-xs font-medium text-muted-foreground">{timeAgo(review.created_at)}</span>
           </div>
           {review.note && <p className="mt-1 whitespace-pre-wrap break-words leading-relaxed text-muted-foreground">{review.note}</p>}
         </li>

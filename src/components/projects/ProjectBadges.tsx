@@ -31,10 +31,16 @@ export function HealthBadge({ health }: { health: ProjectHealth }) {
 }
 
 
-export function DeliverableBadge({ status }: { status: DeliverableStatus }) {
+export function DeliverableBadge({ status, requiresApproval = true }: { status: string; requiresApproval?: boolean }) {
+  const label = {
+    draft: requiresApproval ? "Draft for client review" : "Awaiting studio sign-off",
+    submitted: requiresApproval ? "Awaiting client approval" : "Awaiting studio sign-off",
+    approved: requiresApproval ? "Approved" : "Signed off by studio",
+    rejected: "Changes requested",
+  }[status as DeliverableStatus] ?? "Shared";
   return (
-    <Badge variant="outline" className={cn("border-transparent capitalize", DELIVERABLE_STATUS_STYLES[status])}>
-      {status}
+    <Badge variant="outline" className={cn("border-transparent text-sm font-semibold", DELIVERABLE_STATUS_STYLES[status as DeliverableStatus])}>
+      {label}
     </Badge>
   );
 }

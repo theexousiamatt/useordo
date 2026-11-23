@@ -11,12 +11,18 @@ export interface WorkTask {
   position: number;
 }
 
-export type WorkView = "today" | "upcoming" | "overdue" | "completed" | "unscheduled";
+export type WorkView = "today" | "upcoming" | "overdue" | "completed" | "unscheduled" | "open" | "week";
 
 export function dueDays(date: string | null, now = new Date()): number | null {
   if (!date) return null;
   const parsed = parseISO(date);
   return isValid(parsed) ? differenceInCalendarDays(parsed, now) : null;
+}
+
+export function workRangeStart(value: string | null, fallback = new Date()): Date {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return fallback;
+  const parsed = parseISO(value);
+  return isValid(parsed) ? parsed : fallback;
 }
 
 /**
@@ -40,12 +46,19 @@ export function filterWorkTasks(
   view: WorkView,
   mineOnly = true,
   now = new Date(),
+  completedProjects: ReadonlySet<string> = new Set(),
 ) {
   const filtered = tasks.filter((task) => {
     if (task.archived_at) return false;
     if (mineOnly && (!userId || !(
       task.assignee_id === userId || (assignees.get(task.id) ?? []).includes(userId)
     ))) return false;
+    if (view === "open") return !task.completed_at;
+    if (view === "overdue" && completedProjects.has(task.project_id)) return false;
+    if (view === "week") {
+      const days = dueDays(task.due_date, now);
+      return !task.completed_at && !completedProjects.has(task.project_id) && days !== null && days >= 0 && days < 7;
+    }
     const kind = workViewFor(task, now);
     return kind === view || (view === "today" && kind === "overdue");
   });

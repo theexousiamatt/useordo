@@ -71,6 +71,13 @@ function daysUntil(date: string | null, now: Date): number | null {
   return differenceInCalendarDays(parsed, now);
 }
 
+export function matchesDashboardProject(project: Pick<StudioProject, "status" | "archived_at" | "due_date">, view: "active" | "week", now = new Date()) {
+  if (project.archived_at || project.status === "archived") return false;
+  if (view === "active") return project.status === "active";
+  const days = daysUntil(project.due_date, now);
+  return project.status !== "completed" && days !== null && days >= 0 && days < 7;
+}
+
 export function activityDescription(activity: StudioActivity): string {
   const title = activity.metadata?.title;
   const suffix = typeof title === "string" && title.trim() ? ": " + title.trim() : "";
@@ -95,7 +102,7 @@ export function buildStudioOverview(data: StudioDashboardData, now = new Date())
   const projects = data.projects.filter((p) => !p.archived_at && p.status !== "archived");
   const byId = new Map(projects.map((p) => [p.id, p]));
   const tasks = data.tasks.filter((task) => byId.has(task.project_id) && !task.archived_at);
-  const activeProjects = projects.filter((p) => p.status === "active");
+  const activeProjects = projects.filter((project) => matchesDashboardProject(project, "active", now));
   const openTasks = tasks.filter((task) => !task.completed_at);
   const deadlines: StudioDeadline[] = [];
 
@@ -166,6 +173,7 @@ export function buildStudioOverview(data: StudioDashboardData, now = new Date())
   return {
     projects,
     activeProjects,
+    projectsDueThisWeek: projects.filter(project => matchesDashboardProject(project, "week", now)),
     featuredProjects,
     openTasks,
     overdueTasks,

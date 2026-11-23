@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { initials } from "@/lib/format";
 
-export function UserProfileMenu({ settingsPath = "/client/settings" }: { settingsPath?: string }) {
+export function UserProfileMenu({ settingsPath }: { settingsPath?: string }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const name = (user?.user_metadata?.full_name as string) || user?.email?.split("@")[0] || "Account";
@@ -37,12 +37,14 @@ export function UserProfileMenu({ settingsPath = "/client/settings" }: { setting
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate("/auth/invitations")} className="gap-2"><Mail className="h-4 w-4" />Invitations</DropdownMenuItem>
+        {settingsPath && <>
         <DropdownMenuItem onClick={() => navigate(settingsPath)} className="gap-2">
           <User className="h-4 w-4" /> Profile
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate(settingsPath)} className="gap-2">
           <Settings className="h-4 w-4" /> Settings
         </DropdownMenuItem>
+        </>}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => { void signOut().catch(() => toast.error("Could not sign out. Check your connection and try again.")); }} className="gap-2 text-destructive focus:text-destructive">
           <LogOut className="h-4 w-4" /> Sign out

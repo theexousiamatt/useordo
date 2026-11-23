@@ -1,5 +1,8 @@
+import { addDays, format } from "date-fns";
+import { workRangeStart } from "@/lib/myTasks";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { matchesDashboardProject } from "@/lib/studioDashboard";
 import { FolderKanban, Plus, CalendarDays, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,9 +39,21 @@ import { projectUrl } from "@/lib/appUrl";
 
 export default function Projects() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedView = searchParams.get("view");
+  const focus = requestedView === "active" || requestedView === "week" ? requestedView : null;
+  const rangeStart = workRangeStart(searchParams.get("from"));
+  const focusLabel = focus === "active" ? "Active projects" : `Projects due ${format(rangeStart, "MMM d")} – ${format(addDays(rangeStart, 6), "MMM d")}`;
+  const clearFocus = () => setSearchParams(previous => {
+    const next = new URLSearchParams(previous);
+    next.delete("view");
+    next.delete("from");
+    return next;
+  }, { replace: true });
   const [showArchived, setShowArchived] = useState(false);
   const [mobileFilter, setMobileFilter] = useState<JenriProjectFilter>("ongoing");
   const { data: projects, isLoading, isError, refetch } = useProjects({ includeArchived: showArchived || mobileFilter === "archived" });
+  const visibleProjects = focus ? projects?.filter(project => matchesDashboardProject(project, focus, rangeStart)) : projects;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsProject, setSettingsProject] = useState<ProjectRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProjectRow | null>(null);
@@ -85,7 +100,9 @@ export default function Projects() {
   return (
     <div>
       <JenriProjectsMobile
-        projects={projects ?? []}
+        projects={visibleProjects ?? []}
+        focusLabel={focus ? focusLabel : undefined}
+        onClearFocus={clearFocus}
         isLoading={isLoading}
         isError={isError}
         onRetry={() => void refetch()}
@@ -99,6 +116,9 @@ export default function Projects() {
         handlers={handlers}
       />
       <div className="hidden lg:block">
+        {focus && <div className="mb-4 flex items-center justify-between rounded-xl bg-card p-3">
+          <strong>{focusLabel}</strong><Button variant="ghost" onClick={clearFocus}>Show all projects</Button>
+        </div>}
         <PageHeader
         title="Projects"
         description="Plan, track, and deliver the work that matters."
@@ -130,7 +150,7 @@ export default function Projects() {
       ) : !projects || projects.length === 0 ? (
         <EmptyState
           icon={FolderKanban}
-          title={showArchived ? "No archived projects" : "No projects yet"}
+          title={focus ? "No projects in this view" : showArchived ? "No archived projects" : "No projects yet"}
           description={
             showArchived
               ? "Projects you archive will appear here and can be restored anytime."
@@ -141,7 +161,7 @@ export default function Projects() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p) => (
+          {visibleProjects.map((p) => (
             <ProjectCard
               key={p.id}
               project={p}

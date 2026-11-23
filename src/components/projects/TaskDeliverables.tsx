@@ -4,22 +4,25 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DeliverableAttachment, deliverableLink } from "@/components/projects/DeliverableAttachment";
 import { DeliverableBadge } from "@/components/projects/ProjectBadges";
-import { useCreateDeliverable, useProjectDeliverables, useUpdateDeliverableStatus } from "@/hooks/useProjectData";
+import { useCreateDeliverable, useProjectDeliverables, useProjectReviewers, useUpdateDeliverableStatus } from "@/hooks/useProjectData";
+import { DeliverableReviewHistory } from "@/components/projects/DeliverableReviewHistory";
 import { useProjectFiles } from "@/hooks/useProjectFiles";
 
 type Source = "upload" | "link" | "project";
 const assets = "/jenri/project-detail/";
 
-export function TaskDeliverables({ projectId, taskId }: { projectId: string; taskId: string }) {
+export function TaskDeliverables({ projectId, taskId }: { projectId: string; taskId?: string }) {
   const query = useProjectDeliverables(projectId);
   const update = useUpdateDeliverableStatus(projectId);
-  const deliverables = query.data?.filter(item => item.task_id === taskId) ?? [];
-  const requestReview = async (id: string) => {
+  const reviewers = useProjectReviewers(projectId);
+  const deliverables = (query.data ?? []).filter(item => !taskId || item.task_id === taskId);
+  const reviewerNames = reviewers.data?.map(reviewer => reviewer.full_name || "Client reviewer").join(", ");
+  const requestReview = async (id: string, action: "request" | "sign-off") => {
     try {
-      await update.mutateAsync({ id, status: "submitted" });
-      toast.success("Sent to the client for review.");
+      await update.mutateAsync({ id, action });
+      toast.success(action === "request" ? "Sent to the client for review." : "Studio sign-off saved.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not request approval.");
+      toast.error(error instanceof Error ? error.message : "Could not update the deliverable.");
     }
   };
 
@@ -35,22 +38,36 @@ export function TaskDeliverables({ projectId, taskId }: { projectId: string; tas
       {deliverables.map(item => <li className="jerin-deliverable-card" key={item.id}>
         <div className="flex flex-wrap justify-between gap-2">
           <strong className="break-words">{item.title}</strong>
-          <DeliverableBadge status={item.status} />
+          <DeliverableBadge status={item.status} requiresApproval={item.requires_approval} />
         </div>
         {item.version_label && <p className="text-xs text-muted-foreground">{item.version_label}</p>}
         {item.description && <p className="whitespace-pre-wrap break-words text-sm">{item.description}</p>}
         <DeliverableAttachment source={item} projectId={projectId} />
-        {(item.status === "draft" || item.status === "rejected") && <button
-          type="button" className="jerin-deliverable-request" disabled={update.isPending}
-          onClick={() => void requestReview(item.id)}
-        >{item.status === "rejected" ? "Request approval again" : "Request approval"}</button>}
+        {item.requires_approval ? <>
+          <p className="text-sm font-medium">
+            {reviewers.isPending ? "Loading client reviewers…" : reviewers.isError ? "Client reviewers could not be loaded." :
+              reviewerNames ? `Can review: ${reviewerNames}` : "Add an active client reviewer in project settings."}
+          </p>
+          {(item.status === "draft" || item.status === "rejected") && <button
+            type="button" className="jerin-deliverable-request" disabled={update.isPending || !reviewerNames}
+            onClick={() => void requestReview(item.id, "request")}
+          >{item.status === "rejected" ? "Request approval again" : "Request client approval"}</button>}
+          {item.status !== "draft" && <details className="text-sm"><summary className="cursor-pointer font-medium">Client decisions</summary>
+            <DeliverableReviewHistory deliverableId={item.id} projectId={projectId} />
+          </details>}
+        </> : <>
+          <p className="text-sm font-medium">Project collaborators can record studio sign-off.</p>
+          {item.status === "draft" && <button type="button" className="jerin-deliverable-request"
+            disabled={update.isPending} onClick={() => void requestReview(item.id, "sign-off")}
+          >Sign off and share</button>}
+        </>}
       </li>)}
     </ul>}
     <AddTaskDeliverable projectId={projectId} taskId={taskId} />
   </section>;
 }
 
-function AddTaskDeliverable({ projectId, taskId }: { projectId: string; taskId: string }) {
+function AddTaskDeliverable({ projectId, taskId }: { projectId: string; taskId?: string }) {
   const [open, setOpen] = useState(false);
   return <Sheet open={open} onOpenChange={setOpen}>
     <SheetTrigger asChild>
@@ -64,12 +81,13 @@ function AddTaskDeliverable({ projectId, taskId }: { projectId: string; taskId: 
   </Sheet>;
 }
 
-function DeliverableForm({ projectId, taskId, onDone }: { projectId: string; taskId: string; onDone: () => void }) {
+function DeliverableForm({ projectId, taskId, onDone }: { projectId: string; taskId?: string; onDone: () => void }) {
   const [kind, setKind] = useState<Source>("upload");
   const [upload, setUpload] = useState<File | null>(null);
   const [url, setUrl] = useState("");
   const [fileId, setFileId] = useState("");
   const [title, setTitle] = useState("");
+  const [requiresApproval, setRequiresApproval] = useState(true);
   const [version, setVersion] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
@@ -89,7 +107,7 @@ function DeliverableForm({ projectId, taskId, onDone }: { projectId: string; tas
       return;
     }
     try {
-      await create.mutateAsync({ title: title.trim(), description: description.trim(), version: version.trim(), requiresApproval: true, taskId, source });
+      await create.mutateAsync({ title: title.trim(), description: description.trim(), version: version.trim(), requiresApproval, taskId, source });
       toast.success("Deliverable added.");
       onDone();
     } catch (error) {
@@ -120,7 +138,11 @@ function DeliverableForm({ projectId, taskId, onDone }: { projectId: string; tas
       {files.files.map(file => <option key={file.id} value={file.id}>{file.name}</option>)}
     </select></label>}
     <label>Version (optional)<input value={version} maxLength={40} placeholder="V1" onChange={event => setVersion(event.target.value)} /></label>
-    <label>Description (optional)<textarea value={description} rows={3} maxLength={5000} onChange={event => setDescription(event.target.value)} /></label>
+    <label>Review type<select value={requiresApproval ? "client" : "studio"} onChange={event => setRequiresApproval(event.target.value === "client")}>
+      <option value="client">Client approval</option>
+      <option value="studio">Studio sign-off</option>
+    </select></label>
+    <label>Brief (optional)<textarea value={description} rows={3} maxLength={5000} onChange={event => setDescription(event.target.value)} /></label>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <button type="submit" disabled={create.isPending || !title.trim()} className="jerin-deliverable-request">
       {create.isPending ? "Adding…" : "Add deliverable"}

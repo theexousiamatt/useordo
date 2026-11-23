@@ -496,3 +496,16 @@
     overflow-x: clip;
   }
 }
+
+.jenri .jerin-auth-label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--jenri-cacao);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.jenri .jenri-field-split > .jerin-auth-label { flex: 1 1 0; }
+.jenri .jenri-field-split > .jerin-auth-label:first-child .jenri-field { border-radius: 50px 0 0 50px; }
+.jenri .jenri-field-split > .jerin-auth-label:last-child .jenri-field { border-radius: 0 50px 50px 0; }

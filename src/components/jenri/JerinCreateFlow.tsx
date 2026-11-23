@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CalendarDays, CheckSquare2, ChevronDown, ChevronRight, FolderPlus, Loader2, Plus, X } from "lucide-react";
+import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -111,23 +112,14 @@ export function JerinCreateFlow() {
     return () => window.removeEventListener("jerin:open-create", open);
   }, []);
 
+  const opener = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    if (view === "closed") return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const dismiss = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !saving) setView("closed");
+    const rememberOpener = () => {
+      if (document.activeElement instanceof HTMLElement) opener.current = document.activeElement;
     };
-    window.addEventListener("keydown", dismiss);
-    return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener("keydown", dismiss);
-    };
-  }, [view, saving]);
-
-  const close = () => {
-    if (!saving) setView("closed");
-  };
+    window.addEventListener("jerin:open-create", rememberOpener);
+    return () => window.removeEventListener("jerin:open-create", rememberOpener);
+  }, []);
 
   async function saveProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -172,6 +164,7 @@ export function JerinCreateFlow() {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["projects"] }),
         qc.invalidateQueries({ queryKey: ["studio-dashboard"] }),
+        qc.invalidateQueries({ queryKey: ["work-tasks"] }),
       ]);
       toast.success("Project created");
       setName("");
@@ -255,6 +248,7 @@ export function JerinCreateFlow() {
         qc.invalidateQueries({ queryKey: ["task-label-map", projectId] }),
         qc.invalidateQueries({ queryKey: ["project-activity", projectId] }),
         qc.invalidateQueries({ queryKey: ["studio-dashboard"] }),
+        qc.invalidateQueries({ queryKey: ["work-tasks"] }),
       ]);
       toast.success("Task created");
       setTaskTitle("");
@@ -269,17 +263,26 @@ export function JerinCreateFlow() {
     }
   }
 
-  return <>
-    {pathname === "/" && view === "closed" && (
-      <button type="button" aria-label="Create new" title="Create new"
-        className="jcf-fab" onClick={() => setView("menu")}><Plus size={28} strokeWidth={1.8} /></button>
+  return <Sheet open={view !== "closed"} onOpenChange={open => { if (!saving) setView(open ? "menu" : "closed"); }}>
+    {pathname === "/" && (
+      <SheetTrigger asChild>
+        <button type="button" aria-label="Create new" title="Create new"
+          className="jcf-fab"><Plus size={28} strokeWidth={1.8} /></button>
+      </SheetTrigger>
     )}
-    {view !== "closed" && <div className="jenri jcf-overlay" onClick={close}>
-      {view === "menu" ? <section role="dialog" aria-modal="true" aria-labelledby="jcf-menu-title"
-        className="jcf-sheet" onClick={(event) => event.stopPropagation()}>
+    <SheetContent side="bottom" hideClose overlayClassName="z-[99]"
+      className={`jenri jcf-overlay ${view === "menu" ? "jcf-sheet" : "jcf-form-page"} z-[100] w-full border-0`}
+      aria-describedby={undefined}
+      onEscapeKeyDown={event => { if (saving) event.preventDefault(); }}
+      onInteractOutside={event => { if (saving) event.preventDefault(); }}
+      onCloseAutoFocus={event => {
+        if (opener.current?.isConnected) { event.preventDefault(); opener.current.focus(); }
+        opener.current = null;
+      }}>
+      {view === "menu" ? <>
         <span className="jcf-grabber" aria-hidden="true" />
-        <button type="button" className="jcf-close" aria-label="Close create menu" onClick={close}><X size={18} /></button>
-        <h2 id="jcf-menu-title">Create new</h2>
+        <SheetClose className="jcf-close" aria-label="Close create menu"><X size={18} /></SheetClose>
+        <SheetTitle>Create new</SheetTitle>
         <p>What would you like to work on?</p>
         <button type="button" className="jcf-action" onClick={() => setView("project")}>
           <span className="jcf-action-icon"><FolderPlus size={24} strokeWidth={1.7} /></span>
@@ -291,8 +294,8 @@ export function JerinCreateFlow() {
           <span className="jcf-action-copy"><strong>New task</strong><small>Add work to an existing project</small></span>
           <ChevronRight size={19} />
         </button>
-      </section> : <section role="dialog" aria-modal="true" aria-labelledby="jcf-page-title"
-        className="jcf-form-page" onClick={(event) => event.stopPropagation()}>
+      </> : <>
+        <SheetTitle className="sr-only">{view === "project" ? "New project" : "New task"}</SheetTitle>
         <CreateHeader title={view === "project" ? "New project" : "New task"} onBack={() => !saving && setView("menu")} />
         {view === "project" ? <form className="jcf-form" onSubmit={saveProject}>
           <div className="jcf-intro"><h2 id="jcf-page-title">Set up your project</h2><p>The details can always be changed later.</p></div>
@@ -353,7 +356,7 @@ export function JerinCreateFlow() {
           <footer className="jcf-form-footer"><button type="submit" className="jcf-submit"
             disabled={saving || !projectId || !taskTitle.trim()}>{saving ? <Loader2 size={21} className="animate-spin" /> : <>Create task <ChevronRight size={20} /></>}</button></footer>
         </form>}
-      </section>}
-    </div>}
-  </>;
+      </>}
+    </SheetContent>
+  </Sheet>;
 }

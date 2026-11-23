@@ -280,6 +280,7 @@ export function useSetTaskAssignees(projectId: string) {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["task-assignees", projectId] });
+      void qc.invalidateQueries({ queryKey: ["work-tasks"] });
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
     },
   });
@@ -318,6 +319,8 @@ export function useProjectMilestones(projectId?: string) {
   });
 }
 
+export const DELIVERABLE_FIELDS = "id, project_id, title, description, status, requires_approval, approved_at, created_at, task_id, project_file_id, attachment_url, attachment_path, attachment_name, version_label";
+
 export function useProjectDeliverables(projectId?: string) {
   return useQuery({
     queryKey: ["project-deliverables", projectId],
@@ -325,7 +328,7 @@ export function useProjectDeliverables(projectId?: string) {
     queryFn: async (): Promise<DeliverableRow[]> => {
       const { data, error } = await supabase
         .from("deliverables")
-        .select("id, project_id, title, description, status, requires_approval, approved_at, created_at, task_id, project_file_id, attachment_url, attachment_path, attachment_name, version_label")
+        .select(DELIVERABLE_FIELDS)
         .eq("project_id", projectId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -382,26 +385,34 @@ export function useCreateDeliverable(projectId: string) {
   });
 }
 
+export function useProjectReviewers(projectId: string) {
+  return useQuery({
+    queryKey: ["project-reviewers", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_project_reviewers", { _project_id: projectId });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function useUpdateDeliverableStatus(projectId: string) {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: string; status: DeliverableStatus }) => {
-      const patch: {
-        status: DeliverableStatus;
-        approved_at?: string;
-        approved_by?: string | null;
-      } = { status: input.status };
-      if (input.status === "approved") {
-        patch.approved_at = new Date().toISOString();
-        patch.approved_by = user?.id ?? null;
+    mutationFn: async ({ id, action }: { id: string; action: "request" | "sign-off" }) => {
+      if (action === "request") {
+        const { error } = await supabase.rpc("request_deliverable_review", { _id: id });
+        if (error) throw new Error(error.message);
+        return;
       }
-      const { data, error } = await supabase
-        .from("deliverables")
-        .update(patch)
-        .eq("id", input.id)
+      if (!user) throw new Error("Sign in to record studio sign-off.");
+      const { data, error } = await supabase.from("deliverables")
+        .update({ status: "approved", approved_at: new Date().toISOString(), approved_by: user.id })
+        .eq("id", id)
         .eq("project_id", projectId)
-        .in("status", input.status === "submitted" ? ["draft", "rejected"] : ["submitted"])
+        .eq("requires_approval", false)
+        .eq("status", "draft")
         .select("id")
         .maybeSingle();
       if (error) throw new Error(error.message);
@@ -413,8 +424,6 @@ export function useUpdateDeliverableStatus(projectId: string) {
     },
   });
 }
-
-
 
 export function useProjectActivity(projectId?: string, limit = 20) {
   return useQuery({
@@ -454,6 +463,7 @@ export function useCreateTask(projectId: string, workspaceId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["work-tasks"] });
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
       qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
     },
@@ -482,6 +492,7 @@ export function useUpdateTask(projectId: string) {
       toast.error("Couldn't save your change. Please try again.");
     },
     onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["work-tasks"] });
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
       qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
       qc.invalidateQueries({ queryKey: ["project", projectId] });
@@ -506,6 +517,7 @@ export function useReorderTasks(projectId: string) {
     },
     onError: () => {
       // Roll back to the server's truth.
+      void qc.invalidateQueries({ queryKey: ["work-tasks"] });
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
     },
     onSuccess: () => {
@@ -528,6 +540,7 @@ export function useDeleteTask(projectId: string) {
     },
     onSuccess: () => {
       void Promise.all([
+        qc.invalidateQueries({ queryKey: ["work-tasks"] }),
         qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
         qc.invalidateQueries({ queryKey: ["project-subtasks", projectId] }),
         qc.invalidateQueries({ queryKey: ["task-label-map", projectId] }),
@@ -564,6 +577,7 @@ export function useDuplicateTask(projectId: string) {
     },
     onSuccess: () => {
       void Promise.all([
+        qc.invalidateQueries({ queryKey: ["work-tasks"] }),
         qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
         qc.invalidateQueries({ queryKey: ["project-subtasks", projectId] }),
         qc.invalidateQueries({ queryKey: ["task-label-map", projectId] }),
@@ -589,6 +603,7 @@ export function useArchiveTask(projectId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["work-tasks"] });
       qc.invalidateQueries({ queryKey: ["project-tasks", projectId] });
       qc.invalidateQueries({ queryKey: ["project-activity", projectId] });
     },
@@ -603,7 +618,10 @@ export function useBulkUpdateTasks(projectId: string) {
       const { error } = await supabase.from("tasks").update(patch).in("id", ids);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+      qc.invalidateQueries({ queryKey: ["work-tasks"] }),
+    ]),
   });
 }
 
@@ -615,6 +633,9 @@ export function useBulkDeleteTasks(projectId: string) {
       const { error } = await supabase.from("tasks").delete().in("id", ids);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ["project-tasks", projectId] }),
+      qc.invalidateQueries({ queryKey: ["work-tasks"] }),
+    ]),
   });
 }

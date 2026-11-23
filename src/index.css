@@ -95,7 +95,7 @@
    Applied only within `.client-os` so the rest of the
    application keeps its defaults. All colors use HSL.
    ============================================================ */
-.client-os {
+:is(.client-os, .jerin-portal-surface) {
   --background: 31 29% 96%;
   --foreground: 17.3 96.3% 10.6%;
 
@@ -216,4 +216,11 @@
   body:has([role="dialog"][data-state="open"]) .mobile-bottom-nav {
     display: none;
   }
+}
+
+.jerin-portal-surface:not(.jerin-navigation-sheet) {
+  --background: 34 48% 98%;
+  --popover: 34 48% 98%;
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
 }
