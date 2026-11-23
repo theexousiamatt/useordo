@@ -94,7 +94,7 @@ export default function Projects() {
           setMobileFilter(next);
           setShowArchived(next === "archived");
         }}
-        onCreate={() => setDialogOpen(true)}
+        onCreate={() => window.dispatchEvent(new Event("jerin:open-create"))}
         onOpen={(project) => navigate(`/projects/${project.id}`)}
         handlers={handlers}
       />
