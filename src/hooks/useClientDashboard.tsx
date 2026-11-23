@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { DeliverableSource } from "@/hooks/useProjectData";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { scopedSelect } from "@/lib/workspaceScope";
 
@@ -23,6 +24,7 @@ export interface ClientProject {
 }
 
 export interface ActionItem {
+  source?: DeliverableSource;
   id: string;
   title: string;
   status: TaskStatus;
@@ -117,7 +119,7 @@ export function useActionItems(projectId?: string) {
       let query = scopedSelect(
         "deliverables",
         workspaceId,
-        "id, title, description, created_at, status, project_id",
+        "id, title, description, created_at, status, project_id, project_file_id, attachment_url, attachment_path, attachment_name, version_label",
       )
         .eq("status", "submitted")
         .eq("requires_approval", true)
@@ -139,6 +141,13 @@ export function useActionItems(projectId?: string) {
         project_name: names.get(t.project_id) ?? "Project",
         description: t.description ?? null,
         created_at: t.created_at,
+        source: {
+          project_file_id: t.project_file_id,
+          attachment_url: t.attachment_url,
+          attachment_path: t.attachment_path,
+          attachment_name: t.attachment_name,
+          version_label: t.version_label,
+        },
       }));
     },
   });

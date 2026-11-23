@@ -85,9 +85,9 @@ export function TaskDrawerProperties({
       </div>
 
       {/* Quiet label/value layout, with no redundant outlined property chips. */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3" aria-label="Editable task properties">
+      <div className="jerin-task-properties grid grid-cols-2 gap-x-4 gap-y-3" aria-label="Editable task properties">
         <div className="min-w-0 space-y-0.5">
-          <p className="px-1 text-[11px] font-medium text-muted-foreground">Stage</p>
+          <p className="px-1 text-[11px] font-medium text-muted-foreground"><img src="/jenri/project-detail/stage.svg" alt="" />Stage</p>
           <Popover open={stageOpen} onOpenChange={setStageOpen}>
             <PopoverTrigger asChild>
               <button type="button" className={editable} aria-label="Change task stage">
@@ -116,7 +116,7 @@ export function TaskDrawerProperties({
         </div>
 
         <div className="min-w-0 space-y-0.5">
-          <p className="px-1 text-[11px] font-medium text-muted-foreground">Assignees</p>
+          <p className="px-1 text-[11px] font-medium text-muted-foreground"><img src="/jenri/project-detail/assignee.svg" alt="" />Assignees</p>
           <Popover>
             <PopoverTrigger asChild>
               <button type="button" className={editable} aria-label="Edit task assignees">
@@ -137,7 +137,7 @@ export function TaskDrawerProperties({
         </div>
 
         <div className="min-w-0 space-y-0.5">
-          <p className="px-1 text-[11px] font-medium text-muted-foreground">Due date</p>
+          <p className="px-1 text-[11px] font-medium text-muted-foreground"><img src="/jenri/project-detail/calendar.svg" alt="" />Due date</p>
           <Popover open={dueOpen} onOpenChange={setDueOpen}>
             <PopoverTrigger asChild>
               <button type="button" className={editable} aria-label="Edit task due date">

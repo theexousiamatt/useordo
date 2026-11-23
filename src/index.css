@@ -91,36 +91,36 @@
 }
 
 /* ============================================================
-   Ordo Client OS — scoped light design system.
+   Jerin application theme
    Applied only within `.client-os` so the rest of the
-   (dark Midnight Indigo) app is untouched. All colors HSL.
+   application keeps its defaults. All colors use HSL.
    ============================================================ */
 .client-os {
-  --background: 220 16% 95%;          /* #F0F2F5 app bg */
-  --foreground: 210 8% 11%;           /* #1A1D1F primary text */
+  --background: 31 29% 96%;
+  --foreground: 17.3 96.3% 10.6%;
 
   --card: 0 0% 100%;                  /* #FFFFFF panels */
-  --card-foreground: 210 8% 11%;
+  --card-foreground: 17.3 96.3% 10.6%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 210 8% 11%;
+  --popover-foreground: 17.3 96.3% 10.6%;
 
-  /* Ordo brand primary — #002726 used strategically as a system color */
-  --primary: 178 100% 8%;            /* #002726 */
+  /* Espresso primary and warm supporting tones. */
+  --primary: 17.3 96.3% 10.6%;
   --primary-foreground: 0 0% 100%;
-  --primary-hover: 178 100% 12%;     /* hover on primary actions */
-  --primary-active: 177 100% 6%;     /* pressed/active primary */
-  --primary-surface: 180 30% 96%;    /* subtle selected/tinted bg */
-  --primary-border: 178 26% 84%;     /* tinted borders on brand surfaces */
-  --primary-text: 178 90% 12%;       /* brand-colored text on light bg */
+  --primary-hover: 24 77% 17%;
+  --primary-active: 17 96% 8%;
+  --primary-surface: 36 50% 95%;
+  --primary-border: 32 34% 84%;
+  --primary-text: 26 43% 22%;
 
-  --secondary: 220 14% 96%;           /* hover/active surface */
-  --secondary-foreground: 210 8% 11%;
+  --secondary: 34 36% 94%;
+  --secondary-foreground: 26 43% 22%;
 
-  --muted: 220 14% 96%;
-  --muted-foreground: 213 6% 47%;     /* #6F767E secondary text */
+  --muted: 30 24% 95%;
+  --muted-foreground: 21 17% 40%;
 
-  --accent: 178 100% 8%;             /* brand accent (focus, active) */
+  --accent: 17.3 96.3% 10.6%;
   --accent-foreground: 0 0% 100%;
 
   --destructive: 0 72% 51%;
@@ -132,15 +132,15 @@
   --warning: 32 95% 44%;
   --warning-foreground: 0 0% 100%;
 
-  --border: 0 0% 94%;                 /* #EFEFEF */
-  --input: 0 0% 94%;
-  --ring: 178 100% 8%;               /* brand focus ring */
+  --border: 32 26% 89%;
+  --input: 32 26% 89%;
+  --ring: 29 46% 43%;
 
   /* AI experience — subtle brand-derived tint */
-  --ai-surface: 180 32% 97%;
-  --ai-border: 178 24% 86%;
-  --ai-text: 178 80% 16%;
-  --ai-glow: 178 100% 8%;
+  --ai-surface: 37 53% 96%;
+  --ai-border: 35 32% 85%;
+  --ai-text: 26 43% 22%;
+  --ai-glow: 29 46% 43%;
 
   /* Sidebar — strongest branded surface */
   --sidebar-brand: 17.3 96.3% 10.6%; /* #351001 */

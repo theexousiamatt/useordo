@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { sendAppEmail } from "@/lib/email";
 import type { ActionItem } from "@/hooks/useClientDashboard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { DeliverableAttachment } from "@/components/projects/DeliverableAttachment";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -42,6 +43,7 @@ export function ApprovalCard({ item }: ApprovalCardProps) {
       queryClient.invalidateQueries({ queryKey: ["client-actions"] });
       queryClient.invalidateQueries({ queryKey: ["client-activity"] });
       queryClient.invalidateQueries({ queryKey: ["deliverable-reviews", item.id] });
+      queryClient.invalidateQueries({ queryKey: ["client-reviewed-deliverables"] });
       queryClient.invalidateQueries({ queryKey: ["studio-dashboard"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -50,7 +52,7 @@ export function ApprovalCard({ item }: ApprovalCardProps) {
   const urgent = item.status === "changes_requested";
 
   return (
-    <div className="flex flex-col items-stretch justify-between gap-4 rounded-small sm:flex-row sm:items-center border border-transparent bg-card px-5 py-4 transition-colors hover:border-border">
+    <div className="flex flex-col items-stretch justify-between gap-4 rounded-small sm:flex-row sm:items-center border border-transparent jerin-client-approval bg-card px-5 py-4 transition-colors hover:border-border">
       <div className="flex min-w-0 items-center gap-4">
         <span
           className={cn(
@@ -65,7 +67,8 @@ export function ApprovalCard({ item }: ApprovalCardProps) {
             {item.project_name} · Shared for review
           </p>
           {item.description && <p className="mt-2 line-clamp-3 max-w-xl whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{item.description}</p>}
-          <button type="button" onClick={() => navigate(`/client/projects/${item.project_id}`)}
+          {item.source && <DeliverableAttachment source={item.source} projectId={item.project_id} />}
+          <button type="button" onClick={() => navigate(`/client/projects/${item.project_id}?tab=files`)}
             className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
             <FileText className="h-3.5 w-3.5" /> View shared project files and details
           </button>

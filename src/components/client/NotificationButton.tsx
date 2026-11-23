@@ -4,13 +4,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
+  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNotifications } from "@/hooks/useNotifications";
 import { timeAgo } from "@/lib/format";
 
-export function NotificationButton() {
+export function NotificationButton({ icon }: { icon?: string } = {}) {
   const navigate = useNavigate();
   const { items, unreadCount, markAllRead } = useNotifications();
 
@@ -20,12 +21,12 @@ export function NotificationButton() {
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
         className="relative flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-panel outline-none transition-transform hover:-translate-y-0.5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <Bell className="h-5 w-5" aria-hidden="true" />
+        {icon ? <img src={icon} alt="" /> : <Bell className="h-5 w-5" aria-hidden="true" />}
         {unreadCount > 0 && (
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[hsl(var(--badge-red-text))]" />
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
+      <DropdownMenuContent align="end" className="client-os w-72 max-w-[calc(100vw-24px)]">
         <DropdownMenuLabel>Notifications</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {items.length === 0 ? (
@@ -36,15 +37,11 @@ export function NotificationButton() {
           <ul className="max-h-72 overflow-auto py-1">
             {items.map((n) => (
               <li key={n.id}>
-                <button
-                  type="button"
-                  onClick={() => n.url && navigate(n.url)}
-                  className="block w-full px-2 py-2 text-left text-sm hover:bg-muted/60 rounded-small"
-                >
+                <DropdownMenuItem onSelect={() => { if (n.url) navigate(n.url); }} className="block rounded-small px-2 py-2 text-sm">
                   <p className="truncate font-medium">{n.title}</p>
                   {n.body && <p className="truncate text-xs text-muted-foreground">{n.body}</p>}
                   <p className="text-xs text-muted-foreground">{timeAgo(n.created_at)}</p>
-                </button>
+                </DropdownMenuItem>
               </li>
             ))}
           </ul>

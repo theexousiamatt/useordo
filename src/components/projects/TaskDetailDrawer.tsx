@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, History, Loader2, MessageSquare, Pencil, Send, Trash2 } from "lucide-react";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   useAddTaskComment,
   useDeleteTaskComment,
 } from "@/hooks/useTaskComments";
+import { TaskDeliverables } from "@/components/projects/TaskDeliverables";
 import { TaskAttachmentsSection } from "@/components/projects/TaskAttachmentsSection";
 import { TaskSubtaskChecklist } from "@/components/projects/TaskSubtaskChecklist";
 import { TaskDrawerProperties, type TaskDrawerEditing } from "@/components/projects/TaskDrawerProperties";
@@ -38,9 +39,11 @@ export function TaskDetailDrawer({ task, members, open, onOpenChange, onSaveDesc
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="client-os !left-0 !right-auto flex h-[100dvh] w-screen max-w-[100vw] min-w-0 flex-col gap-0 overflow-x-hidden border-l border-border/70 bg-card p-0 shadow-hover sm:!left-auto sm:!right-0 sm:w-full sm:max-w-[620px]"
+        className="client-os jerin-task-drawer !left-0 !right-auto flex h-[100dvh] w-screen max-w-[100vw] min-w-0 flex-col gap-0 overflow-x-hidden border-l border-border/70 bg-card p-0 shadow-hover sm:!left-auto sm:!right-0 sm:w-full sm:max-w-[620px]"
       >
         <SheetTitle className="sr-only">{task ? `Task details: ${task.title}` : "Task details"}</SheetTitle>
+        <SheetDescription className="sr-only">Edit the task, manage deliverables, and discuss the work.</SheetDescription>
+        <SheetClose className="jerin-task-mobile-back md:hidden" aria-label="Back to project"><img src="/jenri/project-detail/back.svg" alt="" /></SheetClose>
         {task && <DrawerBody key={task.id} task={task} members={members} onSaveDescription={onSaveDescription} editor={editor} />}
       </SheetContent>
     </Sheet>
@@ -65,6 +68,7 @@ function DrawerBody({
       </header>
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 pb-12 pt-5 sm:px-7 sm:pt-6" aria-label="Task details">
         <TaskDescriptionSection task={task} onSaveDescription={onSaveDescription} />
+        <TaskDeliverables projectId={task.project_id} taskId={task.id} />
         <section className="border-t border-border/70 pt-5">
           <TaskSubtaskChecklist projectId={task.project_id} taskId={task.id} />
         </section>

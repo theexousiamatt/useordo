@@ -103,6 +103,8 @@ interface Props {
   members: ProjectMemberProfile[];
   /** When set (e.g. from a ?task= deep link), open this task's drawer on mount. */
   initialTaskId?: string | null;
+  showStageTools?: boolean;
+  onStageToolsShown?: () => void;
   canConfigureStages?: boolean;
 }
 
@@ -138,7 +140,7 @@ const stageCollision: CollisionDetection = (args) => {
   )});
 };
 
-export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId, canConfigureStages=false }: Props) {
+export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTaskId, showStageTools, onStageToolsShown, canConfigureStages=false }: Props) {
   const qc = useQueryClient();
   const { role, currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -170,6 +172,11 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
   const [editingStageId,setEditingStageId]=useState<string|null>(null);
   const [stageName,setStageName]=useState("");
   const [creatingStage,setCreatingStage]=useState(false);
+  useEffect(() => {
+    if (!showStageTools || !canConfigureStages) return;
+    setCreatingStage(true);
+    onStageToolsShown?.();
+  }, [showStageTools, canConfigureStages, onStageToolsShown]);
   const [draftStageTheme,setDraftStageTheme]=useState<StageTheme>("neutral");
   const [themeStageId,setThemeStageId]=useState<string|null>(null);
   const [themeDraft,setThemeDraft]=useState<StageTheme>("neutral");
@@ -801,7 +808,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4" aria-label="Project stages">
+        <div className="jerin-project-board flex gap-4 overflow-x-auto pb-4" aria-label="Project stages">
           <SortableContext items={stages.map(stage=>`stage:${stage.id}`)} strategy={horizontalListSortingStrategy}>
           {stages.map((col) => (
             <Column
@@ -835,7 +842,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
             />
           ))}
           </SortableContext>
-          {canConfigureStages && <div className="w-72 shrink-0 rounded-card border border-border bg-card p-3">
+          {canConfigureStages && <div className="jerin-project-stage w-72 shrink-0 rounded-card border border-border bg-card p-3">
             {creatingStage ? <form className="space-y-3" onSubmit={event=>{
               event.preventDefault();if(!stageName.trim())return;
               createNamedStage(stageName.trim(),draftStageTheme,"todo",()=>{
@@ -1127,7 +1134,7 @@ function Column({
   }
 
   return (
-    <div ref={setStageRef} style={stageStyle} className="flex w-72 shrink-0 flex-col">
+    <div ref={setStageRef} style={stageStyle} className="jerin-project-stage flex w-72 shrink-0 flex-col">
       <OrdoColumnContextMenu status={id} collapsed={false} handlers={columnHandlers} canManageStages={canManageStages} canRemoveStage={canRemoveStage}>
         <div className="relative z-10 mb-3 flex items-center justify-between gap-2 px-1">
           <div className="flex min-w-0 items-center gap-2">
@@ -1297,9 +1304,9 @@ function SortableTask({
               }
             }}
             className={cn(
-              "group/card relative rounded-card outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
+              "jerin-board-task group/card relative rounded-card outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
               isDragging && "opacity-40",
-              selected && "ring-2 ring-[hsl(178,100%,8%)] ring-offset-2",
+              selected && "ring-2 ring-primary ring-offset-2",
             )}
           >
             <OrdoCardOverflowMenu

@@ -1,4 +1,4 @@
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CalendarDays, CheckCircle2 } from "lucide-react";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -17,6 +17,8 @@ export default function ClientProjectDetail() {
   const { id } = useParams();
   const { currentWorkspace } = useWorkspace();
   const { state } = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab");
   const query = useQuery({
     queryKey: ["client-project", currentWorkspace?.id, id], enabled: !!id && !!currentWorkspace,
     queryFn: async () => {
@@ -48,7 +50,7 @@ export default function ClientProjectDetail() {
       <div className="flex flex-wrap justify-between gap-3 text-sm"><span>Project progress · {project.progress}%</span>{project.due_date && <span className="inline-flex items-center gap-2 text-muted-foreground"><CalendarDays className="h-4 w-4" />Due {dateShort(project.due_date)}</span>}</div>
       <Progress value={project.progress} aria-label="Project progress" />
     </section>
-    <Tabs defaultValue="review" className="min-w-0">
+    <Tabs value={tab === "files" || tab === "milestones" ? tab : "review"} onValueChange={value => setSearchParams({ tab: value })} className="min-w-0">
       <TabsList className="mb-5 w-full sm:w-auto"><TabsTrigger value="review" className="flex-1">Review</TabsTrigger><TabsTrigger value="files" className="flex-1">Files</TabsTrigger><TabsTrigger value="milestones" className="flex-1">Milestones</TabsTrigger></TabsList>
       <TabsContent value="review"><div className="space-y-4"><ActionCenter projectId={project.id} /><ClientReviewHistory projectId={project.id} /></div></TabsContent>
       <TabsContent value="files"><FilesTab projectId={project.id} readOnly /></TabsContent>

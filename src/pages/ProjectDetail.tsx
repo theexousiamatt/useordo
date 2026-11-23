@@ -3,8 +3,11 @@ import { useTeam } from "@/hooks/useTeam";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Archive, CalendarDays, Copy, Download, Layers, Link2, MoreHorizontal, Settings2, Users } from "lucide-react";
 import { toast } from "sonner";
+import { NotificationButton } from "@/components/client/NotificationButton";
+import { JerinProjectOverview, JerinProjectSummary } from "@/components/projects/JerinProjectOverview";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { computeProjectCompletion } from "@/lib/taskCompletion";
@@ -47,7 +50,18 @@ import { projectUrl } from "@/lib/appUrl";
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabs = ["overview", "board", "files", "activity", "deliverables", "milestones"];
+  const requestedTab = searchParams.get("tab");
+  const tab = requestedTab && tabs.includes(requestedTab)
+    ? requestedTab
+    : searchParams.has("task") || !window.matchMedia("(max-width: 767px)").matches ? "board" : "overview";
+  const changeTab = (value: string) => setSearchParams(previous => {
+    const next = new URLSearchParams(previous);
+    next.set("tab", value);
+    if (value !== "board") next.delete("task");
+    return next;
+  });
   const deepLinkedTaskId = searchParams.get("task");
   const { data: project, isLoading, isError, refetch } = useProject(id);
   const { data: members = [] } = useProjectMembers(id);
@@ -65,6 +79,7 @@ export default function ProjectDetail() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [stageToolsRequested, setStageToolsRequested] = useState(false);
 
   const handlers: ProjectMenuHandlers = {
     onOpen: () => {},
@@ -94,9 +109,13 @@ export default function ProjectDetail() {
         toast.error(e instanceof Error ? e.message : "Failed to restore.");
       }
     },
-    onCopyLink: (p) => {
-      navigator.clipboard.writeText(projectUrl(p.id));
-      toast.success("Link copied.");
+    onCopyLink: async (p) => {
+      try {
+        await navigator.clipboard.writeText(projectUrl(p.id));
+        toast.success("Link copied.");
+      } catch {
+        toast.error("Could not copy the project link.");
+      }
     },
     onDelete: () => setDeleteOpen(true),
   };
@@ -104,7 +123,7 @@ export default function ProjectDetail() {
 
   if (isError) {
     return (
-      <div>
+      <div className="px-5 pt-5 md:p-0">
         <BackButton onClick={() => navigate("/projects")} />
         <ErrorState onRetry={() => refetch()} />
       </div>
@@ -113,20 +132,58 @@ export default function ProjectDetail() {
 
   if (isLoading || !project) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 px-5 pt-5 md:p-0">
         <BackButton onClick={() => navigate("/projects")} />
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-96" />
+        <Skeleton className="h-4 w-full max-w-96" />
         <Skeleton className="h-48 w-full" />
       </div>
     );
   }
 
   return (
-    <div>
-      <BackButton onClick={() => navigate("/projects")} />
+    <div className="jerin-project-detail" data-tab={tab}>
+      <header className="jerin-project-mobile-header md:hidden">
+        <button type="button" aria-label="Back to projects" onClick={() => navigate("/projects")}>
+          <img src="/jenri/project-detail/back.svg" alt="" />
+        </button>
+        {tab === "overview" ? <img src="/jenri/jerin-logo-light-surface.svg" width={110} height={38} alt="Jerin" /> : (
+          <div className="jerin-project-mobile-name"><h1>{project.name}</h1><p>{currentWorkspace?.name}</p></div>
+        )}
+        <NotificationButton icon="/jenri/project-detail/notification.svg" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" aria-label="Project actions"><img src="/jenri/project-detail/more.svg" alt="" /></button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="client-os jerin-project-menu" align="end">
+            {perms.canManage && <>
+              <DropdownMenuItem onSelect={() => setSettingsOpen(true)}><Settings2 />Project settings</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setProjectTeamOpen(true)}><Users />Manage members</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => { changeTab("board"); setStageToolsRequested(true); }}><Layers />Stages &amp; workflow</DropdownMenuItem>
+            </>}
+            <DropdownMenuItem onSelect={() => exportProject(project, tasks)}><Download />Export project</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => void handlers.onCopyLink(project)}><Link2 />Copy project link</DropdownMenuItem>
+            {perms.canDuplicate && <DropdownMenuItem onSelect={() => setDuplicateOpen(true)}><Copy />Duplicate project</DropdownMenuItem>}
+            {perms.canManage && <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className={project.archived_at ? undefined : "text-destructive"} onSelect={() => {
+                if (project.archived_at) void handlers.onRestore(project);
+                else void handlers.onArchive(project);
+              }}><Archive />{project.archived_at ? "Restore project" : "Archive project"}</DropdownMenuItem>
+            </>}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </header>
+      {tab === "overview" && <>
+        <div className="jerin-project-mobile-intro md:hidden">
+          <h1>{project.name}</h1>
+          {project.description && <p>{project.description}</p>}
+        </div>
+        <div className="jerin-mobile-project-summary md:hidden"><JerinProjectSummary project={project} members={members.length} /></div>
+      </>}
+      <div className="hidden md:block"><BackButton onClick={() => navigate("/projects")} /></div>
 
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="mb-6 hidden md:flex flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
@@ -177,15 +234,20 @@ export default function ProjectDetail() {
       </div>
 
 
-      <Tabs defaultValue={["board", "milestones", "deliverables", "files", "activity"].includes(searchParams.get("tab") ?? "") ? searchParams.get("tab")! : "board"}>
-        <TabsList>
-          <TabsTrigger value="board">Board</TabsTrigger>
-          <TabsTrigger value="milestones">Milestones</TabsTrigger>
-          <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
-          <TabsTrigger value="files">Files</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-        </TabsList>
-
+      <Tabs value={tab} onValueChange={changeTab} className="min-w-0">
+        <div className="jerin-project-tabs-scroll">
+          <TabsList className="jerin-project-tabs" aria-label="Project views">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="board">Board</TabsTrigger>
+            <TabsTrigger value="files">Files</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
+            <TabsTrigger value="milestones">Milestones</TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="overview" className="mt-4">
+          <JerinProjectOverview project={project} tasks={tasks} completion={completion} loading={!completionLoaded} />
+        </TabsContent>
         <TabsContent value="board" className="mt-6">
           <ProjectBoard
             projectId={project.id}
@@ -193,6 +255,8 @@ export default function ProjectDetail() {
             tasks={tasks}
             members={assignableMembers}
             initialTaskId={deepLinkedTaskId}
+            showStageTools={stageToolsRequested}
+            onStageToolsShown={() => setStageToolsRequested(false)}
             canConfigureStages={perms.canManage}
           />
         </TabsContent>
@@ -247,4 +311,22 @@ function BackButton({ onClick }: { onClick: () => void }) {
       <ArrowLeft className="mr-1.5 h-4 w-4" /> Projects
     </Button>
   );
+}
+
+function exportProject(project: ProjectRow, tasks: ReturnType<typeof useProjectTasks>["data"]) {
+  const content = JSON.stringify({
+    name: project.name,
+    description: project.description,
+    status: project.status,
+    dueDate: project.due_date,
+    tasks: (tasks ?? []).filter(task => !task.archived_at).map(task => ({
+      title: task.title, description: task.description, dueDate: task.due_date, completedAt: task.completed_at,
+    })),
+  }, null, 2);
+  const url = URL.createObjectURL(new Blob([content], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${project.name.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "project"}.json`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

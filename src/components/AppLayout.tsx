@@ -14,6 +14,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 function AppShell() {
   const { collapsed } = useSidebarCollapse();
   const { pathname } = useLocation();
+  const projectDetailPage = /^\/projects\/[^/]+\/?$/.test(pathname);
   const jerinMobilePage = pathname === "/projects" || pathname === "/";
   return (
     <div className="client-os min-h-screen bg-background">
@@ -28,8 +29,8 @@ function AppShell() {
       </aside>
 
       <div className={cn("flex min-h-screen flex-col transition-[margin] duration-300 ease-in-out", collapsed ? "lg:ml-[76px]" : "lg:ml-[268px]")}>
-        <div className={cn("flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8", jerinMobilePage && "max-lg:gap-0 max-lg:p-0")}>
-          <div className={cn(jerinMobilePage && "max-lg:hidden")}><OrdoTopBar /></div>
+        <div className={cn("flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8", jerinMobilePage && "max-lg:gap-0 max-lg:p-0", projectDetailPage && "max-md:gap-0 max-md:p-0")}>
+          <div className={cn(jerinMobilePage && "max-lg:hidden", projectDetailPage && "max-md:hidden")}><OrdoTopBar /></div>
           <main className={cn("flex min-w-0 flex-1 flex-col gap-6 sm:gap-8", jerinMobilePage && "max-lg:gap-0")}>
             <Outlet />
           </main>

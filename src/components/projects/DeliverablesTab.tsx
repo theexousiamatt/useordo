@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DeliverableAttachment } from "@/components/projects/DeliverableAttachment";
 import { DeliverableReviewHistory } from "@/components/projects/DeliverableReviewHistory";
 import { Package, Plus, Check, X, Send, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -86,7 +87,7 @@ function CreateDeliverableDialog({ projectId }: { projectId: string }) {
 }
 
 export function DeliverablesTab({ projectId }: { projectId: string }) {
-  const { data: deliverables = [], isLoading } = useProjectDeliverables(projectId);
+  const { data: deliverables = [], isLoading, isError, refetch } = useProjectDeliverables(projectId);
   const updateStatus = useUpdateDeliverableStatus(projectId);
 
   const setStatus = async (id: string, status: DeliverableStatus, label: string) => {
@@ -98,7 +99,9 @@ export function DeliverablesTab({ projectId }: { projectId: string }) {
     }
   };
 
-  if (!isLoading && deliverables.length === 0) {
+  if (isLoading) return <p role="status">Loading deliverables…</p>;
+  if (isError) return <p role="alert">Couldn’t load deliverables. <Button variant="link" onClick={() => void refetch()}>Try again</Button></p>;
+  if (deliverables.length === 0) {
     return (
       <div className="space-y-4">
         <div className="flex justify-end">
@@ -127,7 +130,8 @@ export function DeliverablesTab({ projectId }: { projectId: string }) {
               {d.description && (
                 <p className="mt-0.5 text-sm text-muted-foreground">{d.description}</p>
               )}
-              <p className="mt-1 text-xs text-muted-foreground">Created {dateShort(d.created_at)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Created {dateShort(d.created_at)}{d.version_label ? ` · ${d.version_label}` : ""}</p>
+              <DeliverableAttachment source={d} projectId={projectId} />
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2">
               <DeliverableBadge status={d.status as DeliverableStatus} />

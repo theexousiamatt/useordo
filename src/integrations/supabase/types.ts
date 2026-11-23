@@ -313,6 +313,12 @@ export type Database = {
       }
       deliverables: {
         Row: {
+          version_label: string | null
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_url: string | null
+          project_file_id: string | null
+          task_id: string | null
           approved_at: string | null
           approved_by: string | null
           created_at: string
@@ -327,6 +333,12 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          version_label?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_url?: string | null
+          project_file_id?: string | null
+          task_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
@@ -341,6 +353,12 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          version_label?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_url?: string | null
+          project_file_id?: string | null
+          task_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string

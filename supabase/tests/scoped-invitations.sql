@@ -17,11 +17,34 @@ INSERT INTO public.deliverables(project_id,workspace_id,title,status) VALUES
  ('93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001','Shared review','submitted'),
  ('93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001','Agency draft','draft'),
  ('93000000-0000-4000-8000-000000000002','92000000-0000-4000-8000-000000000001','Another client review','submitted');
-INSERT INTO public.tasks(project_id,workspace_id,title) VALUES
- ('93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001','Internal task');
+INSERT INTO public.tasks(id,project_id,workspace_id,title) VALUES
+ ('94000000-0000-4000-8000-000000000001','93000000-0000-4000-8000-000000000001','92000000-0000-4000-8000-000000000001','Internal task');
+UPDATE public.deliverables
+SET task_id = '94000000-0000-4000-8000-000000000001',
+    requires_approval = true,
+
+    attachment_path = '93000000-0000-4000-8000-000000000001/' || status,
+    attachment_name = 'Deliverable.pdf'
+WHERE project_id = '93000000-0000-4000-8000-000000000001';
+UPDATE public.deliverables SET attachment_path = '93000000-0000-4000-8000-000000000002/submitted'
+WHERE project_id = '93000000-0000-4000-8000-000000000002';
+DO $$ BEGIN
+ BEGIN
+  UPDATE public.deliverables SET task_id='94000000-0000-4000-8000-000000000001'
+  WHERE project_id='93000000-0000-4000-8000-000000000002';
+  RAISE EXCEPTION 'Attached a task from another project';
+ EXCEPTION WHEN check_violation THEN NULL; END;
+ BEGIN
+  UPDATE public.deliverables SET attachment_url='javascript:alert(1)', attachment_path=NULL WHERE title='Agency draft';
+  RAISE EXCEPTION 'Accepted a script URL';
+ EXCEPTION WHEN check_violation THEN NULL; END;
+END $$;
 INSERT INTO storage.objects(bucket_id,name) VALUES
  ('project-files','93000000-0000-4000-8000-000000000001/shared.pdf'),
- ('project-files','93000000-0000-4000-8000-000000000002/private.pdf');
+ ('project-files','93000000-0000-4000-8000-000000000002/private.pdf'),
+ ('deliverable-files','93000000-0000-4000-8000-000000000001/draft'),
+ ('deliverable-files','93000000-0000-4000-8000-000000000001/submitted'),
+ ('deliverable-files','93000000-0000-4000-8000-000000000002/submitted');
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000001',true),set_config('request.jwt.claim.role','authenticated',true);
 DO $$ DECLARE first_id uuid; retry_id uuid; denied boolean:=false; BEGIN
@@ -56,11 +79,17 @@ SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000002',true),set_config('request.jwt.claim.role','authenticated',true);
 DO $$ DECLARE denied boolean:=false; BEGIN
  IF (SELECT count(*) FROM public.deliverables)<>1 THEN RAISE EXCEPTION 'Client sees draft or unrelated deliverables'; END IF;
+ IF NOT EXISTS (
+  SELECT 1 FROM storage.objects WHERE bucket_id='deliverable-files'
+  AND name='93000000-0000-4000-8000-000000000001/submitted'
+ ) THEN RAISE EXCEPTION 'Client cannot read submitted attachment'; END IF;
+ IF EXISTS (SELECT 1 FROM storage.objects WHERE name LIKE '%/draft')
+ THEN RAISE EXCEPTION 'Client can read a draft attachment'; END IF;
  IF (SELECT count(*) FROM public.tasks)<>0 THEN RAISE EXCEPTION 'Client sees internal tasks'; END IF;
  IF (SELECT count(*) FROM public.files)<>1 THEN RAISE EXCEPTION 'File metadata scope leaked'; END IF;
- IF (SELECT count(*) FROM storage.objects)<>1 THEN RAISE EXCEPTION 'Storage scope leaked'; END IF;
+ IF (SELECT count(*) FROM storage.objects)<>2 THEN RAISE EXCEPTION 'Storage scope leaked'; END IF;
  BEGIN DELETE FROM storage.objects; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
- IF (SELECT count(*) FROM storage.objects)<>1 THEN RAISE EXCEPTION 'Client deleted shared storage'; END IF;
+ IF (SELECT count(*) FROM storage.objects)<>2 THEN RAISE EXCEPTION 'Client deleted shared storage'; END IF;
  DELETE FROM public.files;
  IF (SELECT count(*) FROM public.files)<>1 THEN RAISE EXCEPTION 'Client deleted shared files'; END IF;
  IF (SELECT count(*) FROM public.projects)<>1 THEN RAISE EXCEPTION 'Project RLS leaked another project'; END IF;
@@ -68,6 +97,18 @@ DO $$ DECLARE denied boolean:=false; BEGIN
  BEGIN INSERT INTO public.projects(workspace_id,name) VALUES('92000000-0000-4000-8000-000000000001','Unauthorized');
  EXCEPTION WHEN insufficient_privilege THEN denied:=true; END;
  IF NOT denied THEN RAISE EXCEPTION 'Client created agency project'; END IF;
+END $$;
+
+DO $$ DECLARE review_id uuid; BEGIN
+ SELECT public.review_deliverable(id,'approved',NULL) INTO review_id
+ FROM public.deliverables WHERE title='Shared review';
+ IF review_id IS NULL OR NOT EXISTS (
+  SELECT 1 FROM public.deliverables WHERE title='Shared review' AND status='approved'
+ ) THEN RAISE EXCEPTION 'Client could not approve the submitted deliverable'; END IF;
+ IF NOT EXISTS (
+  SELECT 1 FROM storage.objects WHERE bucket_id='deliverable-files'
+  AND name='93000000-0000-4000-8000-000000000001/submitted'
+ ) THEN RAISE EXCEPTION 'Client lost the approved source'; END IF;
 END $$;
 SELECT set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000001',true);
 SELECT * FROM public.prepare_scoped_invitations('92000000-0000-4000-8000-000000000001',ARRAY['scope-client@example.invalid'],'client',NULL);

@@ -38,8 +38,9 @@ export function OrdoDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side={side}
+        overlayClassName="bg-[#351001]/40"
         className={cn(
-          "client-os flex w-full flex-col gap-0 border-none bg-card p-0 shadow-hover sm:max-w-md",
+          "client-os jerin-panel flex w-full flex-col gap-0 border-none bg-card p-0 shadow-hover sm:max-w-md",
           className,
         )}
       >

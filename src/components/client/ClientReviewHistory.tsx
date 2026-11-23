@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, MessageSquareText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { DeliverableAttachment } from "@/components/projects/DeliverableAttachment";
+import type { DeliverableSource } from "@/hooks/useProjectData";
 import { DeliverableReviewHistory } from "@/components/projects/DeliverableReviewHistory";
 
-type Reviewed = { id: string; project_id: string; title: string; description: string | null; status: string; created_at: string };
+type Reviewed = DeliverableSource & { id: string; project_id: string; title: string; description: string | null; status: string; created_at: string };
 
 export function ClientReviewHistory({ projectId }: { projectId?: string }) {
   const { currentWorkspace } = useWorkspace();
@@ -14,7 +16,7 @@ export function ClientReviewHistory({ projectId }: { projectId?: string }) {
     enabled: !!currentWorkspace?.id,
     queryFn: async (): Promise<Reviewed[]> => {
       let query = supabase.from("deliverables")
-        .select("id,project_id,title,description,status,created_at")
+        .select("id,project_id,title,description,status,created_at,project_file_id,attachment_url,attachment_path,attachment_name,version_label")
         .eq("workspace_id", currentWorkspace!.id)
         .in("status", ["approved", "rejected"])
         .order("created_at", { ascending: false })
@@ -44,8 +46,9 @@ export function ClientReviewHistory({ projectId }: { projectId?: string }) {
                 <p className="text-sm font-medium">{item.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{item.status === "approved" ? "Approved" : "Changes requested"}</p>
                 {item.description && <p className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">{item.description}</p>}
+                <DeliverableAttachment source={item} projectId={item.project_id} />
                 <DeliverableReviewHistory deliverableId={item.id} projectId={item.project_id} />
-                <Link to={`/client/projects/${item.project_id}`} className="mt-3 inline-flex text-xs font-medium text-primary hover:underline">
+                <Link to={`/client/projects/${item.project_id}?tab=files`} className="mt-3 inline-flex text-xs font-medium text-primary hover:underline">
                   Open project files and milestones
                 </Link>
               </div>

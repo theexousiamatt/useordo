@@ -40,7 +40,18 @@ export interface MilestoneRow {
   status: MilestoneStatus;
 }
 
-export interface DeliverableRow {
+export interface DeliverableSource {
+  attachment_url: string | null;
+  attachment_path: string | null;
+  attachment_name: string | null;
+  project_file_id: string | null;
+  version_label: string | null;
+}
+
+export const DELIVERABLE_FILE_BUCKET = "deliverable-files";
+
+export interface DeliverableRow extends DeliverableSource {
+  task_id: string | null;
   id: string;
   project_id: string;
   title: string;
@@ -314,7 +325,7 @@ export function useProjectDeliverables(projectId?: string) {
     queryFn: async (): Promise<DeliverableRow[]> => {
       const { data, error } = await supabase
         .from("deliverables")
-        .select("id, project_id, title, description, status, requires_approval, approved_at, created_at")
+        .select("id, project_id, title, description, status, requires_approval, approved_at, created_at, task_id, project_file_id, attachment_url, attachment_path, attachment_name, version_label")
         .eq("project_id", projectId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -328,18 +339,44 @@ export function useCreateDeliverable(projectId: string) {
   const { currentWorkspace } = useWorkspace();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { title: string; description?: string; requiresApproval: boolean }) => {
-      if (!currentWorkspace) throw new Error("No active workspace.");
+    mutationFn: async (input: {
+      title: string;
+      description?: string;
+      requiresApproval: boolean;
+      taskId?: string;
+      version?: string;
+      source?: { kind: "upload"; file: File } | { kind: "link"; url: string } | { kind: "project"; fileId: string; name: string };
+    }) => {
+      if (!currentWorkspace || !user) throw new Error("No active workspace.");
+      const source = input.source;
+      let path: string | null = null;
+      if (source?.kind === "upload") {
+        if (!source.file.size || source.file.size > 50 * 1024 * 1024) throw new Error("Choose a file between 1 byte and 50 MB.");
+        path = `${projectId}/${crypto.randomUUID()}`;
+        const { error } = await supabase.storage.from(DELIVERABLE_FILE_BUCKET).upload(path, source.file, {
+          upsert: false, contentType: "application/octet-stream",
+        });
+        if (error) throw new Error(error.message);
+      }
       const { error } = await supabase.from("deliverables").insert({
         project_id: projectId,
         workspace_id: currentWorkspace.id,
         title: input.title,
-        description: input.description ?? null,
+        description: input.description || null,
         status: "draft",
         requires_approval: input.requiresApproval,
-        created_by: user?.id ?? null,
+        created_by: user.id,
+        task_id: input.taskId,
+        version_label: input.version || null,
+        project_file_id: source?.kind === "project" ? source.fileId : null,
+        attachment_url: source?.kind === "link" ? source.url : null,
+        attachment_name: source?.kind === "upload" ? source.file.name : source?.kind === "project" ? source.name : null,
+        attachment_path: path,
       });
-      if (error) throw error;
+      if (error) {
+        if (path) await supabase.storage.from(DELIVERABLE_FILE_BUCKET).remove([path]);
+        throw new Error(error.message);
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["project-deliverables", projectId] }),
   });
@@ -359,13 +396,21 @@ export function useUpdateDeliverableStatus(projectId: string) {
         patch.approved_at = new Date().toISOString();
         patch.approved_by = user?.id ?? null;
       }
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("deliverables")
         .update(patch)
-        .eq("id", input.id);
-      if (error) throw error;
+        .eq("id", input.id)
+        .eq("project_id", projectId)
+        .in("status", input.status === "submitted" ? ["draft", "rejected"] : ["submitted"])
+        .select("id")
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("This deliverable changed. Refresh and try again.");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-deliverables", projectId] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["studio-dashboard"] });
+      return qc.invalidateQueries({ queryKey: ["project-deliverables", projectId] });
+    },
   });
 }
 
