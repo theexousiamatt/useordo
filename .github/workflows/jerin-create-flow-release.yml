@@ -1,0 +1,82 @@
+name: Verify and publish Jerin create flow
+
+on:
+  push:
+    branches:
+      - codex/jerin-create-flow-20261123
+    paths:
+      - '.github/workflows/jerin-create-flow-release.yml'
+      - 'src/components/jenri/JerinCreateFlow.tsx'
+      - 'src/styles/jenri-create-flow.css'
+      - 'src/components/AppLayout.tsx'
+      - 'src/pages/Projects.tsx'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ordo-legacy-production-static-release
+  cancel-in-progress: false
+
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout production-derived Jerin source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Strict TypeScript checks
+        run: |
+          npx tsc --noEmit
+          npx tsc -p tsconfig.app.json --noEmit
+      - name: Unit and regression tests
+        run: npm run test
+      - name: Lint changed app code
+        run: npx eslint src/components/jenri/JerinCreateFlow.tsx src/components/AppLayout.tsx src/pages/Projects.tsx
+      - name: Build production
+        env:
+          VITE_APP_URL: https://ordo.inspirarestudio.com
+        run: |
+          set -euo pipefail
+          npm run build
+          test -s dist/index.html
+          test -s dist/jenri/jenri-logo.svg
+          test -f dist/.htaccess || cp public/.htaccess dist/.htaccess
+          printf '{"source_sha":"%s","environment":"production","feature":"jerin-create-flow-153-9515"}\n' "$GITHUB_SHA" > dist/release.json
+          test ! -e dist/.env
+          test ! -e dist/.env.production
+          if find dist -name '*.map' | grep -q .; then echo 'Unexpected sourcemaps in build'; exit 1; fi
+      - name: Checkout deployed artifact branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/hostinger-static
+          path: production-static
+          persist-credentials: true
+      - name: Compare production SHA, preserve rollback, publish checked build
+        run: |
+          set -euo pipefail
+          expected="781a30f6282465d923e87b714b29e7dafbf52c86"
+          current="$(git -C production-static rev-parse HEAD)"
+          if [ "$current" != "$expected" ]; then
+            echo "Production static branch has changed; refusing overwrite. Existing release preserved."
+            exit 1
+          fi
+          find production-static -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a dist/. production-static/
+          test -s production-static/index.html
+          test ! -e production-static/.env
+          git -C production-static config user.name "Jerin release automation"
+          git -C production-static config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C production-static add -A
+          git -C production-static commit -m "Publish Jerin create flow from $GITHUB_SHA"
+          git -C production-static push origin HEAD:codex/hostinger-static
