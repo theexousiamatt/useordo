@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { OrdoLogo } from "@/components/brand";
 import { OrdoSidebar } from "@/components/OrdoSidebar";
 import { WorkspaceSearch } from "@/components/client/WorkspaceSearch";
 import { NotificationButton } from "@/components/client/NotificationButton";
@@ -26,6 +27,7 @@ export function OrdoTopBar() {
               <OrdoSidebar onNavigate={() => setOpen(false)} />
             </SheetContent>
           </Sheet>
+          <OrdoLogo className="h-7 shrink-0 lg:hidden" />
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">

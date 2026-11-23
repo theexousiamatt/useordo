@@ -144,7 +144,7 @@ export function JenriProjectsMobile({
           <OrdoSidebar onNavigate={() => setMenuOpen(false)} />
         </SheetContent>
       </Sheet>
-      <img className="jenri-projects-brand" src="/jenri/jenri-logo.svg" alt="Jerin" />
+      <img className="jenri-projects-brand" src="/jenri/jerin-logo-light-surface.svg" width={110} height={38} alt="Jerin" />
       <div className="jenri-projects-notification"><NotificationButton /></div>
     </header>
 

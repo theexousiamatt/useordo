@@ -150,7 +150,7 @@ export function JerinHomeMobile({ workspaceName, overview, tasks, isLoading, isE
 
   return <div className="jhm-shell" aria-label="Workspace dashboard">
     <header className="jhm-header">
-      <div className="jhm-mark" aria-label="Jerin"><img src="/jenri/jenri-logo.svg" alt="Jerin" /></div>
+      <img className="jhm-brand" src="/jenri/jerin-logo-light-surface.svg" width={110} height={38} alt="Jerin" />
       <div className="jhm-header-actions">
         <div className="jhm-notifications"><NotificationButton /></div>
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
