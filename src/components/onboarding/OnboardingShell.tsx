@@ -14,11 +14,11 @@ interface OnboardingShellProps {
 }
 
 function OrdoMark() {
-  return <OrdoIcon tone="light" className="h-9 w-9" title="Ordo" />;
+  return <OrdoIcon tone="light" className="h-9 w-9" title="Jerin" />;
 }
 
 /**
- * OnboardingShell — canonical two-column onboarding layout for Ordo OS.
+ * OnboardingShell — canonical two-column onboarding layout for Jerin OS.
  * Desktop: left identity/stepper sidebar + right premium panel.
  * Mobile: stacked, with a horizontal progress indicator.
  * Reusable for feature introductions, AI onboarding, and module walkthroughs.

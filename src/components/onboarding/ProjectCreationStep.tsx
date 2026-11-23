@@ -32,7 +32,7 @@ export function ProjectCreationStep({ draft, onChange, clientOptions }: ProjectC
     <div className="flex flex-1 flex-col gap-6">
       <SectionHeader
         title="Create your first project"
-        description="Spin up a project to see Ordo in action. This is optional — you can skip it."
+        description="Spin up a project to see Jerin in action. This is optional — you can skip it."
       />
 
       <div className="flex flex-col gap-5">

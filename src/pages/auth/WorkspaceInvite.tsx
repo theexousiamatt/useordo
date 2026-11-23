@@ -119,7 +119,7 @@ export default function WorkspaceInvite() {
         {!preview && error ? <OrdoButton variant="outline" onClick={load}>Try again</OrdoButton> : !available ? <>
           <h2 className="text-2xl font-semibold tracking-tight">Invitation unavailable</h2>
           <p className="text-sm text-muted-foreground">{preview?.status === "expired" ? "This link has expired. Request a new invitation from the agency without restarting setup." : preview?.status === "revoked" ? "The agency revoked this invitation. Contact them if you still need access." : "This link is invalid or the project is no longer available. Ask the agency for a new invitation."}</p>
-          {preview?.status === "expired" && (renewal ? <OrdoAlert variant="success">The agency has been notified in Ordo. They'll need to review and resend your invitation.</OrdoAlert> : <OrdoButton loading={busy} onClick={requestRenewal}>Request a new invitation</OrdoButton>)}
+          {preview?.status === "expired" && (renewal ? <OrdoAlert variant="success">The agency has been notified in Jerin. They'll need to review and resend your invitation.</OrdoAlert> : <OrdoButton loading={busy} onClick={requestRenewal}>Request a new invitation</OrdoButton>)}
           <Link to="/auth" className="block text-sm font-semibold underline underline-offset-4" onClick={forgetInvitation}>Back to sign in</Link>
         </> : <>
           <div>

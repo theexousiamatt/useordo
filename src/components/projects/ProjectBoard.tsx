@@ -391,7 +391,7 @@ export function ProjectBoard({ projectId, workspaceId, tasks, members, initialTa
     (task: TaskRow, addedIds: string[]) => {
       const project = (allProjects ?? []).find((p) => p.id === projectId);
       const projectName = project?.name ?? "your project";
-      const workspaceName = currentWorkspace?.name ?? "Ordo";
+      const workspaceName = currentWorkspace?.name ?? "Jerin";
       const assignerName =
         members.find((m) => m.user_id === user?.id)?.full_name ?? user?.email ?? "A teammate";
       const labels = labelChipsFor(task.id).map((c) => c.name);

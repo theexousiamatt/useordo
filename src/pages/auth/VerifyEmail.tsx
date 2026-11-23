@@ -77,7 +77,7 @@ export default function VerifyEmail() {
     <AuthLayout
       showPreview={false}
       panelTitle={verified ? "You're all set" : "Verify your email"}
-      panelSubtitle="Confirming your email keeps your workspace secure and unlocks the full Ordo experience."
+      panelSubtitle="Confirming your email keeps your workspace secure and unlocks the full Jerin experience."
     >
       <div className="mx-auto w-full max-w-sm">
         {loading ? (

@@ -75,7 +75,7 @@ export default function ResetPassword() {
   return (
     <AuthLayout
       panelTitle="Set a new password"
-      panelSubtitle="Choose a strong password to secure your Ordo account. You'll be signed in right after."
+      panelSubtitle="Choose a strong password to secure your Jerin account. You'll be signed in right after."
     >
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-7 flex items-center gap-3">

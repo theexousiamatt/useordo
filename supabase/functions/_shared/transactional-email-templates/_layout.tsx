@@ -14,19 +14,17 @@ import {
 } from 'npm:@react-email/components@0.0.22'
 
 /**
- * Ordo OS email design language.
- * Brand primary: #002726. Light, premium, generous spacing, large radius.
- * Every Ordo email inherits this layout so future modules stay consistent.
+ * Shared Jerin transactional email palette and layout.
  */
 
 export const ordo = {
-  primary: '#002726',
+  primary: '#351001',
   primaryText: '#ffffff',
-  ink: '#1A1D1F',
-  muted: '#6F767E',
-  border: '#E6E8EA',
-  surface: '#F0F2F5',
-  accent: '#13BB7B',
+  ink: '#351001',
+  muted: '#705738',
+  border: '#E9E0D6',
+  surface: '#F9F4EB',
+  accent: '#D0AC71',
   radius: '16px',
   font:
     "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
@@ -152,7 +150,7 @@ export function OrdoEmailLayout({
   preview,
   categoryLabel,
   children,
-  siteName = 'Ordo',
+  siteName = 'Jerin',
 }: LayoutProps) {
   return (
     <Html lang="en" dir="ltr">

@@ -15,11 +15,11 @@ interface Props {
 const Email = ({
   recipientName = 'there',
   title = 'Something happened in your workspace',
-  message = 'There is a new update waiting for you in Ordo.',
+  message = 'There is a new update waiting for you in Jerin.',
   url = APP_URL,
-  actionLabel = 'Open Ordo',
+  actionLabel = 'Open Jerin',
 }: Props) => (
-  <OrdoEmailLayout siteName="Ordo" categoryLabel="Notification" preview={title}>
+  <OrdoEmailLayout siteName="Jerin" categoryLabel="Notification" preview={title}>
     <Text style={styles.heading}>{title}</Text>
     <Text style={styles.text}>Hi {recipientName}, {message}</Text>
     <Link href={url} style={styles.button}>
@@ -30,7 +30,7 @@ const Email = ({
 
 export const template = {
   component: Email,
-  subject: (data: Props) => data?.title ?? 'A new update in Ordo',
+  subject: (data: Props) => data?.title ?? 'A new update in Jerin',
   displayName: 'Generic notification',
   previewData: {
     recipientName: 'Marcus',

@@ -40,7 +40,7 @@ export function ClientSidebar({ onNavigate, collapsed = false }: ClientSidebarPr
       {/* Header / logo */}
       <div className={cn("flex items-center pb-6", collapsed ? "justify-center px-2" : "gap-3 px-2")}>
         {collapsed ? (
-          <OrdoIcon tone="dark" className="h-7 w-7" title="Ordo" />
+          <OrdoIcon tone="dark" className="h-7 w-7" title="Jerin" />
         ) : (
           <OrdoLogo tone="dark" className="h-7 animate-fade-in" />
         )}

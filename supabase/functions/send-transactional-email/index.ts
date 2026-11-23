@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     const transport = nodemailer.createTransport({ host: Deno.env.get('SMTP_HOST') ?? 'smtp.hostinger.com', port: 465, secure: true, auth: { user, pass: password }, connectionTimeout: 15000, greetingTimeout: 15000, socketTimeout: 25000, disableFileAccess: true, disableUrlAccess: true });
     smtpAttempted = true;
     try {
-      const result = await transport.sendMail({ from: { name: 'Ordo · Inspirare Studio', address: user }, to: recipient, subject: subject.replace(/[\r\n]/g,' '), html });
+      const result = await transport.sendMail({ from: { name: 'Jerin · Inspirare Studio', address: user }, to: recipient, subject: subject.replace(/[\r\n]/g,' '), html });
       if (!result.accepted?.length) throw new Error('SMTP did not accept the recipient');
     } finally { transport.close(); }
     const { error: trackingError } = await admin.from('smtp_deliveries').update({ status: 'sent', updated_at: new Date().toISOString() }).eq('id', deliveryId);

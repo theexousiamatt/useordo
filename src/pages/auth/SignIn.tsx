@@ -77,7 +77,7 @@ export default function SignIn() {
       <JenriAuthIntro
         title="Welcome back"
         subtitle={returnTo.startsWith("/auth/invite?") ? "Sign in to open your invitation." : "Pick up where you left off."}
-        accountSwitch={<>New to Jenri?{" "}
+        accountSwitch={<>New to Jerin?{" "}
           <Link to={authPath("/auth/sign-up", returnTo, email.trim())}>Create an account</Link>
         </>}
       />

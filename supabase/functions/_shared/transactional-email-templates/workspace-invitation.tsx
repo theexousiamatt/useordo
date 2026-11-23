@@ -20,7 +20,7 @@ const Email = ({
   acceptUrl = APP_URL,
 }: Props) => (
   <OrdoEmailLayout
-    siteName="Ordo"
+    siteName="Jerin"
     categoryLabel={projectName ? "Project invitation" : "Workspace invitation"}
     preview={`${workspaceName} invited you to ${projectName ?? "their client workspace"}`}
   >
@@ -45,7 +45,7 @@ const Email = ({
 export const template = {
   component: Email,
   subject: (data: Props) =>
-    `${data?.workspaceName ?? 'Your agency'} invited you to ${data?.projectName ?? 'their workspace'} on Ordo`,
+    `${data?.workspaceName ?? 'Your agency'} invited you to ${data?.projectName ?? 'their workspace'} on Jerin`,
   displayName: 'Workspace invitation',
   previewData: {
     inviterName: 'Jane Cooper',

@@ -20,7 +20,7 @@ const Email = ({
   url = APP_URL,
 }: Props) => (
   <OrdoEmailLayout
-    siteName="Ordo"
+    siteName="Jerin"
     categoryLabel="Deliverable approved"
     preview={`${deliverableTitle} was approved`}
   >

@@ -62,7 +62,7 @@ export default function Unsubscribe() {
             <MailX className="h-10 w-10 text-muted-foreground" />
             <h1 className="text-xl font-semibold">Unsubscribe from emails?</h1>
             <p className="text-sm text-muted-foreground">
-              You'll stop receiving notification emails from Ordo. You can still
+              You'll stop receiving notification emails from Jerin. You can still
               use the app and re-enable emails anytime in settings.
             </p>
             <button
@@ -82,7 +82,7 @@ export default function Unsubscribe() {
             <CheckCircle2 className="h-10 w-10 text-[hsl(var(--badge-green-text))]" />
             <h1 className="text-xl font-semibold">You're unsubscribed</h1>
             <p className="text-sm text-muted-foreground">
-              You won't receive notification emails from Ordo anymore.
+              You won't receive notification emails from Jerin anymore.
             </p>
           </div>
         )}

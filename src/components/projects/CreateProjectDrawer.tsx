@@ -273,7 +273,7 @@ export function CreateProjectDrawer({ open, onOpenChange, onCreated }: Props) {
         {step === 3 && (
           <OrdoFormSection
             title="AI planning"
-            description="Optionally let Ordo draft a starting plan you can refine later."
+            description="Optionally let Jerin draft a starting plan you can refine later."
           >
             <div className="space-y-2.5">
               <PlanToggle label="Tasks" checked={aiTasks} onChange={setAiTasks} />

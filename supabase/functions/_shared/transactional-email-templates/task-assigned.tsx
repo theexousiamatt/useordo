@@ -19,7 +19,7 @@ interface Props {
 
 const Email = ({
   assigneeName = 'there',
-  workspaceName = 'Ordo',
+  workspaceName = 'Jerin',
   projectName = 'your project',
   taskTitle = 'a task',
   taskDescription,
@@ -30,7 +30,7 @@ const Email = ({
   taskUrl = APP_URL,
 }: Props) => (
   <OrdoEmailLayout
-    siteName="Ordo"
+    siteName="Jerin"
     categoryLabel="Task assigned"
     preview={`You've been assigned: ${taskTitle}`}
   >
@@ -65,7 +65,7 @@ const Email = ({
 
 export const template = {
   component: Email,
-  subject: () => `You've been assigned a task in Ordo`,
+  subject: () => `You've been assigned a task in Jerin`,
   displayName: 'Task assigned',
   previewData: {
     assigneeName: 'Marcus',

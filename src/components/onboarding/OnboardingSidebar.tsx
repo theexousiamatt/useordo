@@ -9,11 +9,11 @@ interface OnboardingSidebarProps {
 }
 
 function OrdoMark() {
-  return <OrdoIcon tone="light" className="mb-6 h-10 w-10" title="Ordo" />;
+  return <OrdoIcon tone="light" className="mb-6 h-10 w-10" title="Jerin" />;
 }
 
 /**
- * OnboardingSidebar — left panel: Ordo logo, workspace identity, vertical stepper.
+ * OnboardingSidebar — left panel: Jerin logo, workspace identity, vertical stepper.
  * Hidden on mobile (shell renders a compact header instead).
  */
 export function OnboardingSidebar({ current, title, subtitle }: OnboardingSidebarProps) {

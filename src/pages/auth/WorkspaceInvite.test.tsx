@@ -42,7 +42,7 @@ describe('invitation-first client journey', () => {
   it('offers an expired-link request that notifies the agency instead of silently renewing permissions', async () => {
     mock.invoke.mockResolvedValueOnce({ data: { invite: { ...invite, valid: false, status: 'expired' } } }).mockResolvedValueOnce({ data: { requested: true } });
     show(); fireEvent.click(await screen.findByRole('button', { name: 'Request a new invitation' }));
-    expect(await screen.findByText(/agency has been notified in Ordo/)).toBeInTheDocument();
+    expect(await screen.findByText(/agency has been notified in Jerin/)).toBeInTheDocument();
     expect(mock.invoke).toHaveBeenLastCalledWith('accept-invitation', expect.objectContaining({ body: { token: 'sample', action: 'request-renewal' } }));
   });
   it('shows actionable backend access failures without restarting agency signup', async () => {
