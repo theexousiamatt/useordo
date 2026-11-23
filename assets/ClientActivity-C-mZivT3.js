@@ -1,0 +1,1 @@
+import{j as t}from"./index-DTo1-OES.js";import{C as i}from"./ClientHeader-B7hPBP6X.js";import{A as e}from"./ActivityFeed-D_wPF44o.js";function n(){return t.jsxs(t.Fragment,{children:[t.jsx(i,{title:"Activity",subtitle:"A trail of everything happening across your projects."}),t.jsx(e,{limit:30})]})}export{n as default};
