@@ -1,4 +1,4 @@
-import { FolderKanban } from "lucide-react";
+import { projectCover, projectCoverUrl } from "@/lib/projectCovers";
 import { Link } from "react-router-dom";
 import { HealthBadge } from "@/components/projects/ProjectBadges";
 import { useProjectStages } from "@/hooks/useProjectStages";
@@ -54,17 +54,10 @@ export function JerinProjectOverview({ project, tasks, completion, loading }: Pr
   );
 }
 
-export function ProjectCover({ name }: { name: string }) {
-  if (name.trim().toLowerCase() === "ivy website") {
-    return <img className="jerin-project-cover" src="/jenri/project-detail/ivy-cover.png" alt="" width={100} height={108} />;
-  }
-  return <div className="jerin-project-cover grid place-items-center" aria-hidden="true"><FolderKanban className="h-6 w-6" /></div>;
-}
-
 export function JerinProjectSummary({ project, members }: { project: ProjectRow; members: number }) {
   return (
     <section className="jerin-project-summary" aria-label="Project summary">
-        <ProjectCover name={project.name} />
+        <img className="jerin-project-cover" src={projectCoverUrl(projectCover(project.id, project.cover_image_key))} alt="" width={100} height={108} />
         <div className="min-w-0 space-y-2">
           <h2>{project.name}</h2>
           <HealthBadge health={project.health} />

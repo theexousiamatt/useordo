@@ -1,4 +1,4 @@
-/* Figma node 150:4408 — Jerin workspace home, exclusively on mobile. */
+/* Figma node 194:15551 — Jerin workspace home, exclusively on mobile. */
 .jhm-shell {
   --jhm-espresso: #351001;
   --jhm-cream: #f9f4eb;
@@ -23,7 +23,7 @@
   align-items: flex-start;
   justify-content: space-between;
 }
-.jhm-brand { display: block; width: 110px; height: 38px; flex: none; }
+.jhm-brand { display: block; width: 28.9413px; height: 38px; flex: none; }
 .jhm-header-actions { display:flex; gap:12px; align-items:center; }
 .jhm-menu, .jhm-notifications > button {
   width: 40px !important;
@@ -31,7 +31,7 @@
   border-radius: 20px !important;
   border: 0;
   box-shadow: none !important;
-  background: #f5f5f5 !important;
+  background: rgba(53,16,1,.10) !important;
   color: var(--jhm-espresso) !important;
   display: grid !important;
   place-items: center !important;
@@ -49,17 +49,17 @@
   padding: 24px 12px 12px;
 }
 .jhm-overview-head {
-  margin: 0 12px 19px;
-  padding-bottom: 22px;
+  margin: 0 12px 24px;
+  padding-bottom: 19px;
   border-bottom: 2px solid rgba(255,255,255,.13);
 }
 .jhm-overview-head > span {
   display: block;
   font-size: 12px;
-  font-weight: 500;
-  color: rgba(255,255,255,.63);
+  font-weight: 700;
+  color: rgba(253,240,219,.7);
   letter-spacing: -.24px;
-  line-height: 1.15;
+  line-height: 1;
 }
 .jhm-overview-head h1 {
   color: #fff;
@@ -67,7 +67,7 @@
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: -.72px;
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   overflow-wrap: anywhere;
 }
 .jhm-stat-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px 12px; }
@@ -87,7 +87,6 @@
   box-shadow: inset 0 4px 25px rgba(208,172,113,.12);
   transition: transform .2s ease, background .2s ease;
 }
-.jhm-stat-1 { background: #e0e0e0; box-shadow: inset 0 4px 22px rgba(0,0,0,.045); }
 .jhm-stat:hover { transform: translateY(-2px); background: #fff7e9; }
 .jhm-stat > span {
   font-size: 13px;
@@ -103,9 +102,32 @@
   letter-spacing: -1.8px;
   font-variant-numeric: tabular-nums;
 }
-.jhm-projects-section { margin-top: 50px; }
+.jhm-attention { margin: 34px 19px 0 32px; }
+.jhm-attention h2 {
+  margin: 0 0 16px;
+  font-size: 19px;
+  line-height: 26px;
+  font-weight: 700;
+}
+.jhm-attention-list { display: grid; gap: 8px; }
+.jhm-attention-row {
+  display: flex; width: 100%; align-items: center; gap: 12px;
+  min-height: 67px; padding: 16px; text-align: left;
+  border-radius: 20px; background: #fefbf6; color: inherit;
+  transition: background-color .18s ease;
+}
+.jhm-attention-row:hover { background: #f9f4eb; }
+.jhm-attention-row strong, .jhm-attention-row small { display: block; line-height: 1; }
+.jhm-attention-row strong { font-size: 15px; font-weight: 700; letter-spacing: -.3px; }
+.jhm-attention-row small { margin-top: 7px; font-size: 12px; font-weight: 500; letter-spacing: -.24px; color: var(--jhm-walnut); }
+.jhm-attention-icon { position: relative; overflow: hidden; flex: none; width: 25.302px; height: 24px; }
+.jhm-attention-icon img { position: absolute; max-width: none; }
+.jhm-overdue-icon img { height: 150.15%; width: 213.63%; left: -58.28%; top: -22.14%; }
+.jhm-revisions-icon { width: 24.333px; }
+.jhm-revisions-icon img { height: 146.62%; width: 216.64%; left: -59.8%; top: -24.96%; }
+.jhm-projects-section { margin-top: 35px; }
 .jhm-projects-header {
-  margin: 0 20px 16px;
+  margin: 0 8px 16px 32px;
   height: 26px;
   display: flex;
   justify-content: space-between;
@@ -132,9 +154,9 @@
   overflow-x: auto;
   overflow-y: hidden;
   width: 100%;
-  padding: 0 20px 19px;
+  padding: 0 32px 19px;
   scroll-snap-type: x mandatory;
-  scroll-padding-left: 20px;
+  scroll-padding-left: 32px;
   scrollbar-width: none;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
@@ -161,7 +183,6 @@
   height:43px; width:48px; flex:0 0 48px;
   display:block; object-fit:cover; border-radius:13px;
 }
-.jhm-cover-placeholder { display:grid; place-items:center; background:#e9ded0; }
 .jhm-card-heading { min-width:0; flex:1; display:flex; flex-direction:column; gap:7px; }
 .jhm-card-heading strong {
   font-size:14.4px; letter-spacing:-.28px; line-height:1.1; font-weight:700;
@@ -181,10 +202,9 @@
 .jhm-members {
   height:34px; margin-top:12px;
   display:flex; align-items:center; width:max-content; max-width:100%;
-  border-radius:30px; background:#fff; padding:0 7px 0 2px;
+  border-radius:30px;
 }
-.jhm-members .ring-background { --tw-ring-color: white; }
-.jhm-members .bg-muted { background:#ede8e2; color:var(--jhm-espresso); }
+.jhm-members .ring-background { width:34px; height:34px; font-size:14px; --tw-ring-color: var(--jhm-cream); }
 .jhm-members-empty { padding:0 10px; font-size:11px; font-weight:500; color:var(--jhm-walnut); }
 .jhm-progress { margin-top:14px; }
 .jhm-progress-head { display:flex; align-items:center; justify-content:space-between; font-size:11px; font-weight:700; line-height:15px; }

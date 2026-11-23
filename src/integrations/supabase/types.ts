@@ -1046,6 +1046,7 @@ export type Database = {
         Row: {
           archived_at: string | null
           client_id: string | null
+          cover_image_key: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -1065,6 +1066,7 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           client_id?: string | null
+          cover_image_key?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1084,6 +1086,7 @@ export type Database = {
         Update: {
           archived_at?: string | null
           client_id?: string | null
+          cover_image_key?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null

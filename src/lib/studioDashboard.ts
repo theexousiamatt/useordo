@@ -2,6 +2,7 @@ import { differenceInCalendarDays, isValid, parseISO } from "date-fns";
 
 /** The dashboard reads only projects already visible to the signed-in workspace member. */
 export interface StudioProject {
+  cover_image_key?: string | null;
   id: string;
   name: string;
   status: string;
@@ -142,6 +143,9 @@ export function buildStudioOverview(data: StudioDashboardData, now = new Date())
   const pendingApprovals = data.deliverables
     .filter((d) => byId.has(d.project_id) && d.requires_approval && d.status === "submitted")
     .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const changesRequested = data.deliverables
+    .filter((item) => byId.has(item.project_id) && item.requires_approval && item.status === "rejected")
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
   const recentActivity = data.activity
     .filter((a) => byId.has(a.project_id))
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
@@ -179,6 +183,7 @@ export function buildStudioOverview(data: StudioDashboardData, now = new Date())
     overdueTasks,
     upcoming,
     pendingApprovals,
+    changesRequested,
     recentActivity,
     projectProgress,
     projectName: (projectId: string) => byId.get(projectId)?.name ?? "Project",

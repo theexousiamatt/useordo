@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Layers } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -12,10 +13,16 @@ type Source = "upload" | "link" | "project";
 const assets = "/jenri/project-detail/";
 
 export function TaskDeliverables({ projectId, taskId }: { projectId: string; taskId?: string }) {
+  const [params] = useSearchParams();
+  const selectedId = !taskId ? params.get("deliverable") : null;
   const query = useProjectDeliverables(projectId);
   const update = useUpdateDeliverableStatus(projectId);
   const reviewers = useProjectReviewers(projectId);
   const deliverables = (query.data ?? []).filter(item => !taskId || item.task_id === taskId);
+  const selected = deliverables.some(item => item.id === selectedId);
+  useEffect(() => {
+    if (selected && selectedId) document.getElementById(`deliverable-${selectedId}`)?.scrollIntoView?.({ block: "nearest" });
+  }, [selected, selectedId]);
   const reviewerNames = reviewers.data?.map(reviewer => reviewer.full_name || "Client reviewer").join(", ");
   const requestReview = async (id: string, action: "request" | "sign-off") => {
     try {
@@ -35,7 +42,7 @@ export function TaskDeliverables({ projectId, taskId }: { projectId: string; tas
       <strong>No deliverables yet</strong>
       <p>Add a design, file or link as a deliverable to share and get approval.</p>
     </div> : <ul className="grid gap-3">
-      {deliverables.map(item => <li className="jerin-deliverable-card" key={item.id}>
+      {deliverables.map(item => <li className={`jerin-deliverable-card${selectedId === item.id ? " ring-2 ring-ring" : ""}`} id={taskId ? undefined : `deliverable-${item.id}`} key={item.id}>
         <div className="flex flex-wrap justify-between gap-2">
           <strong className="break-words">{item.title}</strong>
           <DeliverableBadge status={item.status} requiresApproval={item.requires_approval} />

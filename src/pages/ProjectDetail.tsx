@@ -284,8 +284,15 @@ export default function ProjectDetail() {
       />}
       <ProjectSettingsDrawer
         project={project as ProjectRow}
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
+        open={settingsOpen || (perms.canManage && searchParams.get("settings") === "cover")}
+        onOpenChange={open => {
+          setSettingsOpen(open);
+          if (!open && searchParams.has("settings")) {
+            const next = new URLSearchParams(searchParams);
+            next.delete("settings");
+            setSearchParams(next, { replace: true });
+          }
+        }}
         canManage={perms.canManage}
       />
       <DeleteProjectDialog

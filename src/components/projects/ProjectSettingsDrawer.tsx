@@ -15,6 +15,8 @@ import {
   useWorkspaceMembers,
   type ProjectRow,
 } from "@/hooks/useProjects";
+import { projectCovers, type ProjectCoverId } from "@/lib/projectCovers";
+import { ProjectCoverPicker } from "./ProjectCoverPicker";
 import { PROJECT_STATUSES } from "@/lib/projectConstants";
 
 interface Props {
@@ -30,6 +32,7 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
   const { data: members = [] } = useWorkspaceMembers();
   const updateProject = useUpdateProject();
 
+  const [cover, setCover] = useState<ProjectCoverId | null>(null);
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description ?? "");
   const [dueDate, setDueDate] = useState<Date | undefined>(
@@ -43,6 +46,7 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
   useEffect(() => {
     if (open) {
       setName(project.name);
+      setCover(projectCovers.find(option => option.id === project.cover_image_key)?.id ?? null);
       setDescription(project.description ?? "");
       setDueDate(project.due_date ? new Date(project.due_date) : undefined);
       setClientId(project.client_id ?? "none");
@@ -90,6 +94,7 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
       await updateProject.mutateAsync({
         id: project.id,
         name: name.trim(),
+        cover_image_key: cover,
         description: description.trim() || null,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         client_id: clientId && clientId !== "none" ? clientId : null,
@@ -110,7 +115,7 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
       title="Project settings"
       description={
         canManage
-          ? "Update the project's details, timeline, and ownership."
+          ? "Update the project cover, details, timeline, and ownership."
           : "You have view-only access to this project's settings."
       }
       className="sm:max-w-lg"
@@ -133,6 +138,7 @@ export function ProjectSettingsDrawer({ open, onOpenChange, project, canManage }
       }
     >
       <OrdoFormSection>
+        <ProjectCoverPicker projectId={project.id} value={cover} onChange={setCover} disabled={!canManage || updateProject.isPending} />
         <OrdoField label="Project name" htmlFor="ps-name" required>
           <OrdoInput
             id="ps-name"

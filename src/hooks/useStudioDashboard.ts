@@ -50,7 +50,7 @@ export function useStudioDashboard() {
 
       const projects = await readAll<StudioProject>((from, to) =>
         supabase.from("projects")
-          .select("id,name,status,health,due_date,updated_at,archived_at")
+          .select("id,name,status,health,due_date,updated_at,archived_at,cover_image_key")
           .eq("workspace_id", workspaceId)
           .is("archived_at", null)
           .order("id", { ascending: true })
@@ -83,7 +83,7 @@ export function useStudioDashboard() {
             .select("id,project_id,title,status,requires_approval,created_at")
             .eq("workspace_id", workspaceId)
             .in("project_id", projectIds)
-            .eq("status", "submitted")
+            .in("status", ["submitted", "rejected"])
             .eq("requires_approval", true)
             .order("id", { ascending: true })
             .range(from, to)

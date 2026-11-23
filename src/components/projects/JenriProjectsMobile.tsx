@@ -1,3 +1,4 @@
+import { projectCover, projectCoverUrl } from "@/lib/projectCovers";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FolderKanban } from "lucide-react";
@@ -26,13 +27,6 @@ interface Props {
   isLoading: boolean;
   isError: boolean;
 }
-
-const covers: Record<string, string> = {
-  "ivy website": "/jenri/projects/ivy-cover.svg",
-  "velmont": "/jenri/projects/velmont-cover.svg",
-  "tiana gift shop": "/jenri/projects/tiana-cover.svg",
-  "devine apartment": "/jenri/projects/devine-cover.svg",
-};
 
 function shortDueDate(value: string) {
   const date = new Date(value.slice(0, 10) + "T12:00:00");
@@ -78,7 +72,7 @@ function MobileProjectCard({
 }) {
   const permissions = useProjectPermissions(project);
   const status = projectState(project);
-  const cover = covers[project.name.trim().toLowerCase()];
+  const cover = projectCoverUrl(projectCover(project.id, project.cover_image_key));
   const tasksText = typeof count === "number"
     ? `${count} ${count === 1 ? "task" : "tasks"}`
     : `${project.progress}% complete`;
@@ -87,13 +81,7 @@ function MobileProjectCard({
   return <article className="jenri-project-card" data-project-id={project.id}>
     <button type="button" className="jenri-project-card-open"
       onClick={onOpen} aria-label={`Open ${project.name}`}>
-      {cover ? (
-        <img className="jenri-project-cover" src={cover} alt="" loading="lazy" />
-      ) : (
-        <span className="jenri-project-cover jenri-project-cover-fallback" aria-hidden="true">
-          <FolderKanban size={28} strokeWidth={1.65} />
-        </span>
-      )}
+      <img className="jenri-project-cover" src={cover} alt="" loading="lazy" />
       <div className="jenri-project-details">
         <span className="jenri-project-name" title={project.name}>{project.name}</span>
         <span className={`jenri-project-status jenri-project-status-${status.tone}`}>

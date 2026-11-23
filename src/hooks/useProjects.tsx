@@ -8,7 +8,10 @@ import type {
   ProjectStatus,
 } from "@/lib/projectConstants";
 
+import type { ProjectCoverId } from "@/lib/projectCovers";
+
 export interface ProjectRow {
+  cover_image_key?: string | null;
   id: string;
   workspace_id: string;
   name: string;
@@ -247,6 +250,7 @@ export function useCreateProject() {
 }
 
 export interface UpdateProjectInput {
+  cover_image_key?: ProjectCoverId | null;
   id: string;
   name?: string;
   description?: string | null;
@@ -263,12 +267,14 @@ export function useUpdateProject() {
   const workspaceId = currentWorkspace?.id;
   return useMutation({
     mutationFn: async ({ id, ...patch }: UpdateProjectInput) => {
-      const { error } = await supabase.from("projects").update(patch).eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.from("projects").update(patch).eq("id", id).eq("workspace_id", workspaceId!).select("id").maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("This project could not be updated.");
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["projects", workspaceId] });
       qc.invalidateQueries({ queryKey: ["project", vars.id] });
+      qc.invalidateQueries({ queryKey: ["studio-dashboard", workspaceId] });
     },
   });
 }

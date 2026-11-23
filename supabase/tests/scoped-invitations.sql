@@ -47,6 +47,14 @@ INSERT INTO storage.objects(bucket_id,name) VALUES
  ('deliverable-files','93000000-0000-4000-8000-000000000002/submitted');
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','91000000-0000-4000-8000-000000000001',true),set_config('request.jwt.claim.role','authenticated',true);
+DO $$ BEGIN
+  UPDATE public.projects SET cover_image_key='architecture' WHERE id='93000000-0000-4000-8000-000000000001';
+  IF NOT FOUND THEN RAISE EXCEPTION 'Project owner could not change the cover'; END IF;
+  BEGIN
+    UPDATE public.projects SET cover_image_key='unapproved-cover' WHERE id='93000000-0000-4000-8000-000000000001';
+    RAISE EXCEPTION 'Unapproved project cover was accepted';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+END $$;
 DO $$ DECLARE first_id uuid; retry_id uuid; denied boolean:=false; BEGIN
  SELECT invitation_id INTO first_id FROM public.prepare_scoped_invitations('92000000-0000-4000-8000-000000000001',ARRAY[' SCOPE-CLIENT@example.invalid ','scope-client@example.invalid'],'client','93000000-0000-4000-8000-000000000001');
  SELECT invitation_id INTO retry_id FROM public.prepare_scoped_invitations('92000000-0000-4000-8000-000000000001',ARRAY['scope-client@example.invalid'],'client','93000000-0000-4000-8000-000000000001');
@@ -92,6 +100,8 @@ DO $$ DECLARE denied boolean:=false; BEGIN
  IF (SELECT count(*) FROM storage.objects)<>2 THEN RAISE EXCEPTION 'Client deleted shared storage'; END IF;
  DELETE FROM public.files;
  IF (SELECT count(*) FROM public.files)<>1 THEN RAISE EXCEPTION 'Client deleted shared files'; END IF;
+ UPDATE public.projects SET cover_image_key='cliffs' WHERE id='93000000-0000-4000-8000-000000000001';
+ IF FOUND THEN RAISE EXCEPTION 'Client changed the project cover'; END IF;
  IF (SELECT count(*) FROM public.projects)<>1 THEN RAISE EXCEPTION 'Project RLS leaked another project'; END IF;
  IF (SELECT count(*) FROM public.workspace_members)<>1 THEN RAISE EXCEPTION 'Client can enumerate agency members'; END IF;
  BEGIN INSERT INTO public.projects(workspace_id,name) VALUES('92000000-0000-4000-8000-000000000001','Unauthorized');

@@ -54,6 +54,7 @@ describe("studio dashboard aggregation", () => {
       { id: "d2", project_id: "p1", title: "Logo", status: "draft", requires_approval: true, created_at: "2026-11-13" },
       { id: "d3", project_id: "p1", title: "Notes", status: "submitted", requires_approval: false, created_at: "2026-11-13" },
       { id: "d4", project_id: "p1", title: "Approved", status: "approved", requires_approval: true, created_at: "2026-11-13" },
+      { id: "d5", project_id: "p1", title: "Revision", status: "rejected", requires_approval: true, created_at: "2026-11-13" },
     ];
     data.milestones = [
       { id: "m1", project_id: "p1", title: "Research", due_date: "2026-11-16", completed: false },
@@ -62,6 +63,7 @@ describe("studio dashboard aggregation", () => {
     ];
     const overview = buildStudioOverview(data, now);
     expect(overview.pendingApprovals.map((item) => item.id)).toEqual(["d1"]);
+    expect(overview.changesRequested.map((item) => item.id)).toEqual(["d5"]);
     expect(overview.upcoming.map((item) => item.id)).toEqual(["m1", "p1"]);
     expect(overview.projectProgress("p1").percent).toBe(0);
   });
