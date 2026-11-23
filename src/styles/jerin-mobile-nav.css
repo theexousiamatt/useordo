@@ -1,6 +1,8 @@
 .client-os {
-  --jerin-nav-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
-  --jerin-nav-height: 72px;
+  --jerin-nav-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  --jerin-nav-tab-height: 45px;
+  --jerin-nav-padding-block: 6px;
+  --jerin-nav-height: calc(var(--jerin-nav-tab-height) + 2 * var(--jerin-nav-padding-block));
   --jerin-nav-clearance: calc(var(--jerin-nav-bottom) + var(--jerin-nav-height) + 24px);
 }
 
@@ -16,7 +18,7 @@
   transform: translateX(-50%);
   width: min(341px, calc(100% - 32px));
   height: var(--jerin-nav-height);
-  padding: 6px 8px;
+  padding: var(--jerin-nav-padding-block) 8px;
   border-radius: 50px;
   background: #fff;
   box-shadow: 0 7px 17px rgba(56, 36, 20, .09);
