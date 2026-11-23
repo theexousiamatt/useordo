@@ -1,0 +1,1 @@
+import{j as t}from"./index-BSlkEAqA.js";import{C as i}from"./ClientHeader-935Cq2Cj.js";import{A as e}from"./ActivityFeed-DHfOHHoC.js";function n(){return t.jsxs(t.Fragment,{children:[t.jsx(i,{title:"Activity",subtitle:"A trail of everything happening across your projects."}),t.jsx(e,{limit:30})]})}export{n as default};
