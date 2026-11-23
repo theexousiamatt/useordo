@@ -14,7 +14,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 function AppShell() {
   const { collapsed } = useSidebarCollapse();
   const { pathname } = useLocation();
-  const mobileProjects = pathname === "/projects";
+  const jerinMobilePage = pathname === "/projects" || pathname === "/";
   return (
     <div className="client-os min-h-screen bg-background">
       {/* Fixed structural sidebar */}
@@ -28,18 +28,18 @@ function AppShell() {
       </aside>
 
       <div className={cn("flex min-h-screen flex-col transition-[margin] duration-300 ease-in-out", collapsed ? "lg:ml-[76px]" : "lg:ml-[268px]")}>
-        <div className={cn("flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8", mobileProjects && "max-lg:gap-0 max-lg:p-0")}>
-          <div className={cn(mobileProjects && "max-lg:hidden")}><OrdoTopBar /></div>
-          <main className={cn("flex min-w-0 flex-1 flex-col gap-6 sm:gap-8", mobileProjects && "max-lg:gap-0")}>
+        <div className={cn("flex min-w-0 flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-8", jerinMobilePage && "max-lg:gap-0 max-lg:p-0")}>
+          <div className={cn(jerinMobilePage && "max-lg:hidden")}><OrdoTopBar /></div>
+          <main className={cn("flex min-w-0 flex-1 flex-col gap-6 sm:gap-8", jerinMobilePage && "max-lg:gap-0")}>
             <Outlet />
           </main>
           <div
             aria-hidden="true"
-            className={cn("mobile-nav-clearance shrink-0 lg:hidden", mobileProjects && "max-lg:hidden")}
+            className={cn("mobile-nav-clearance shrink-0 lg:hidden", jerinMobilePage && "max-lg:hidden")}
             style={{ height: "calc(80px + env(safe-area-inset-bottom, 0px))" }}
           />
         </div>
-        {!mobileProjects && <MobileNav audience="studio" />}
+        {!jerinMobilePage && <MobileNav audience="studio" />}
         <JerinCreateFlow />
       </div>
     </div>
