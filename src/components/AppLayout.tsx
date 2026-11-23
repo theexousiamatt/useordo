@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { OrdoSidebar } from "@/components/OrdoSidebar";
 import { OrdoTopBar } from "@/components/OrdoTopBar";
 import { MobileNav } from "@/components/MobileNav";
+import { JerinCreateFlow } from "@/components/jenri/JerinCreateFlow";
 import { SidebarCollapseProvider, useSidebarCollapse } from "@/components/sidebar-collapse";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -39,6 +40,7 @@ function AppShell() {
           />
         </div>
         {!mobileProjects && <MobileNav audience="studio" />}
+        <JerinCreateFlow />
       </div>
     </div>
   );
