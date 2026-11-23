@@ -168,7 +168,7 @@
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .jhm-card-heading small {
-  font-size:10.8px; line-height:1.15; color:var(--jhm-walnut);
+  font-size:10.8px; font-weight:500; line-height:1.15; color:var(--jhm-walnut);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .jhm-options {
@@ -185,7 +185,7 @@
 }
 .jhm-members .ring-background { --tw-ring-color: white; }
 .jhm-members .bg-muted { background:#ede8e2; color:var(--jhm-espresso); }
-.jhm-members-empty { padding:0 10px; font-size:11px; color:#967f70; }
+.jhm-members-empty { padding:0 10px; font-size:11px; font-weight:500; color:var(--jhm-walnut); }
 .jhm-progress { margin-top:14px; }
 .jhm-progress-head { display:flex; align-items:center; justify-content:space-between; font-size:11px; font-weight:700; line-height:15px; }
 .jhm-progress-head strong { font-size:11px; font-weight:700; }

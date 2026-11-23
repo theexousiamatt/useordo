@@ -152,7 +152,7 @@
   padding: 0 22px;
   font-size: 13px !important;
   line-height: 1.2;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   white-space: nowrap;
   scroll-snap-align: start;
   transition: background .18s ease, color .18s ease;
@@ -164,7 +164,6 @@
 .jenri-projects-filter.is-selected {
   color: white;
   background: var(--jp-dark);
-  font-weight: 700 !important;
 }
 .jenri-projects-list {
   flex: 1 1 0;
@@ -293,7 +292,8 @@
 .jenri-project-members .bg-muted { background-color: #f0e8de; color: #351001; }
 .jenri-project-no-members {
   font-size: 11px;
-  color: #947d6b;
+  font-weight: 500;
+  color: var(--jp-text);
 }
 .jenri-project-menu {
   position: absolute;

@@ -139,7 +139,7 @@ export function JenriProjectsMobile({
             <img src="/jenri/projects/menu.svg" alt="" />
           </button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-[280px] border-none bg-transparent p-0">
+        <SheetContent side="left" className="client-os jerin-navigation-sheet w-[280px] border-none p-0" overlayClassName="bg-[#351001]/80">
           <SheetTitle className="sr-only">Workspace navigation</SheetTitle>
           <OrdoSidebar onNavigate={() => setMenuOpen(false)} />
         </SheetContent>

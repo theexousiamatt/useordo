@@ -157,7 +157,7 @@ export function JerinHomeMobile({ workspaceName, overview, tasks, isLoading, isE
           <SheetTrigger asChild><button type="button" className="jhm-menu" aria-label="Open workspace menu">
             <img src="/jenri/projects/menu.svg" alt="" />
           </button></SheetTrigger>
-          <SheetContent side="right" className="w-[280px] border-none bg-transparent p-0">
+          <SheetContent side="right" className="client-os jerin-navigation-sheet w-[280px] border-none p-0" overlayClassName="bg-[#351001]/80">
             <SheetTitle className="sr-only">Workspace navigation</SheetTitle>
             <OrdoSidebar onNavigate={() => setMenuOpen(false)} />
           </SheetContent>
