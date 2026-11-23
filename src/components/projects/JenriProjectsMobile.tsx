@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { FolderKanban } from "lucide-react";
 import { format } from "date-fns";
@@ -32,12 +31,6 @@ const covers: Record<string, string> = {
   "tiana gift shop": "/jenri/projects/tiana-cover.svg",
   "devine apartment": "/jenri/projects/devine-cover.svg",
 };
-const tabs = [
-  { label: "Home", href: "/", icon: "home" },
-  { label: "Projects", href: "/projects", icon: "projects" },
-  { label: "Tasks", href: "/tasks", icon: "tasks" },
-  { label: "Inbox", href: "/inbox", icon: "inbox" },
-];
 
 function shortDueDate(value: string) {
   const date = new Date(value.slice(0, 10) + "T12:00:00");
@@ -193,14 +186,5 @@ export function JenriProjectsMobile({
       ))}
     </div>
 
-    <nav className="jenri-projects-bottom-nav" aria-label="Mobile navigation">
-      {tabs.map((tab) => (
-        <NavLink key={tab.href} to={tab.href} end={tab.href === "/"}
-          className={({ isActive }) => `jenri-projects-nav-tab${isActive ? " is-active" : ""}`}>
-          <img src={`/jenri/projects/${tab.icon}.svg`} alt="" />
-          <span>{tab.label}</span>
-        </NavLink>
-      ))}
-    </nav>
   </section>;
 }

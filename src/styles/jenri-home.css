@@ -7,7 +7,7 @@
   min-height: 100dvh;
   width: 100%;
   overflow-x: hidden;
-  padding-bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: var(--jerin-nav-clearance);
   color: var(--jhm-espresso);
   font-family: "Circular Std", "DM Sans", "Avenir Next", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -217,49 +217,10 @@
 .jhm-project-empty h3 { color:var(--jhm-espresso); font-size:16px; font-weight:700; margin:0; }
 .jhm-project-empty p { margin:0; }
 .jhm-project-loading button, .jhm-project-empty button { background:var(--jhm-espresso); color:white; padding:10px 16px; border-radius:18px; border:0; font-size:12px; font-weight:700; }
-.jhm-nav {
-  position: fixed;
-  z-index: 42;
-  width: min(341px,calc(100% - 32px));
-  height:72px;
-  left:50%;
-  bottom:calc(28px + env(safe-area-inset-bottom, 0px));
-  transform:translateX(-50%);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  padding:6px 8px;
-  border-radius:50px;
-  border:1px solid rgba(255,255,255,.75);
-  background:rgba(255,255,255,.85);
-  backdrop-filter:blur(24px);
-  -webkit-backdrop-filter:blur(24px);
-  box-shadow:0 7px 18px rgba(56,36,20,.09);
-}
-.jhm-nav-link {
-  display:flex;
-  flex:0 0 60px;
-  width:60px; height:60px;
-  align-items:center; justify-content:center;
-  gap:8px;
-  text-decoration:none;
-  color:var(--jhm-espresso);
-  border-radius:50px;
-  font-size:13px; font-weight:700;
-  transition:background .2s ease;
-}
-.jhm-nav-link.is-active { flex-basis:121px; width:121px; color:#fff; background:var(--jhm-espresso); }
-.jhm-nav-link:hover:not(.is-active) { background:#f6f0e9; }
-.jhm-nav-link img { display:block; width:22px; height:22px; filter:brightness(0) saturate(100%) sepia(24%) saturate(2053%) hue-rotate(337deg) brightness(35%); }
-.jhm-nav-link.is-active img { filter:brightness(0) invert(1); }
 @media (max-width:370px) {
   .jhm-stat { padding-left:17px; padding-right:10px; }
   .jhm-stat > span { font-size:11.5px; }
   .jhm-overview-panel { margin:0 14px; }
-  .jhm-nav { gap:3px; }
-  .jhm-nav-link { flex:1 1 50px; width:auto; }
-  .jhm-nav-link.is-active { flex:1.6 1 90px; width:auto; }
 }
 @media (min-width:1024px) {
   .jhm-shell { display:none !important; }

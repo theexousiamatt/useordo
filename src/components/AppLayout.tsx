@@ -35,11 +35,10 @@ function AppShell() {
           </main>
           <div
             aria-hidden="true"
-            className={cn("mobile-nav-clearance shrink-0 lg:hidden", jerinMobilePage && "max-lg:hidden")}
-            style={{ height: "calc(80px + env(safe-area-inset-bottom, 0px))" }}
+            className={cn("jerin-mobile-nav-clearance shrink-0 lg:hidden", jerinMobilePage && "max-lg:hidden")}
           />
         </div>
-        {!jerinMobilePage && <MobileNav audience="studio" />}
+        <MobileNav audience="studio" />
         <JerinCreateFlow />
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { MobileNav } from "./MobileNav";
@@ -15,7 +15,7 @@ vi.mock("@/hooks/useClientDashboard", () => ({
 afterEach(cleanup);
 
 describe("mobile footer navigation", () => {
-  it("shows only the three primary staff destinations and highlights nested projects", () => {
+  it("shows the four Figma destinations and highlights nested projects", () => {
     render(
       <MemoryRouter initialEntries={["/projects/project-1?task=task-2"]}>
         <MobileNav audience="studio" />
@@ -24,10 +24,16 @@ describe("mobile footer navigation", () => {
 
     const nav = screen.getByRole("navigation", { name: "Studio mobile navigation" });
     const links = within(nav).getAllByRole("link");
-    expect(links.map((link) => link.textContent)).toEqual(["Home", "Projects", "Tasks"]);
-    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/", "/projects", "/tasks"]);
+    expect(links.map((link) => link.textContent)).toEqual(["Home", "Projects", "Tasks", "Inbox"]);
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/", "/projects", "/tasks", "/inbox"]);
     expect(within(nav).getByRole("link", { name: "Projects" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).queryByRole("link", { name: "Activity" })).toBeNull();
+    const indicator = nav.querySelector(".jerin-mobile-nav-indicator");
+    expect(indicator).toHaveStyle("--nav-index: 1");
+    fireEvent.click(within(nav).getByRole("link", { name: "Inbox" }));
+    expect(within(nav).getByRole("link", { name: "Inbox" })).toHaveAttribute("aria-current", "page");
+    expect(nav.querySelector(".jerin-mobile-nav-indicator")).toBe(indicator);
+    expect(indicator).toHaveStyle("--nav-index: 3");
   });
 
   it("shows Home / Projects / Approvals for clients, including pending approvals", () => {

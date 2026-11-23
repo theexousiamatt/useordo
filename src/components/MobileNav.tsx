@@ -1,24 +1,52 @@
-import { NavLink } from "react-router-dom";
-import { CheckCheck, FolderKanban, House, ListTodo } from "lucide-react";
+import type { CSSProperties } from "react";
+import { matchPath, NavLink, useLocation } from "react-router-dom";
+import { CheckCheck, FolderKanban, House } from "lucide-react";
 import { useActionItems } from "@/hooks/useClientDashboard";
 import { cn } from "@/lib/utils";
+import "@/styles/jerin-mobile-nav.css";
 
-/**
- * Three high-frequency destinations for each role. Secondary pages remain
- * available in the existing header/sidebar menu, including on small screens.
- */
-export const mobilePrimaryItems = {
-  studio: [
-    { title: "Home", url: "/", icon: House, end: true },
-    { title: "Projects", url: "/projects", icon: FolderKanban, end: false },
-    { title: "Tasks", url: "/tasks", icon: ListTodo, end: false },
-  ],
-  client: [
-    { title: "Home", url: "/client", icon: House, end: true },
-    { title: "Projects", url: "/client/projects", icon: FolderKanban, end: false },
-    { title: "Approvals", url: "/client/approvals", icon: CheckCheck, end: false },
-  ],
-} as const;
+const studioItems = [
+  { title: "Home", url: "/", icon: "home", end: true },
+  { title: "Projects", url: "/projects", icon: "projects", end: false },
+  { title: "Tasks", url: "/tasks", icon: "tasks", end: false },
+  { title: "Inbox", url: "/inbox", icon: "inbox", end: false },
+] as const;
+
+const clientItems = [
+  { title: "Home", url: "/client", icon: House, end: true },
+  { title: "Projects", url: "/client/projects", icon: FolderKanban, end: false },
+  { title: "Approvals", url: "/client/approvals", icon: CheckCheck, end: false },
+] as const;
+
+function StudioMobileNav() {
+  const { pathname } = useLocation();
+  const activeIndex = studioItems.findIndex(({ url, end }) => matchPath({ path: url, end }, pathname));
+
+  return (
+    <nav aria-label="Studio mobile navigation" className="mobile-bottom-nav jerin-mobile-nav lg:hidden">
+      <ul className="jerin-mobile-nav-track" data-selected={activeIndex >= 0}>
+        <li
+          aria-hidden="true"
+          className="jerin-mobile-nav-indicator"
+          data-visible={activeIndex >= 0}
+          style={{ "--nav-index": Math.max(activeIndex, 0) } as CSSProperties}
+        />
+        {studioItems.map(({ title, url, icon, end }) => (
+          <li key={url} className="jerin-mobile-nav-item">
+            <NavLink to={url} end={end} aria-label={title} className="jerin-mobile-nav-link">
+              <span
+                aria-hidden="true"
+                className="jerin-mobile-nav-icon"
+                style={{ maskImage: `url("/jenri/navigation/${icon}.svg")` }}
+              />
+              <span className="jerin-mobile-nav-label">{title}</span>
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
 
 function ClientApprovalCount() {
   const { data } = useActionItems();
@@ -35,17 +63,16 @@ function ClientApprovalCount() {
   );
 }
 
-export function MobileNav({ audience }: { audience: "studio" | "client" }) {
-  const items = mobilePrimaryItems[audience];
+function ClientMobileNav() {
 
   return (
     <nav
-      aria-label={audience === "client" ? "Client mobile navigation" : "Studio mobile navigation"}
+      aria-label="Client mobile navigation"
       className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-card/95 shadow-[0_-8px_20px_-20px_rgba(0,0,0,0.14)] backdrop-blur-xl lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <ul className="mx-auto flex h-[66px] w-full max-w-[560px] items-stretch px-3">
-        {items.map((item) => (
+        {clientItems.map((item) => (
           <li key={item.url} className="min-w-0 flex-1">
             <NavLink
               to={item.url}
@@ -70,7 +97,7 @@ export function MobileNav({ audience }: { audience: "studio" | "client" }) {
                       strokeWidth={isActive ? 2.25 : 1.8}
                       aria-hidden="true"
                     />
-                    {audience === "client" && item.title === "Approvals" && <ClientApprovalCount />}
+                    {item.title === "Approvals" && <ClientApprovalCount />}
                   </span>
                   <span className={cn("truncate text-[11px] leading-4", isActive ? "font-semibold" : "font-medium")}>
                     {item.title}
@@ -90,4 +117,8 @@ export function MobileNav({ audience }: { audience: "studio" | "client" }) {
       </ul>
     </nav>
   );
+}
+
+export function MobileNav({ audience }: { audience: "studio" | "client" }) {
+  return audience === "studio" ? <StudioMobileNav /> : <ClientMobileNav />;
 }

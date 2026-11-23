@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { FolderKanban } from "lucide-react";
 import { toast } from "sonner";
@@ -33,12 +33,6 @@ const covers: Record<string, string> = {
   "devine apartment": "/jenri/projects/devine-cover.svg",
 };
 
-const tabs = [
-  { label: "Home", href: "/", icon: "home" },
-  { label: "Projects", href: "/projects", icon: "projects" },
-  { label: "Tasks", href: "/tasks", icon: "tasks" },
-  { label: "Inbox", href: "/inbox", icon: "inbox" },
-];
 
 /** Personal assignments include both multi-member and legacy single-assignee tasks. */
 function useAssignedTaskCount(tasks: StudioTask[]) {
@@ -195,14 +189,5 @@ export function JerinHomeMobile({ workspaceName, overview, tasks, isLoading, isE
           </div> : <ProjectCarousel overview={overview} />}
       </section>
     </main>
-    <nav className="jhm-nav" aria-label="Jerin mobile navigation">
-      {tabs.map((tab) => <NavLink to={tab.href} key={tab.href} end={tab.href === "/"}
-        aria-label={tab.label} className={({ isActive }) => "jhm-nav-link" + (isActive ? " is-active" : "")}>
-        {({ isActive }) => <>
-          <img src={"/jenri/projects/" + tab.icon + ".svg"} alt="" />
-          {isActive && <span>{tab.label}</span>}
-        </>}
-      </NavLink>)}
-    </nav>
   </div>;
 }
